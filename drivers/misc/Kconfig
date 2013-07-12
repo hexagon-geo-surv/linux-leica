@@ -516,6 +516,13 @@ config SRAM
 	  the genalloc API. It is supposed to be used for small on-chip SRAM
 	  areas found on many SoCs.
 
+config UBOOT_BOOTCOUNT
+	tristate "U-Boot Bootcount driver"
+	depends on OF && SYSFS
+	help
+	  The U-Boot Bootcount driver allows to access the
+	  bootcounter through sysfs file.
+
 config VEXPRESS_SYSCFG
 	bool "Versatile Express System Configuration driver"
 	depends on VEXPRESS_CONFIG

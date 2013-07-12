@@ -1,0 +1,36 @@
+U-Boot bootcount driver
+
+This driver implements the Linux kernel half of the boot count feature -
+the boot counter can only be reset after it is clear that the
+application has been started and is running correctly, which usually
+can only be determined by the application code itself. Thus the reset
+of the boot counter must be done by application code, which thus needs
+an appropriate driver.
+
+Required feature by the Carrier Grade Linux Requirements Definition;
+see for example document "Carrier Grade Linux Requirements Definition
+Overview V3.0" at
+
+http://www.linuxfoundation.org/collaborate/workgroups/cgl/requirements#SMM.6.0_Boot_Cycle_Detection
+
+        Description: OSDL CGL specifies that carrier grade Linux
+        shall provide support for detecting a repeating reboot cycle
+        due to recurring failures. This detection should happen in
+        user space before system services are started.
+
+This driver provides read/write access to the U-Boot bootcounter
+through sysFS file.
+
+Currently memory type only supported.
+
+Required properties:
+
+  - compatible : should be "uboot,bootcount"
+  - reg: the address of the bootcounter
+
+Example:
+
+bootcount@1c23000 {
+	compatible = "uboot,bootcount";
+	reg = <0x23060 0x20>;
+};

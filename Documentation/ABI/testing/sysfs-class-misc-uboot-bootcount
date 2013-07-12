@@ -1,0 +1,11 @@
+What:		/sys/class/misc/uboot-bootcount/uboot-bootcount
+Date:		Dezember 2011
+Contact:	Heiko Schocher <hs@denx.de>
+Description:
+		This driver implements the Linux kernel half of the
+		U-Boot bootcount feature - the boot counter can only
+		be reset after it is clear that the application has
+		been started and is running correctly, which usually
+		can only be determined by the application code itself.
+		Thus the reset of the boot counter must be done by
+		application code, which thus needs an appropriate driver.

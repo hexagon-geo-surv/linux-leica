@@ -37,6 +37,7 @@ struct dw_dma_slave {
  * @nr_channels: Number of channels supported by hardware (max 8)
  * @is_private: The device channels should be marked as private and not for
  *	by the general purpose DMA channel allocator.
+ * @no_hclk: No HCLK is required by driver for operation.
  * @is_memcpy: The device channels do support memory-to-memory transfers.
  * @chan_allocation_order: Allocate channels starting from 0 or 7
  * @chan_priority: Set channel priority increasing from 0 to 7 or 7 to 0.
@@ -48,6 +49,7 @@ struct dw_dma_slave {
 struct dw_dma_platform_data {
 	unsigned int	nr_channels;
 	bool		is_private;
+	bool		no_hclk;
 	bool		is_memcpy;
 #define CHAN_ALLOCATION_ASCENDING	0	/* zero to seven */
 #define CHAN_ALLOCATION_DESCENDING	1	/* seven to zero */

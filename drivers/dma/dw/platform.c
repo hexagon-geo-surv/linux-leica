@@ -119,6 +119,9 @@ dw_dma_parse_dt(struct platform_device *pdev)
 	if (of_property_read_bool(np, "is_private"))
 		pdata->is_private = true;
 
+	if (of_property_read_bool(np, "no_hclk"))
+		pdata->no_hclk = true;
+
 	if (!of_property_read_u32(np, "chan_allocation_order", &tmp))
 		pdata->chan_allocation_order = (unsigned char)tmp;
 
@@ -187,12 +190,14 @@ static int dw_probe(struct platform_device *pdev)
 
 	chip->dev = dev;
 
-	chip->clk = devm_clk_get(chip->dev, "hclk");
-	if (IS_ERR(chip->clk))
-		return PTR_ERR(chip->clk);
-	err = clk_prepare_enable(chip->clk);
-	if (err)
-		return err;
+	if (!pdata->no_hclk) {
+		chip->clk = devm_clk_get(chip->dev, "hclk");
+		if (IS_ERR(chip->clk))
+			return PTR_ERR(chip->clk);
+		err = clk_prepare_enable(chip->clk);
+		if (err)
+			return err;
+	}
 
 	pm_runtime_enable(&pdev->dev);
 
@@ -240,7 +245,8 @@ static void dw_shutdown(struct platform_device *pdev)
 	struct dw_dma_chip *chip = platform_get_drvdata(pdev);
 
 	dw_dma_disable(chip);
-	clk_disable_unprepare(chip->clk);
+	if (chip->clk)
+		clk_disable_unprepare(chip->clk);
 }
 
 #ifdef CONFIG_OF
@@ -276,7 +282,8 @@ static int dw_suspend_late(struct device *dev)
 	struct dw_dma_chip *chip = platform_get_drvdata(pdev);
 
 	dw_dma_disable(chip);
-	clk_disable_unprepare(chip->clk);
+	if (chip->clk)
+		clk_disable_unprepare(chip->clk);
 
 	return 0;
 }
@@ -286,7 +293,9 @@ static int dw_resume_early(struct device *dev)
 	struct platform_device *pdev = to_platform_device(dev);
 	struct dw_dma_chip *chip = platform_get_drvdata(pdev);
 
-	clk_prepare_enable(chip->clk);
+	if (chip->clk)
+		clk_prepare_enable(chip->clk);
+
 	return dw_dma_enable(chip);
 }
 

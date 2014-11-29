@@ -1,0 +1,10 @@
+#
+# SoCFPGA Soc drivers
+#
+
+config SOCFPGA_L3NIC
+	tristate "SoCFPGA L3 NIC-301 driver"
+	depends on ARCH_SOCFPGA
+	select REGMAP_MMIO
+	help
+	  Enable configuration support for the SoCFPGA L3 AMBA Network Interconnect.

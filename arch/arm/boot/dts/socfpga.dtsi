@@ -668,6 +668,11 @@
 			prefetch-instr = <1>;
 		};
 
+		l3regs: gpv@ff800000 {
+			compatible = "altr,l3-nic";
+			reg = <0xff800000 0x100000>;
+		};
+
 		mmc: dwmmc0@ff704000 {
 			compatible = "altr,socfpga-dw-mshc";
 			reg = <0xff704000 0x1000>;

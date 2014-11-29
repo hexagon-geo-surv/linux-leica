@@ -1,0 +1,15 @@
+Altera SOCFPGA L3 Network Interconnect
+--------------------------------------
+
+The L3 NIC provides access to Global Programmer View (GPV) registers for all
+AXI slaves and masters on the SoC.
+
+Required properties:
+- compatible : "altr,l3-nic"
+- reg : Should contain 1 register range (address and length)
+
+Example:
+	 gpv@ff800000 {
+		compatible = "altr,l3-nic";
+		reg = <0xff800000 0x100000>;
+	};

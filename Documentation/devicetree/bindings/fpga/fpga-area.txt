@@ -1,0 +1,70 @@
+FPGA Area
+=========
+
+A FPGA Area details information about a section of an FPGA including the FPGA
+image needed to program it and the hardware contained in this section of the
+FPGA once it is programmed.
+
+A FPGA Area corresponds to the whole FPGA in the case of full reconfiguration
+or a section of a FPGA in the case of partial reconfiguration.
+
+Required properties:
+- compatible : should contain "fpga-area"
+- #address-cells, #size-cells, ranges: must be present to handle address space
+  mapping for children.
+
+Optional properties:
+- firmware-name : should contain the name of a FPGA image file located on the
+  firmware search path.
+- partial-reconfig : boolean property should be defined if partial
+  reconfiguration of the FPGA is to be done, otherwise full reconfiguration
+  is done.
+
+Example:
+
+/dts-v1/;
+/plugin/;
+/ {
+	fragment@0 {
+		target-path="/soc/fpgamgr@0/bridge@0";
+		__overlay__ {
+			#address-cells = <1>;
+	                #size-cells = <1>;
+
+			bridge@ff200000 {
+				compatible = "fpga-area";
+
+				#address-cells = <2>;
+				#size-cells = <1>;
+
+				ranges = <0 0x00000000 0xc0000000 0x00010000>,
+					 <1 0x00020000 0xff220000 0x00000008>,
+					 <1 0x00010040 0xff210040 0x00000020>;
+
+				firmware-name = "soc_system.rbf";
+
+				onchip_memory2_0: memory@000000000 {
+					device_type = "memory";
+					compatible = "altr,onchipmem-15.1";
+					reg = <0 0x00000000 0x00010000>;
+				};
+
+				jtag_uart: serial@100020000 {
+					compatible = "altr,juart-1.0";
+					reg = <1 0x00020000 0x00000008>;
+					interrupt-parent = <&intc>;
+					interrupts = <0 42 4>;
+				};
+
+				led_pio: gpio@100010040 {
+					compatible = "altr,pio-1.0";
+					reg = <1 0x00010040 0x00000020>;
+					altr,gpio-bank-width = <4>;
+					#gpio-cells = <2>;
+					gpio-controller;
+				};
+			};
+		};
+	};
+};
+

@@ -38,6 +38,13 @@ config FPGA_AREA
          Enable FPGA Area which supports programming FPGAs under control of
 	 Device Tree.
 
+config SOCFPGA_FPGA_BRIDGE
+	bool "Altera SoCFPGA FPGA Bridges"
+	depends on ARCH_SOCFPGA && FPGA_BRIDGE
+	help
+	  Say Y to enable drivers for FPGA bridges for Altera SOCFPGA
+	  devices.
+
 endif # FPGA
 
 endmenu

@@ -80,6 +80,7 @@ struct pci_ops pci_root_ops = {
  * configuration space.
  */
 DEFINE_RAW_SPINLOCK(pci_config_lock);
+EXPORT_SYMBOL(pci_config_lock);
 
 static int __init can_skip_ioresource_align(const struct dmi_system_id *d)
 {

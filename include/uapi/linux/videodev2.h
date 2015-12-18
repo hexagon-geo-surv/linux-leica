@@ -2035,8 +2035,9 @@ struct v4l2_streamparm {
 #define V4L2_EVENT_EOS				2
 #define V4L2_EVENT_CTRL				3
 #define V4L2_EVENT_FRAME_SYNC			4
-#define V4L2_EVENT_SOURCE_CHANGE		5
-#define V4L2_EVENT_MOTION_DET			6
+#define V4L2_EVENT_FRAME_END		        5
+#define V4L2_EVENT_SOURCE_CHANGE		6
+#define V4L2_EVENT_MOTION_DET			7
 #define V4L2_EVENT_PRIVATE_START		0x08000000
 
 /* Payload for V4L2_EVENT_VSYNC */

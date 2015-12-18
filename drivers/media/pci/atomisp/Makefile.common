@@ -1,0 +1,78 @@
+ifneq ($(ISP2400B0), )
+	css_platform_folder := css_2400_system
+else ifneq ($(ISP2401_NEW_INPUT_SYSTEM), )
+	css_platform_folder := css_2401_csi2p_system
+else ifneq ($(ISP2401), )
+	css_platform_folder := css_2401_system
+endif
+
+ifneq ($(ISP2401_NEW_INPUT_SYSTEM), )
+	src_filter_out := %ifmtr.c %input_system.c %input_formatter.c %vmem.c %timer.c %ia_css_ctc2.host.c %ia_css_pdaf.host.c
+else
+	src_filter_out := %csi_rx_rmgr.c %isys_dma_rmgr.c %virtual_isys.c %isys_stream2mmio_rmgr.c %vmem.c %timer.c %ia_css_ctc2.host.c %ia_css_pdaf.host.c
+endif
+
+atomisp-$(postfix)-objs := \
+		../atomisp_driver/atomisp_ioctl.o \
+		../atomisp_driver/atomisp_compat_ioctl32.o \
+		../atomisp_driver/atomisp_cmd.o \
+		../atomisp_driver/atomisp_fops.o \
+		../atomisp_driver/atomisp_subdev.o \
+		../atomisp_driver/atomisp_csi2.o \
+		../atomisp_driver/atomisp_tpg.o \
+		../atomisp_driver/atomisp_file.o \
+		../atomisp_driver/atomisp_v4l2.o \
+		../atomisp_driver/atomisp_acc.o \
+		../atomisp_driver/atomisp_drvfs.o \
+		../atomisp_driver/mmu/isp_mmu.o \
+		../atomisp_driver/mmu/sh_mmu_mrfld.o \
+		../atomisp_driver/hmm/hmm.o \
+		../atomisp_driver/hmm/hmm_bo.o \
+		../atomisp_driver/hmm/hmm_reserved_pool.o \
+		../atomisp_driver/hmm/hmm_dynamic_pool.o \
+		../atomisp_driver/hrt/hive_isp_css_mm_hrt.o \
+		../atomisp_driver/atomisp_compat_css20.o \
+
+css_folder := $(srctree)/$(src)/../css/.
+top_folders := $(shell find $(css_folder) -maxdepth 1 -type d)
+sub_folders := $(shell find $(css_folder) -maxdepth 10 -type d)
+css_platform_folders := $(filter $(css_folder)/css_%_system, $(top_folders))
+exclude_platforms := $(filter-out $(css_folder)/$(css_platform_folder)%, $(css_platform_folders))
+# Append % at each folder to include sub folders and files.
+plat_filter_out := $(foreach dir, $(exclude_platforms), $(dir)%)
+
+FILES := $(foreach dir, $(sub_folders), $(wildcard $(dir)/*.c))
+FILES := $(filter-out $(plat_filter_out), $(FILES))
+FILES := $(filter-out $(src_filter_out), $(FILES))
+
+atomisp-$(postfix)-objs += $(patsubst $(srctree)/$(src)/%.c, %.o, $(FILES))
+obj-$(CONFIG_VIDEO_ATOMISP) = atomisp-$(postfix).o
+
+plat_filter_out := $(foreach dir, $(css_platform_folders), $(dir)%)
+INCLUDES := $(foreach dir, $(filter $(css_folder)/$(css_platform_folder)%, $(sub_folders)), -I$(dir))
+INCLUDES += $(foreach dir, $(filter-out $(plat_filter_out), $(sub_folders)), -I$(dir))
+INCLUDES +=	-I$(srctree)/$(src)/../atomisp_driver/include \
+		-I$(srctree)/$(src)/../atomisp_driver/ \
+		-I$(srctree)/$(src)/../atomisp_driver/hrt \
+		-I$(srctree)/$(src)/../css \
+		-I$(srctree)/include/linux/ \
+		-I$(srctree)/drivers/staging/intel_media/bc_video
+
+DEFINES := -DHRT_HW -DHRT_ISP_CSS_CUSTOM_HOST -DHRT_USE_VIR_ADDRS -DHRT_KERNEL -D__HOST__
+DEFINES += -DUSE_DYNAMIC_BIN
+DEFINES += -DISP_POWER_GATING
+DEFINES += -DUSE_INTERRUPTS
+#DEFINES += -DUSE_SSSE3
+DEFINES += -DPUNIT_CAMERA_BUSY
+DEFINES += -DUSE_KMEM_CACHE
+
+ifneq ($(ISP2401), )
+DEFINES += -DSYSTEM_hive_isp_css_2401_system -DISP2401
+else ifneq ($(ISP2400B0), )
+DEFINES += -DSYSTEM_hive_isp_css_2400_system -DISP2400
+else
+DEFINES += -DSYSTEM_hive_isp_css_system
+endif
+
+ccflags-y += $(INCLUDES) $(DEFINES) -fno-common -Werror
+

@@ -13,6 +13,8 @@
 
 #include <linux/sfi.h>
 #include <linux/platform_device.h>
+#include <asm/intel_mid_pcihelpers.h>
+#include <asm/spid.h>
 
 extern int intel_mid_pci_init(void);
 extern int get_gpio_by_name(const char *name);

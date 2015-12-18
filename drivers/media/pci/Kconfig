@@ -10,6 +10,7 @@ if MEDIA_PCI_SUPPORT
 
 if MEDIA_CAMERA_SUPPORT
 	comment "Media capture support"
+source "drivers/media/pci/atomisp/Kconfig"
 source "drivers/media/pci/meye/Kconfig"
 source "drivers/media/pci/solo6x10/Kconfig"
 source "drivers/media/pci/sta2x11/Kconfig"

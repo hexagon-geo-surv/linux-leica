@@ -524,6 +524,11 @@ config X86_INTEL_MID
 	  Intel MID platforms are based on an Intel processor and chipset which
 	  consume less power than most of the x86 derivatives.
 
+config INTEL_MID_ISP
+	bool "Intel MID ISP Subsystem Support"
+	---help---
+	  Select to build support for Intel MID ISP Subsystem.
+
 config X86_INTEL_QUARK
 	bool "Intel Quark platform support"
 	depends on X86_32

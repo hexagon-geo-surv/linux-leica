@@ -141,7 +141,7 @@ static int alt_fpga_bridge_probe(struct platform_device *pdev)
 		return PTR_ERR(priv->bridge_reset);
 	}
 
-	priv->l3reg = syscon_regmap_lookup_by_compatible("altr,l3regs");
+	priv->l3reg = syscon_regmap_lookup_by_compatible("altr,l3-nic");
 	if (IS_ERR(priv->l3reg)) {
 		dev_err(dev, "regmap for altr,l3regs lookup failed\n");
 		return PTR_ERR(priv->l3reg);

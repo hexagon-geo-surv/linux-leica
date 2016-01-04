@@ -669,7 +669,7 @@
 		};
 
 		l3regs: gpv@ff800000 {
-			compatible = "altr,l3-nic";
+			compatible = "altr,l3-nic", "syscon";
 			reg = <0xff800000 0x100000>;
 		};
 

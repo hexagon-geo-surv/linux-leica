@@ -73,6 +73,12 @@ struct flash_info {
 
 #define JEDEC_MFR(info)	((info)->id[0])
 
+struct read_id_config {
+	enum read_mode		mode;
+	enum spi_nor_protocol	proto;
+	u8			opcode;
+};
+
 static const struct flash_info *spi_nor_match_id(const char *name);
 
 /*
@@ -871,16 +877,79 @@ static const struct flash_info spi_nor_ids[] = {
 	{ },
 };
 
-static const struct flash_info *spi_nor_read_id(struct spi_nor *nor)
+static const struct flash_info *spi_nor_read_id(struct spi_nor *nor,
+						enum read_mode mode)
 {
-	int			tmp;
+	int			i, tmp;
 	u8			id[SPI_NOR_MAX_ID_LEN];
 	const struct flash_info	*info;
+	static const struct read_id_config configs[] = {
+		/* Winbond QPI mode */
+		{SPI_NOR_QUAD, SNOR_PROTO_4_4_4, SPINOR_OP_RDID},
+
+		/* Micron Quad mode & Macronix QPI mode */
+		{SPI_NOR_QUAD, SNOR_PROTO_4_4_4, SPINOR_OP_MIO_RDID},
+
+		/* Micron Dual mode */
+		{SPI_NOR_DUAL, SNOR_PROTO_2_2_2, SPINOR_OP_MIO_RDID}
+	};
 
 	tmp = nor->read_reg(nor, SPINOR_OP_RDID, id, SPI_NOR_MAX_ID_LEN);
 	if (tmp < 0) {
 		dev_dbg(nor->dev, "error %d reading JEDEC ID\n", tmp);
 		return ERR_PTR(tmp);
+	}
+
+	/*
+	 * Check whether the SPI NOR memory has already been configured (at
+	 * reset or by some bootloader) to use a protocol other than SPI 1-1-1.
+	 */
+	for (i = 0; i < ARRAY_SIZE(configs); ++i) {
+		int len = SPI_NOR_MAX_ID_LEN;
+		bool is_multi = false;
+
+		/*
+		 * Check the latest read Manufacturer ID + Device ID (3 bytes):
+		 * if they are different from both 0x000000 and 0xffffff, we
+		 * assume that we succeeded in reading a valid JEDEC ID so we
+		 * don't need to try other SPI protocols.
+		 * Indeed when either the protocol or the op code are not valid,
+		 * the SPI NOR memory should not reply to the command. Hence the
+		 * SPI I/O lines remain in their default state: 1 when connected
+		 * to pull-up resistors or 0 with pull-down.
+		 */
+		if (!((id[0] == 0xff && id[1] == 0xff && id[2] == 0xff) ||
+		      (id[0] == 0x00 && id[1] == 0x00 && id[2] == 0x00)))
+			break;
+
+		/* Only try protocols supported by the user. */
+		if (configs[i].mode != mode)
+			continue;
+
+		/* Set this protocol for all commands. */
+		nor->reg_proto = configs[i].proto;
+		nor->read_proto = configs[i].proto;
+		nor->write_proto = configs[i].proto;
+		nor->erase_proto = configs[i].proto;
+
+		/*
+		 * Multiple I/O Read ID only returns the Manufacturer ID
+		 * (1 byte) and the Device ID (2 bytes). So we reset the
+		 * remaining bytes.
+		 */
+		if (configs[i].opcode == SPINOR_OP_MIO_RDID) {
+			is_multi = true;
+			len = 3;
+			memset(id + len, 0, sizeof(id) - len);
+		}
+
+		tmp = nor->read_reg(nor, configs[i].opcode, id, len);
+		if (tmp < 0) {
+			dev_dbg(nor->dev,
+				"error %d reading JEDEC ID%s\n",
+				tmp, (is_multi ? " Multi I/O" : ""));
+			return ERR_PTR(tmp);
+		}
 	}
 
 	for (tmp = 0; tmp < ARRAY_SIZE(spi_nor_ids) - 1; tmp++) {
@@ -1140,11 +1209,17 @@ int spi_nor_scan(struct spi_nor *nor, const char *name, enum read_mode mode)
 	if (ret)
 		return ret;
 
+	/* Reset SPI protocol for all commands */
+	nor->erase_proto = SNOR_PROTO_1_1_1;
+	nor->read_proto = SNOR_PROTO_1_1_1;
+	nor->write_proto = SNOR_PROTO_1_1_1;
+	nor->reg_proto = SNOR_PROTO_1_1_1;
+
 	if (name)
 		info = spi_nor_match_id(name);
 	/* Try to auto-detect if chip name wasn't specified or not found */
 	if (!info)
-		info = spi_nor_read_id(nor);
+		info = spi_nor_read_id(nor, mode);
 	if (IS_ERR_OR_NULL(info))
 		return -ENOENT;
 
@@ -1155,7 +1230,7 @@ int spi_nor_scan(struct spi_nor *nor, const char *name, enum read_mode mode)
 	if (name && info->id_len) {
 		const struct flash_info *jinfo;
 
-		jinfo = spi_nor_read_id(nor);
+		jinfo = spi_nor_read_id(nor, mode);
 		if (IS_ERR(jinfo)) {
 			return PTR_ERR(jinfo);
 		} else if (jinfo != info) {

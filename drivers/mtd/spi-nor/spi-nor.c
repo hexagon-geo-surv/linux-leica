@@ -1166,6 +1166,40 @@ static int spansion_quad_enable(struct spi_nor *nor)
 	return 0;
 }
 
+static int winbond_quad_enable(struct spi_nor *nor)
+{
+	int ret;
+	u8 sr2;
+
+	ret = nor->read_reg(nor, SPINOR_OP_RDSR2_WINB, &sr2, 1);
+	if (ret < 0)
+		return ret;
+
+	if (likely(sr2 & SR2_QUAD_EN_WINB))
+		return 0;
+	dev_warn(nor->dev, "Winbond Quad mode disabled, enable it\n");
+
+	write_enable(nor);
+
+	sr2 |= SR2_QUAD_EN_WINB;
+	ret = nor->write_reg(nor, SPINOR_OP_WRSR2_WINB, &sr2, 1);
+	if (ret < 0)
+		return ret;
+
+	if (spi_nor_wait_till_ready(nor))
+		return -EIO;
+
+	ret = nor->read_reg(nor, SPINOR_OP_RDSR2_WINB, &sr2, 1);
+	if (ret < 0)
+		return ret;
+	if (!(sr2 & SR2_QUAD_EN_WINB)) {
+		dev_err(nor->dev, "Winbond Quad bit not set\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static int macronix_set_quad_mode(struct spi_nor *nor)
 {
 	int status;
@@ -1226,6 +1260,63 @@ static int macronix_set_single_mode(struct spi_nor *nor)
 	return 0;
 }
 
+static int winbond_set_quad_mode(struct spi_nor *nor)
+{
+	int status;
+
+	/* Check whether the QPI mode is enabled. */
+	if (nor->read_proto == SNOR_PROTO_4_4_4) {
+		/* Since the QPI mode is enabled, the Quad Enabled (QE)
+		 * non-volatile bit is already set.
+		 * If the Fast Read 1-4-4 (0xeb) were used, we should
+		 * take care about the value M7-M0 written during
+		 * dummy/mode cycles to avoid entering the continuous
+		 * read mode by  mistake.
+		 * Also the Fast Read 1-1-4 (0x6b) op code is not
+		 * supported in QPI mode.
+		 * Hence the Fast Read 1-1-1 (0x0b) op code is chosen.
+		 */
+		nor->read_opcode = SPINOR_OP_READ_FAST;
+		return 0;
+	}
+
+	/*
+	 * The QPI mode is disabled but we still need to set the QE bit:
+	 * when QE=1, the /WP pin becomes IO2 and /HOLD pin becomes IO3.
+	 * If the Fast Read 1-4-4 (0xeb) were used, we should take care
+	 * about the value M7-M0 written during dummy/mode cycles to
+	 * avoid entering the continuous read mode by mistake.
+	 * Hence the Fast Read 1-1-4 (0x6b) op code is preferred.
+	 */
+	status = winbond_quad_enable(nor);
+	if (status) {
+		dev_err(nor->dev, "Winbond quad-read nor enabled\n");
+		return status;
+	}
+	nor->read_proto = SNOR_PROTO_1_1_4;
+	nor->read_opcode = SPINOR_OP_READ_1_1_4;
+	return 0;
+}
+
+/*
+ * For both Winbond Dual and Single modes, we don't care about the value of
+ * the Quad Enabled (QE) bit since the memory still replies to Dual or Single
+ * SPI commands.
+ */
+
+static int winbond_set_dual_mode(struct spi_nor *nor)
+{
+	nor->read_proto = SNOR_PROTO_1_1_2;
+	nor->read_opcode = SPINOR_OP_READ_1_1_2;
+	return 0;
+}
+
+static int winbond_set_single_mode(struct spi_nor *nor)
+{
+	nor->read_proto = SNOR_PROTO_1_1_1;
+	return 0;
+}
+
 static int set_quad_mode(struct spi_nor *nor, const struct flash_info *info)
 {
 	int status;
@@ -1233,6 +1324,9 @@ static int set_quad_mode(struct spi_nor *nor, const struct flash_info *info)
 	switch (JEDEC_MFR(info)) {
 	case SNOR_MFR_MACRONIX:
 		return macronix_set_quad_mode(nor);
+
+	case SNOR_MFR_WINBOND:
+		return winbond_set_quad_mode(nor);
 
 	case SNOR_MFR_MICRON:
 		/* Check whether Micron Quad mode is enabled. */
@@ -1263,6 +1357,9 @@ static int set_dual_mode(struct spi_nor *nor, const struct flash_info *info)
 	case SNOR_MFR_MACRONIX:
 		return macronix_set_dual_mode(nor);
 
+	case SNOR_MFR_WINBOND:
+		return winbond_set_dual_mode(nor);
+
 	case SNOR_MFR_MICRON:
 		/* Check whether Micron Dual mode is enabled. */
 		if (nor->read_proto != SNOR_PROTO_2_2_2)
@@ -1283,6 +1380,9 @@ static int set_single_mode(struct spi_nor *nor, const struct flash_info *info)
 	switch (JEDEC_MFR(info)) {
 	case SNOR_MFR_MACRONIX:
 		return macronix_set_single_mode(nor);
+
+	case SNOR_MFR_WINBOND:
+		return winbond_set_single_mode(nor);
 
 	default:
 		nor->read_proto = SNOR_PROTO_1_1_1;

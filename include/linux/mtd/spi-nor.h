@@ -102,6 +102,7 @@
 
 /* Enhanced Volatile Configuration Register bits */
 #define EVCR_QUAD_EN_MICRON	BIT(7)	/* Micron Quad I/O */
+#define EVCR_DUAL_EN_MICRON	BIT(6)	/* Micron Dual I/O */
 
 /* Flag Status Register bits */
 #define FSR_READY		BIT(7)

@@ -1172,17 +1172,61 @@ static int set_quad_mode(struct spi_nor *nor, const struct flash_info *info)
 			dev_err(nor->dev, "Macronix quad-read not enabled\n");
 			return -EINVAL;
 		}
-		return status;
+		/* Check whether Macronix QPI mode is enabled. */
+		if (nor->read_proto != SNOR_PROTO_4_4_4)
+			nor->read_proto = SNOR_PROTO_1_1_4;
+		break;
+
 	case SNOR_MFR_MICRON:
-		return 0;
-	default:
+		/* Check whether Micron Quad mode is enabled. */
+		if (nor->read_proto != SNOR_PROTO_4_4_4)
+			nor->read_proto = SNOR_PROTO_1_1_4;
+		break;
+
+	case SNOR_MFR_SPANSION:
 		status = spansion_quad_enable(nor);
 		if (status) {
 			dev_err(nor->dev, "Spansion quad-read not enabled\n");
 			return -EINVAL;
 		}
-		return status;
+		nor->read_proto = SNOR_PROTO_1_1_4;
+		break;
+
+	default:
+		return -EINVAL;
 	}
+
+	nor->read_opcode = SPINOR_OP_READ_1_1_4;
+	return 0;
+}
+
+static int set_dual_mode(struct spi_nor *nor, const struct flash_info *info)
+{
+	switch (JEDEC_MFR(info)) {
+	case SNOR_MFR_MICRON:
+		/* Check whether Micron Dual mode is enabled. */
+		if (nor->read_proto != SNOR_PROTO_2_2_2)
+			nor->read_proto = SNOR_PROTO_1_1_2;
+		break;
+
+	default:
+		nor->read_proto = SNOR_PROTO_1_1_2;
+		break;
+	}
+
+	nor->read_opcode = SPINOR_OP_READ_1_1_2;
+	return 0;
+}
+
+static int set_single_mode(struct spi_nor *nor, const struct flash_info *info)
+{
+	switch (JEDEC_MFR(info)) {
+	default:
+		nor->read_proto = SNOR_PROTO_1_1_1;
+		break;
+	}
+
+	return 0;
 }
 
 static int spi_nor_check(struct spi_nor *nor)
@@ -1330,7 +1374,30 @@ int spi_nor_scan(struct spi_nor *nor, const char *name, enum read_mode mode)
 	if (info->flags & SPI_NOR_NO_FR)
 		nor->flash_read = SPI_NOR_NORMAL;
 
-	/* Quad/Dual-read mode takes precedence over fast/normal */
+	/* Default commands */
+	if (nor->flash_read == SPI_NOR_NORMAL)
+		nor->read_opcode = SPINOR_OP_READ;
+	else
+		nor->read_opcode = SPINOR_OP_READ_FAST;
+
+	nor->program_opcode = SPINOR_OP_PP;
+
+	/*
+	 * Quad/Dual-read mode takes precedence over fast/normal.
+	 *
+	 * Manufacturer specific modes are discovered when reading the JEDEC ID
+	 * and are reported by the nor->read_proto value:
+	 *  - SNOR_PROTO_4_4_4 is either:
+	 *    + Micron Quad mode enabled
+	 *    + Macronix/Winbond QPI mode enabled
+	 *  - SNOR_PROTO_2_2_2 is either:
+	 *    + Micron Dual mode enabled
+	 *
+	 * The opcodes and the protocols are updated depending on the
+	 * manufacturer.
+	 * The read opcode and protocol should be updated by the relevant
+	 * function when entering Quad or Dual mode.
+	 */
 	if (mode == SPI_NOR_QUAD && info->flags & SPI_NOR_QUAD_READ) {
 		ret = set_quad_mode(nor, info);
 		if (ret) {
@@ -1339,29 +1406,20 @@ int spi_nor_scan(struct spi_nor *nor, const char *name, enum read_mode mode)
 		}
 		nor->flash_read = SPI_NOR_QUAD;
 	} else if (mode == SPI_NOR_DUAL && info->flags & SPI_NOR_DUAL_READ) {
+		ret = set_dual_mode(nor, info);
+		if (ret) {
+			dev_err(dev, "dual mode not supported\n");
+			return ret;
+		}
 		nor->flash_read = SPI_NOR_DUAL;
+	} else if (info->flags & (SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ)) {
+		/* We may need to leave a Quad or Dual mode */
+		ret = set_single_mode(nor, info);
+		if (ret) {
+			dev_err(dev, "failed to switch back to single mode\n");
+			return ret;
+		}
 	}
-
-	/* Default commands */
-	switch (nor->flash_read) {
-	case SPI_NOR_QUAD:
-		nor->read_opcode = SPINOR_OP_READ_1_1_4;
-		break;
-	case SPI_NOR_DUAL:
-		nor->read_opcode = SPINOR_OP_READ_1_1_2;
-		break;
-	case SPI_NOR_FAST:
-		nor->read_opcode = SPINOR_OP_READ_FAST;
-		break;
-	case SPI_NOR_NORMAL:
-		nor->read_opcode = SPINOR_OP_READ;
-		break;
-	default:
-		dev_err(dev, "No Read opcode defined\n");
-		return -EINVAL;
-	}
-
-	nor->program_opcode = SPINOR_OP_PP;
 
 	if (info->addr_width)
 		nor->addr_width = info->addr_width;

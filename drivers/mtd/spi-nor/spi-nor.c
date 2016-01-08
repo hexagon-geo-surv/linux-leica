@@ -1333,6 +1333,53 @@ static int winbond_set_single_mode(struct spi_nor *nor)
 	return 0;
 }
 
+static int micron_set_dummy_cycles(struct spi_nor *nor, u8 read_dummy)
+{
+	u8 vcr, val, mask;
+	int ret;
+
+	/* Set bit3 (XIP) to disable the Continuous Read mode */
+	mask = GENMASK(7, 4) | BIT(3);
+	val = ((read_dummy << 4) | BIT(3)) & mask;
+
+	/* Read the Volatile Configuration Register (VCR). */
+	ret = nor->read_reg(nor, SPINOR_OP_RD_VCR, &vcr, 1);
+	if (ret < 0) {
+		dev_err(nor->dev, "error while reading VCR register\n");
+		return ret;
+	}
+
+	/* Check whether we need to update the number of dummy cycles. */
+	if ((vcr & mask) == val) {
+		nor->read_dummy = read_dummy;
+		return 0;
+	}
+
+	/* Update the number of dummy into the VCR. */
+	write_enable(nor);
+	vcr = (vcr & ~mask) | val;
+	ret = nor->write_reg(nor, SPINOR_OP_WR_VCR, &vcr, 1);
+	if (ret < 0) {
+		dev_err(nor->dev, "error while writing VCR register\n");
+		return ret;
+	}
+
+	ret = spi_nor_wait_till_ready(nor);
+	if (ret)
+		return ret;
+
+	/* Read VCR and check it. */
+	ret = nor->read_reg(nor, SPINOR_OP_RD_VCR, &vcr, 1);
+	if (ret < 0 || (vcr & mask) != val) {
+		dev_err(nor->dev, "Micron VCR dummy cycles not updated\n");
+		return -EINVAL;
+	}
+
+	/* Save the number of dummy cycles to use with Fast Read commands */
+	nor->read_dummy = read_dummy;
+	return 0;
+}
+
 static int micron_set_protocol(struct spi_nor *nor, u8 mask, u8 val,
 			       enum spi_nor_protocol proto)
 {
@@ -1417,12 +1464,15 @@ static int micron_set_quad_mode(struct spi_nor *nor)
 	/*
 	 * Whatever the Quad mode is enabled or not, the
 	 * Fast Read Quad Output 1-1-4 (0x6b) op code is supported.
+	 * Force the number of dummy cycles to 8 and disable the Continuous Read
+	 * mode to prevent some drivers from using it by mistake (m25p80).
+	 * We can change these settings safely as we write into a volatile
+	 * register.
 	 */
 	if (nor->read_proto != SNOR_PROTO_4_4_4)
 		nor->read_proto = SNOR_PROTO_1_1_4;
 	nor->read_opcode = SPINOR_OP_READ_1_1_4;
-	nor->read_dummy = 8;
-	return 0;
+	return micron_set_dummy_cycles(nor, 8);
 }
 
 static int micron_set_dual_mode(struct spi_nor *nor)
@@ -1447,12 +1497,15 @@ static int micron_set_dual_mode(struct spi_nor *nor)
 	/*
 	 * Whatever the Dual mode is enabled or not, the
 	 * Fast Read Dual Output 1-1-2 (0x3b) op code is supported.
+	 * Force the number of dummy cycles to 8 and disable the Continuous Read
+	 * mode to prevent some drivers from using it by mistake (m25p80).
+	 * We can change these settings safely as we write into a volatile
+	 * register.
 	 */
 	if (nor->read_proto != SNOR_PROTO_2_2_2)
 		nor->read_proto = SNOR_PROTO_1_1_2;
 	nor->read_opcode = SPINOR_OP_READ_1_1_2;
-	nor->read_dummy = 8;
-	return 0;
+	return micron_set_dummy_cycles(nor, 8);
 }
 
 static int micron_set_single_mode(struct spi_nor *nor)
@@ -1475,7 +1528,13 @@ static int micron_set_single_mode(struct spi_nor *nor)
 		nor->read_proto = SNOR_PROTO_1_1_1;
 	}
 
-	/* Force the number of dummy cycles to 8 for Fast Read, 0 for Read. */
+	/*
+	 * Force the number of dummy cycles to 8 for Fast Read, 0 for Read
+	 * and disable the Continuous Read mode to prevent some drivers from
+	 * using it by mistake (m25p80).
+	 * We can change these settings safely as we write into a volatile
+	 * register.
+	 */
 	switch (nor->read_opcode) {
 	case SPINOR_OP_READ:
 	case SPINOR_OP_READ4:
@@ -1486,8 +1545,7 @@ static int micron_set_single_mode(struct spi_nor *nor)
 		read_dummy = 8;
 		break;
 	}
-	nor->read_dummy = read_dummy;
-	return 0;
+	return micron_set_dummy_cycles(nor, read_dummy);
 }
 
 static int spansion_set_quad_mode(struct spi_nor *nor)

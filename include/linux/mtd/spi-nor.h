@@ -75,6 +75,12 @@
 #define SPINOR_OP_EN4B		0xb7	/* Enter 4-byte mode */
 #define SPINOR_OP_EX4B		0xe9	/* Exit 4-byte mode */
 
+/* Used for Winbond flashes only. */
+#define SPINOR_OP_RDSR2_WINB	0x35	/* Read status register 2 */
+#define SPINOR_OP_WRSR2_WINB	0x31	/* Write status register 2 */
+
+#define SR2_QUAD_EN_WINB	BIT(1)	/* Quad Enable bit */
+
 /* Used for Spansion flashes only. */
 #define SPINOR_OP_BRWR		0x17	/* Bank register write */
 

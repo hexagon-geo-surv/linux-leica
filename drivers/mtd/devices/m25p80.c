@@ -27,22 +27,64 @@
 #include <linux/spi/flash.h>
 #include <linux/mtd/spi-nor.h>
 
-#define	MAX_CMD_SIZE		6
+#define	MAX_CMD_SIZE		16
 struct m25p {
 	struct spi_device	*spi;
 	struct spi_nor		spi_nor;
 	u8			command[MAX_CMD_SIZE];
 };
 
+static inline int m25p80_proto2nbits(enum spi_nor_protocol proto,
+				     unsigned *code_nbits,
+				     unsigned *addr_nbits,
+				     unsigned *data_nbits)
+{
+	if (code_nbits)
+		*code_nbits = SNOR_PROTO_CMD_FROM_PROTO(proto);
+	if (addr_nbits)
+		*addr_nbits = SNOR_PROTO_ADDR_FROM_PROTO(proto);
+	if (data_nbits)
+		*data_nbits = SNOR_PROTO_DATA_FROM_PROTO(proto);
+
+	return 0;
+}
+
 static int m25p80_read_reg(struct spi_nor *nor, u8 code, u8 *val, int len)
 {
 	struct m25p *flash = nor->priv;
 	struct spi_device *spi = flash->spi;
+	unsigned code_nbits, data_nbits;
+	struct spi_transfer xfers[2];
 	int ret;
 
-	ret = spi_write_then_read(spi, &code, 1, val, len);
+	/* Check the total length of command op code and data. */
+	if (len + 1 > MAX_CMD_SIZE)
+		return -EINVAL;
+
+	/* Get transfer protocols (addr_nbits is not relevant here). */
+	ret = m25p80_proto2nbits(nor->reg_proto,
+				 &code_nbits, NULL, &data_nbits);
+	if (ret < 0)
+		return ret;
+
+	/* Set up transfers. */
+	memset(xfers, 0, sizeof(xfers));
+
+	flash->command[0] = code;
+	xfers[0].len = 1;
+	xfers[0].tx_buf = flash->command;
+	xfers[0].tx_nbits = code_nbits;
+
+	xfers[1].len = len;
+	xfers[1].rx_buf = &flash->command[1];
+	xfers[1].rx_nbits = data_nbits;
+
+	/* Process command. */
+	ret = spi_sync_transfer(spi, xfers, 2);
 	if (ret < 0)
 		dev_err(&spi->dev, "error %d reading %x\n", ret, code);
+	else
+		memcpy(val, &flash->command[1], len);
 
 	return ret;
 }
@@ -65,12 +107,42 @@ static int m25p80_write_reg(struct spi_nor *nor, u8 opcode, u8 *buf, int len)
 {
 	struct m25p *flash = nor->priv;
 	struct spi_device *spi = flash->spi;
+	unsigned code_nbits, data_nbits, num_xfers = 1;
+	struct spi_transfer xfers[2];
+	int ret;
+
+	/* Check the total length of command op code and data. */
+	if (buf && (len + 1 > MAX_CMD_SIZE))
+		return -EINVAL;
+
+	/* Get transfer protocols (addr_nbits is not relevant here). */
+	ret = m25p80_proto2nbits(nor->reg_proto,
+				 &code_nbits, NULL, &data_nbits);
+	if (ret < 0)
+		return ret;
+
+	/* Set up transfer(s). */
+	memset(xfers, 0, sizeof(xfers));
 
 	flash->command[0] = opcode;
-	if (buf)
-		memcpy(&flash->command[1], buf, len);
+	xfers[0].len = 1;
+	xfers[0].tx_buf = flash->command;
+	xfers[0].tx_nbits = code_nbits;
 
-	return spi_write(spi, flash->command, len + 1);
+	if (buf) {
+		memcpy(&flash->command[1], buf, len);
+		if (data_nbits == code_nbits) {
+			xfers[0].len += len;
+		} else {
+			xfers[1].len = len;
+			xfers[1].tx_buf = &flash->command[1];
+			xfers[1].tx_nbits = data_nbits;
+			num_xfers++;
+		}
+	}
+
+	/* Process command. */
+	return spi_sync_transfer(spi, xfers, num_xfers);
 }
 
 static void m25p80_write(struct spi_nor *nor, loff_t to, size_t len,
@@ -78,41 +150,52 @@ static void m25p80_write(struct spi_nor *nor, loff_t to, size_t len,
 {
 	struct m25p *flash = nor->priv;
 	struct spi_device *spi = flash->spi;
-	struct spi_transfer t[2] = {};
+	unsigned code_nbits, addr_nbits, data_nbits, num_xfers = 1;
+	struct spi_transfer xfers[3];
 	struct spi_message m;
-	int cmd_sz = m25p_cmdsz(nor);
-
-	spi_message_init(&m);
+	int ret, cmd_sz = m25p_cmdsz(nor);
 
 	if (nor->program_opcode == SPINOR_OP_AAI_WP && nor->sst_write_second)
 		cmd_sz = 1;
 
+	/* Get transfer protocols. */
+	ret = m25p80_proto2nbits(nor->write_proto,
+				 &code_nbits, &addr_nbits, &data_nbits);
+	if (ret < 0) {
+		*retlen = 0;
+		return;
+	}
+
+	/* Set up transfers. */
+	memset(xfers, 0, sizeof(xfers));
+
 	flash->command[0] = nor->program_opcode;
-	m25p_addr2cmd(nor, to, flash->command);
+	xfers[0].len = 1;
+	xfers[0].tx_buf = flash->command;
+	xfers[0].tx_nbits = code_nbits;
 
-	t[0].tx_buf = flash->command;
-	t[0].len = cmd_sz;
-	spi_message_add_tail(&t[0], &m);
+	if (cmd_sz > 1) {
+		m25p_addr2cmd(nor, to, flash->command);
+		if (addr_nbits == code_nbits) {
+			xfers[0].len += nor->addr_width;
+		} else {
+			xfers[1].len = nor->addr_width;
+			xfers[1].tx_buf = &flash->command[1];
+			xfers[1].tx_nbits = addr_nbits;
+			num_xfers++;
+		}
+	}
 
-	t[1].tx_buf = buf;
-	t[1].len = len;
-	spi_message_add_tail(&t[1], &m);
+	xfers[num_xfers].len = len;
+	xfers[num_xfers].tx_buf = buf;
+	xfers[num_xfers].tx_nbits = data_nbits;
+	num_xfers++;
 
+	/* Process command. */
+	spi_message_init_with_transfers(&m, xfers, num_xfers);
 	spi_sync(spi, &m);
 
 	*retlen += m.actual_length - cmd_sz;
-}
-
-static inline unsigned int m25p80_rx_nbits(struct spi_nor *nor)
-{
-	switch (nor->flash_read) {
-	case SPI_NOR_DUAL:
-		return 2;
-	case SPI_NOR_QUAD:
-		return 4;
-	default:
-		return 0;
-	}
 }
 
 /*
@@ -124,28 +207,55 @@ static int m25p80_read(struct spi_nor *nor, loff_t from, size_t len,
 {
 	struct m25p *flash = nor->priv;
 	struct spi_device *spi = flash->spi;
-	struct spi_transfer t[2];
-	struct spi_message m;
+	unsigned code_nbits, addr_nbits, data_nbits, num_xfers = 1;
 	unsigned int dummy = nor->read_dummy;
+	struct spi_transfer xfers[3];
+	struct spi_message m;
+	int ret;
+
+	/* Get transfer protocols. */
+	ret = m25p80_proto2nbits(nor->read_proto,
+				 &code_nbits, &addr_nbits, &data_nbits);
+	if (ret < 0) {
+		*retlen = 0;
+		return ret;
+	}
 
 	/* convert the dummy cycles to the number of bytes */
-	dummy /= 8;
+	dummy = (dummy * addr_nbits) / 8;
 
-	spi_message_init(&m);
-	memset(t, 0, (sizeof t));
+	/* Set up transfers. */
+	memset(xfers, 0, sizeof(xfers));
 
 	flash->command[0] = nor->read_opcode;
+	xfers[0].len = 1;
+	xfers[0].tx_buf = flash->command;
+	xfers[0].tx_nbits = code_nbits;
+
 	m25p_addr2cmd(nor, from, flash->command);
+	/*
+	 * Clear all dummy/mode cycle bits to avoid sending some manufacturer
+	 * specific pattern, which might make the memory enter its Continuous
+	 * Read mode by mistake.
+	 */
+	memset(flash->command + 1 + nor->addr_width, 0, dummy);
 
-	t[0].tx_buf = flash->command;
-	t[0].len = m25p_cmdsz(nor) + dummy;
-	spi_message_add_tail(&t[0], &m);
+	if (addr_nbits == code_nbits) {
+		xfers[0].len += nor->addr_width + dummy;
+	} else {
+		xfers[1].len = nor->addr_width + dummy;
+		xfers[1].tx_buf = &flash->command[1];
+		xfers[1].tx_nbits = addr_nbits;
+		num_xfers++;
+	}
 
-	t[1].rx_buf = buf;
-	t[1].rx_nbits = m25p80_rx_nbits(nor);
-	t[1].len = len;
-	spi_message_add_tail(&t[1], &m);
+	xfers[num_xfers].len = len;
+	xfers[num_xfers].rx_buf = buf;
+	xfers[num_xfers].rx_nbits = data_nbits;
+	num_xfers++;
 
+	/* Process command. */
+	spi_message_init_with_transfers(&m, xfers, num_xfers);
 	spi_sync(spi, &m);
 
 	*retlen = m.actual_length - m25p_cmdsz(nor) - dummy;

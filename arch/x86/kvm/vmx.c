@@ -595,6 +595,8 @@ struct vcpu_vmx {
 	/* Support for PML */
 #define PML_ENTITY_NUM		512
 	struct page *pml_pg;
+
+	u64 current_tsc_ratio;
 };
 
 enum segment_cache_field {
@@ -2062,12 +2064,14 @@ static void vmx_vcpu_load(struct kvm_vcpu *vcpu, int cpu)
 		rdmsrl(MSR_IA32_SYSENTER_ESP, sysenter_esp);
 		vmcs_writel(HOST_IA32_SYSENTER_ESP, sysenter_esp); /* 22.2.3 */
 
-		/* Setup TSC multiplier */
-		if (cpu_has_vmx_tsc_scaling())
-			vmcs_write64(TSC_MULTIPLIER,
-				     vcpu->arch.tsc_scaling_ratio);
-
 		vmx->loaded_vmcs->cpu = cpu;
+	}
+
+	/* Setup TSC multiplier */
+	if (kvm_has_tsc_control &&
+	    vmx->current_tsc_ratio != vcpu->arch.tsc_scaling_ratio) {
+		vmx->current_tsc_ratio = vcpu->arch.tsc_scaling_ratio;
+		vmcs_write64(TSC_MULTIPLIER, vmx->current_tsc_ratio);
 	}
 
 	vmx_vcpu_pi_load(vcpu, cpu);
@@ -8932,7 +8936,8 @@ static void vmx_cpuid_update(struct kvm_vcpu *vcpu)
 			best->ebx &= ~bit(X86_FEATURE_INVPCID);
 	}
 
-	vmcs_set_secondary_exec_control(secondary_exec_ctl);
+	if (cpu_has_secondary_exec_ctrls())
+		vmcs_set_secondary_exec_control(secondary_exec_ctl);
 
 	if (static_cpu_has(X86_FEATURE_PCOMMIT) && nested) {
 		if (guest_cpuid_has_pcommit(vcpu))

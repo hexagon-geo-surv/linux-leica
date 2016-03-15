@@ -1194,8 +1194,6 @@ static int cqspi_probe(struct platform_device *pdev)
 		return PTR_ERR(cqspi->clk);
 	}
 
-	cqspi->master_ref_clk_hz = clk_get_rate(cqspi->clk);
-
 	/* Obtain and remap controller address. */
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	cqspi->iobase = devm_ioremap_resource(dev, res);
@@ -1221,11 +1219,19 @@ static int cqspi_probe(struct platform_device *pdev)
 		return -ENXIO;
 	}
 
+	ret = clk_prepare_enable(cqspi->clk);
+	if (ret) {
+		dev_err(dev, "Cannot enable QSPI clock.\n");
+		return ret;
+	}
+
+	cqspi->master_ref_clk_hz = clk_get_rate(cqspi->clk);
+
 	ret = devm_request_irq(dev, irq, cqspi_irq_handler, 0,
 			       pdev->name, cqspi);
 	if (ret) {
 		dev_err(dev, "Cannot request IRQ.\n");
-		return ret;
+		goto probe_irq_failed;
 	}
 
 	cqspi_wait_idle(cqspi);
@@ -1236,9 +1242,14 @@ static int cqspi_probe(struct platform_device *pdev)
 	ret = cqspi_setup_flash(cqspi, np);
 	if (ret) {
 		dev_err(dev, "Cadence QSPI NOR probe failed %d\n", ret);
-		cqspi_controller_enable(cqspi, 0);
+		goto probe_setup_failed;
 	}
 
+	return ret;
+probe_irq_failed:
+	cqspi_controller_enable(cqspi, 0);
+probe_setup_failed:
+	clk_disable_unprepare(cqspi->clk);
 	return ret;
 }
 
@@ -1254,6 +1265,8 @@ static int cqspi_remove(struct platform_device *pdev)
 			mtd_device_unregister(&cqspi->f_pdata[i].nor.mtd);
 			kfree(cqspi->f_pdata[i].nor.mtd.name);
 		}
+
+	clk_disable_unprepare(cqspi->clk);
 
 	return 0;
 }

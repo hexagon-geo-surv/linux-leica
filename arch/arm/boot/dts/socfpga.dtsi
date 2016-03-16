@@ -718,6 +718,20 @@
 			status = "disabled";
 		};
 
+		qspi: spi@ff705000 {
+			compatible = "cdns,qspi-nor";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0xff705000 0x1000>,
+				<0xffa00000 0x1000>;
+			interrupts = <0 151 4>;
+			clocks = <&qspi_clk>;
+			is-decoded-cs = <1>;
+			fifo-depth = <128>;
+			status = "disabled";
+			m25p,fast-read;
+		};
+
 		spi1: spi@fff01000 {
 			compatible = "snps,dw-apb-ssi";
 			#address-cells = <1>;

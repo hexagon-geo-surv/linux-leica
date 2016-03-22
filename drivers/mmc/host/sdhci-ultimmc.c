@@ -26,7 +26,9 @@
 
 #include "sdhci-pltfm.h"
 
-/* Private data structure to be populated with any eventual additional field we need
+/*
+ * Private data structure to be populated with any eventual additional
+ * field we need
  */
 struct sdhci_ultimmc_priv {
 	u32 dummy;
@@ -35,58 +37,50 @@ struct sdhci_ultimmc_priv {
 /*
  * Implementation of the I/O accessor functions.
  * 
- * NOTE: We need to use our custom accessor functions (CONFIG_MMC_SDHCI_IO_ACCESSOR is defined)
- * since the register offsets are 4 bits shifted to the left
+ * NOTE: We need to use our custom accessor functions
+ * (CONFIG_MMC_SDHCI_IO_ACCESSOR is defined) since the register
+ * offsets are 4 bits shifted to the left
  */  
 
 static u32 sdhci_ultimmc_readl(struct sdhci_host *host, int reg)
 {
-	u32 ret;
-
-	reg = reg << 4; /* Register map has offsets right shifted of 4 bits */
-	ret = readl(host->ioaddr + reg);
-	return ret;
+	reg = reg << 4;
+	return readl(host->ioaddr + reg);
 }
 
 static u16 sdhci_ultimmc_readw(struct sdhci_host *host, int reg)
 {
-	u16 ret;
-
-	reg = reg << 4; /* Register map has offsets right shifted of 4 bits */
-	ret = readw(host->ioaddr + reg);
-	return ret;
+	reg = reg << 4;
+	return readw(host->ioaddr + reg);
 }
 
 static u8 sdhci_ultimmc_readb(struct sdhci_host *host, int reg)
 {
-	u8 ret;
-
-	reg = reg << 4; /* Register map has offsets right shifted of 4 bits */
-	ret = readb(host->ioaddr + reg);
-	return ret;
+	reg = reg << 4;
+	return readb(host->ioaddr + reg);
 }
 
 static void sdhci_ultimmc_writel(struct sdhci_host *host, u32 val, int reg)
 {
-	reg = reg << 4; /* Register map has offsets right shifted of 4 bits */
+	reg = reg << 4;
 	writel(val, host->ioaddr + reg);
 }
 
 static void sdhci_ultimmc_writew(struct sdhci_host *host, u16 val, int reg)
 {
 	if (reg == SDHCI_CLOCK_CONTROL) {
-		// Force <50Mhz clock
+		/* Force <50Mhz clock */
 		if (((val >> SDHCI_DIVIDER_SHIFT) & SDHCI_DIV_MASK) < 0x01) {
 			val |= (0x01 & SDHCI_DIV_MASK) << SDHCI_DIVIDER_SHIFT;
 		}
 	}
-	reg = reg << 4; /* Register map has offsets right shifted of 4 bits */
+	reg = reg << 4;
 	writew(val, host->ioaddr + reg);
 }
 
 static void sdhci_ultimmc_writeb(struct sdhci_host *host, u8 val, int reg)
 {
-	reg = reg << 4; /* Register map has offsets right shifted of 4 bits */
+	reg = reg << 4;
 	writeb(val, host->ioaddr + reg);
 }
 
@@ -97,6 +91,11 @@ static struct sdhci_ops sdhci_ultimmc_ops = {
 	.write_b= sdhci_ultimmc_writeb,
 	.write_w= sdhci_ultimmc_writew,
 	.write_l= sdhci_ultimmc_writel,
+	.reset = sdhci_reset,
+	.set_clock = sdhci_set_clock,
+	.set_bus_width = sdhci_set_bus_width,
+	.get_max_clock  = sdhci_pltfm_clk_get_max_clock,
+	.set_uhs_signaling = sdhci_set_uhs_signaling,
 };
 
 static struct sdhci_pltfm_data sdhci_ultimmc_pdata = {
@@ -106,10 +105,10 @@ static struct sdhci_pltfm_data sdhci_ultimmc_pdata = {
 		 * NOTE: This below flag is undefined to try to use the
 		 * "busy" IRQ to avoid wasting CPU time
 		 */
-		/*SDHCI_QUIRK_NO_BUSY_IRQ |  */
+		/* SDHCI_QUIRK_NO_BUSY_IRQ |  */
 		  SDHCI_QUIRK_BROKEN_TIMEOUT_VAL |
 		  SDHCI_QUIRK_DELAY_AFTER_POWER |
-		  /*SDHCI_QUIRK_NO_MULTIBLOCK | */
+		/* SDHCI_QUIRK_NO_MULTIBLOCK | */
 		  SDHCI_QUIRK_NO_HISPD_BIT | 
 		  SDHCI_QUIRK_BROKEN_DMA |   /* Force disabling of DMA */
 		  SDHCI_QUIRK_BROKEN_ADMA,
@@ -122,7 +121,7 @@ static int sdhci_ultimmc_probe(struct platform_device *pdev)
 	struct sdhci_ultimmc_priv *priv;
 	int ret;
 
-	printk("sdhci_ultimmc_probe ++ \n");
+	dev_dbg(&pdev->dev, "probe\n");
 	priv = devm_kzalloc(&pdev->dev, sizeof(struct sdhci_ultimmc_priv),
 			    GFP_KERNEL);
 	if (!priv) {
@@ -130,27 +129,27 @@ static int sdhci_ultimmc_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	printk("sdhci_ultimmc_probe 1 \n");
+	dev_dbg(&pdev->dev, "%s 1 \n", __func__);
 	host = sdhci_pltfm_init(pdev, &sdhci_ultimmc_pdata, 0);
 	if (IS_ERR(host)) {
 		ret = PTR_ERR(host);
 		goto err_sdhci_pltfm_init;
 	}
 
-	printk("sdhci_ultimmc_probe 2 \n");
+	dev_dbg(&pdev->dev, "%s 2 \n", __func__);
 	pltfm_host = sdhci_priv(host);
 	pltfm_host->priv = priv;
-	
-	printk("sdhci_ultimmc_probe 3 \n");
+
+	dev_dbg(&pdev->dev, "%s 3 \n", __func__);
 	sdhci_get_of_property(pdev);
 
-	printk("sdhci_ultimmc_probe 4 \n");
-	
+	dev_dbg(&pdev->dev, "%s 4 \n", __func__);
+
 	ret = sdhci_add_host(host);
 	if (ret)
 		goto err_sdhci_add;
 
-	printk("sdhci_ultimmc_probe: OK !!! \n");
+	dev_dbg(&pdev->dev, "%s OK\n", __func__);
 	return 0;
 
 err_sdhci_add:
@@ -161,12 +160,11 @@ err_sdhci_pltfm_init:
 
 static int sdhci_ultimmc_remove(struct platform_device *pdev)
 {
-	//struct sdhci_host *host = platform_get_drvdata(pdev);
-	//struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
-	//struct sdhci_ultimmc_priv *priv = pltfm_host->priv;
+	/*struct sdhci_host *host = platform_get_drvdata(pdev);*/
+	/*struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);*/
+	/*struct sdhci_ultimmc_priv *priv = pltfm_host->priv;*/
 
 	sdhci_pltfm_unregister(pdev);
-
 	return 0;
 }
 

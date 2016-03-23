@@ -520,24 +520,6 @@
 			interrupts = <0 175 4>;
 		};
 
-		gmac0: ethernet@ff700000 {
-			compatible = "altr,socfpga-stmmac", "snps,dwmac-3.70a", "snps,dwmac";
-			altr,sysmgr-syscon = <&sysmgr 0x60 0>;
-			reg = <0xff700000 0x2000>;
-			interrupts = <0 115 4>;
-			interrupt-names = "macirq";
-			mac-address = [00 00 00 00 00 00];/* Filled in by U-Boot */
-			clocks = <&emac0_clk>;
-			clock-names = "stmmaceth";
-			resets = <&rst EMAC0_RESET>;
-			reset-names = "stmmaceth";
-			snps,multicast-filter-bins = <256>;
-			snps,perfect-filter-entries = <128>;
-			tx-fifo-depth = <4096>;
-			rx-fifo-depth = <4096>;
-			status = "disabled";
-		};
-
 		gmac1: ethernet@ff702000 {
 			compatible = "altr,socfpga-stmmac", "snps,dwmac-3.70a", "snps,dwmac";
 			altr,sysmgr-syscon = <&sysmgr 0x60 2>;
@@ -548,6 +530,24 @@
 			clocks = <&emac1_clk>;
 			clock-names = "stmmaceth";
 			resets = <&rst EMAC1_RESET>;
+			reset-names = "stmmaceth";
+			snps,multicast-filter-bins = <256>;
+			snps,perfect-filter-entries = <128>;
+			tx-fifo-depth = <4096>;
+			rx-fifo-depth = <4096>;
+			status = "disabled";
+		};
+
+		gmac0: ethernet@ff700000 {
+			compatible = "altr,socfpga-stmmac", "snps,dwmac-3.70a", "snps,dwmac";
+			altr,sysmgr-syscon = <&sysmgr 0x60 0>;
+			reg = <0xff700000 0x2000>;
+			interrupts = <0 115 4>;
+			interrupt-names = "macirq";
+			mac-address = [00 00 00 00 00 00];/* Filled in by U-Boot */
+			clocks = <&emac0_clk>;
+			clock-names = "stmmaceth";
+			resets = <&rst EMAC0_RESET>;
 			reset-names = "stmmaceth";
 			snps,multicast-filter-bins = <256>;
 			snps,perfect-filter-entries = <128>;

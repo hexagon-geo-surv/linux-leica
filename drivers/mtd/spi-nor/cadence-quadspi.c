@@ -905,8 +905,6 @@ static void cqspi_switch_cs(struct spi_nor *nor)
 	void __iomem *iobase = cqspi->iobase;
 	unsigned int reg;
 
-	cqspi_controller_enable(cqspi, 0);
-
 	/* configure page size and block size. */
 	reg = readl(iobase + CQSPI_REG_SIZE);
 	reg &= ~(CQSPI_REG_SIZE_PAGE_MASK << CQSPI_REG_SIZE_PAGE_LSB);
@@ -919,8 +917,6 @@ static void cqspi_switch_cs(struct spi_nor *nor)
 
 	/* configure the chip select */
 	cqspi_chipselect(nor);
-
-	cqspi_controller_enable(cqspi, 1);
 }
 
 static int cqspi_prep(struct spi_nor *nor, enum spi_nor_ops ops)
@@ -928,22 +924,28 @@ static int cqspi_prep(struct spi_nor *nor, enum spi_nor_ops ops)
 	struct cqspi_flash_pdata *f_pdata = nor->priv;
 	struct cqspi_st *cqspi = f_pdata->cqspi;
 	const unsigned int sclk = f_pdata->clk_rate;
+	const int switch_cs = (cqspi->current_cs != f_pdata->cs);
+	const int switch_ck = (cqspi->sclk != sclk);
+
+	if (switch_cs || switch_ck)
+		cqspi_controller_enable(cqspi, 0);
 
 	/* Switch chip select. */
-	if (cqspi->current_cs != f_pdata->cs) {
+	if (switch_cs) {
 		cqspi->current_cs = f_pdata->cs;
 		cqspi_switch_cs(nor);
 	}
 
 	/* Setup baudrate divisor and delays */
-	if (cqspi->sclk != sclk) {
+	if (switch_ck) {
 		cqspi->sclk = sclk;
-		cqspi_controller_enable(cqspi, 0);
 		cqspi_config_baudrate_div(cqspi, sclk);
 		cqspi_delay(nor, sclk);
 		cqspi_readdata_capture(cqspi, 1, f_pdata->read_delay);
-		cqspi_controller_enable(cqspi, 1);
 	}
+
+	if (switch_cs || switch_ck)
+		cqspi_controller_enable(cqspi, 1);
 
 	return 0;
 }

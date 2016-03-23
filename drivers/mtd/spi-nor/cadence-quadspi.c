@@ -527,6 +527,9 @@ static int cqspi_indirect_read_execute(struct spi_nor *nor,
 			remaining -= bytes_to_read;
 			bytes_to_read = cqspi_get_rd_sram_level(cqspi);
 		}
+
+		if (remaining > 0)
+			reinit_completion(&cqspi->transfer_complete);
 	}
 
 	/* Check indirect done status */
@@ -616,6 +619,9 @@ static int cqspi_indirect_write_execute(struct spi_nor *nor,
 
 		txbuf += write_bytes;
 		remaining -= write_bytes;
+
+		if (remaining > 0)
+			reinit_completion(&cqspi->transfer_complete);
 	}
 
 	/* Check indirect done status */

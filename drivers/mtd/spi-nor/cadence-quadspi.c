@@ -63,6 +63,7 @@ struct cqspi_st {
 	void __iomem		*iobase;
 	void __iomem		*ahb_base;
 	struct completion	transfer_complete;
+	struct mutex		bus_mutex;
 
 	int			current_cs;
 	unsigned long		master_ref_clk_hz;
@@ -919,7 +920,7 @@ static void cqspi_switch_cs(struct spi_nor *nor)
 	cqspi_chipselect(nor);
 }
 
-static int cqspi_prep(struct spi_nor *nor, enum spi_nor_ops ops)
+static int cqspi_prep_unlocked(struct spi_nor *nor, enum spi_nor_ops ops)
 {
 	struct cqspi_flash_pdata *f_pdata = nor->priv;
 	struct cqspi_st *cqspi = f_pdata->cqspi;
@@ -950,31 +951,51 @@ static int cqspi_prep(struct spi_nor *nor, enum spi_nor_ops ops)
 	return 0;
 }
 
+static int cqspi_prep(struct spi_nor *nor, enum spi_nor_ops ops)
+{
+	struct cqspi_flash_pdata *f_pdata = nor->priv;
+	struct cqspi_st *cqspi = f_pdata->cqspi;
+
+	mutex_lock(&cqspi->bus_mutex);
+
+	return cqspi_prep_unlocked(nor, ops);
+}
+
+static void cqspi_unprep(struct spi_nor *nor, enum spi_nor_ops ops)
+{
+	struct cqspi_flash_pdata *f_pdata = nor->priv;
+	struct cqspi_st *cqspi = f_pdata->cqspi;
+
+	mutex_unlock(&cqspi->bus_mutex);
+}
+
 static int cqspi_read_reg(struct spi_nor *nor, u8 opcode, u8 *buf, int len)
 {
 	int ret;
 
 	ret = cqspi_set_protocol(nor, nor->reg_proto);
 	if (ret)
-		return ret;
+		goto exit;
 
-	cqspi_prep(nor, SPI_NOR_OPS_READ);
+	cqspi_prep_unlocked(nor, SPI_NOR_OPS_READ);
 
 	ret = cqspi_command_read(nor, &opcode, 1, buf, len);
+exit:
 	return ret;
 }
 
 static int cqspi_write_reg(struct spi_nor *nor, u8 opcode, u8 *buf, int len)
 {
-	int ret = 0;
+	int ret;
 
 	ret = cqspi_set_protocol(nor, nor->reg_proto);
 	if (ret)
-		return ret;
+		goto exit;
 
-	cqspi_prep(nor, SPI_NOR_OPS_WRITE);
+	cqspi_prep_unlocked(nor, SPI_NOR_OPS_WRITE);
 
 	ret = cqspi_command_write(nor, opcode, buf, len);
+exit:
 	return ret;
 }
 
@@ -1113,6 +1134,7 @@ static int cqspi_setup_flash(struct cqspi_st *cqspi, struct device_node *np)
 		nor->write = cqspi_write;
 		nor->erase = cqspi_erase;
 		nor->prepare = cqspi_prep;
+		nor->unprepare = cqspi_unprep;
 
 		mtd->name = kasprintf(GFP_KERNEL, "%s.%d", dev_name(dev), cs);
 		if (!mtd->name) {
@@ -1154,6 +1176,7 @@ static int cqspi_probe(struct platform_device *pdev)
 	if (!cqspi)
 		return -ENOMEM;
 
+	mutex_init(&cqspi->bus_mutex);
 	cqspi->pdev = pdev;
 	platform_set_drvdata(pdev, cqspi);
 

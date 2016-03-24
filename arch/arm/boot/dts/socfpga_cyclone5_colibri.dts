@@ -114,6 +114,7 @@
 	status = "okay";
 	phy-mode = "mii";
 	snps,phy-addr = <0x00>;
+	phy-handle = <&ethphy0>;
 };
 
 &gmac1 {
@@ -131,8 +132,23 @@
 	rxc-skew-ps = <2000>;
 	snps,max-mtu = <3800>;
 
-	reset0 = <&agpio0 0 0>;
-	reset1 = <&agpio0 1 0>;
+	phy-handle = <&ethphy1>;
+
+	mdio {
+		compatible = "snps,dwmac-mdio";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		ethphy0: ethernet-phy@0 {
+			reg = <0>;
+			reset-gpios = <&agpio0 0 0>;
+		};
+
+		ethphy1: ethernet-phy@1 {
+			reg = <1>;
+			reset-gpios = <&agpio0 1 0>;
+		};
+	};
 };
 
 &gpio0 {

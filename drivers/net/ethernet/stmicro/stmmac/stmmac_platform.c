@@ -153,13 +153,35 @@ stmmac_probe_config_dt(struct platform_device *pdev, const char **mac)
 	if (of_property_read_u32(np, "snps,phy-addr", &plat->phy_addr) == 0)
 		dev_warn(&pdev->dev, "snps,phy-addr property is deprecated\n");
 
-	if ((plat->phy_node && !of_phy_is_fixed_link(np)) || !plat->mdio_node)
+	if (plat->phy_node && !of_phy_is_fixed_link(np));
 		plat->mdio_bus_data = NULL;
-	else
+
+	if (plat->mdio_node) {
 		plat->mdio_bus_data =
 			devm_kzalloc(&pdev->dev,
 				     sizeof(struct stmmac_mdio_bus_data),
 				     GFP_KERNEL);
+		if (!plat->mdio_bus_data)
+			return ERR_PTR(-ENOMEM);
+	}
+
+	/* if no mdio node here, check if the phy is on an existing mdio bus */
+	if (!plat->mdio_bus_data && !plat->mdio_node) {
+		struct device_node *mdio_node;
+
+		mdio_node = of_find_compatible_node(NULL, NULL,	"snps,dwmac-mdio");
+		for_each_child_of_node(mdio_node, child_node) {
+			if (plat->phy_node == child_node) {
+				plat->mdio_node = mdio_node;
+				plat->mdio_bus_data =
+					devm_kzalloc(&pdev->dev,
+						     sizeof(struct stmmac_mdio_bus_data),
+						     GFP_KERNEL);
+				break;
+			}
+		}
+		of_node_put(mdio_node);
+	}
 
 	of_property_read_u32(np, "tx-fifo-depth", &plat->tx_fifo_size);
 

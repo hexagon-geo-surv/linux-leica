@@ -202,8 +202,12 @@ int stmmac_mdio_register(struct net_device *ndev)
 	int addr, found;
 	struct device_node *mdio_node = priv->plat->mdio_node;
 
-	if (!mdio_bus_data)
+	netdev_dbg(ndev, "%s() on device %s\n", __func__, ndev->name);
+
+	if (!mdio_bus_data) {
+		netdev_dbg(ndev, "%s(): no mdio_bus_data\n", __func__);
 		return 0;
+	}
 
 	if (IS_ENABLED(CONFIG_OF)) {
 		if (mdio_node) {
@@ -213,10 +217,6 @@ int stmmac_mdio_register(struct net_device *ndev)
 		}
 	}
 
-	new_bus = mdiobus_alloc();
-	if (new_bus == NULL)
-		return -ENOMEM;
-
 	if (mdio_bus_data->irqs) {
 		irqlist = mdio_bus_data->irqs;
 	} else {
@@ -225,29 +225,40 @@ int stmmac_mdio_register(struct net_device *ndev)
 		irqlist = priv->mii_irq;
 	}
 
+	/*
+	 * Allocate/register mdio bus if not already existing and
+	 * reuse the bus previously registered
+	 */
+	new_bus = of_mdio_find_bus(mdio_node);
+	if (!new_bus) {
+		new_bus = mdiobus_alloc();
+		if (new_bus == NULL)
+			return -ENOMEM;
+
 #ifdef CONFIG_OF
-	if (priv->device->of_node)
-		mdio_bus_data->reset_gpio = -1;
+		if (priv->device->of_node)
+			mdio_bus_data->reset_gpio = -1;
 #endif
 
-	new_bus->name = "stmmac";
-	new_bus->read = &stmmac_mdio_read;
-	new_bus->write = &stmmac_mdio_write;
-	new_bus->reset = &stmmac_mdio_reset;
-	snprintf(new_bus->id, MII_BUS_ID_SIZE, "%s-%x",
-		 new_bus->name, priv->plat->bus_id);
-	new_bus->priv = ndev;
-	new_bus->irq = irqlist;
-	new_bus->phy_mask = mdio_bus_data->phy_mask;
-	new_bus->parent = priv->device;
+		new_bus->name = "stmmac";
+		new_bus->read = &stmmac_mdio_read;
+		new_bus->write = &stmmac_mdio_write;
+		new_bus->reset = &stmmac_mdio_reset;
+		snprintf(new_bus->id, MII_BUS_ID_SIZE, "%s-%x",
+			 new_bus->name, priv->plat->bus_id);
+		new_bus->priv = ndev;
+		new_bus->irq = irqlist;
+		new_bus->phy_mask = mdio_bus_data->phy_mask;
+		new_bus->parent = priv->device;
 
-	if (mdio_node)
-		err = of_mdiobus_register(new_bus, mdio_node);
-	else
-		err = mdiobus_register(new_bus);
-	if (err != 0) {
-		pr_err("%s: Cannot register as MDIO bus\n", new_bus->name);
-		goto bus_register_fail;
+		if (mdio_node)
+			err = of_mdiobus_register(new_bus, mdio_node);
+		else
+			err = mdiobus_register(new_bus);
+		if (err != 0) {
+			pr_err("%s: Cannot register as MDIO bus\n", new_bus->name);
+			goto bus_register_fail;
+		}
 	}
 
 	found = 0;

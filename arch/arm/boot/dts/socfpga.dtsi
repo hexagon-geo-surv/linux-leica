@@ -726,10 +726,11 @@
 				<0xffa00000 0x1000>;
 			interrupts = <0 151 4>;
 			clocks = <&qspi_clk>;
-			is-decoded-cs = <1>;
-			fifo-depth = <128>;
+			/*cdns,is-decoded-cs;*/
+			cdns,fifo-depth = <128>;
+			cdns,fifo-width = <4>;
+			cdns,trigger-address = <0x00000000>;
 			status = "disabled";
-			m25p,fast-read;
 		};
 
 		spi1: spi@fff01000 {

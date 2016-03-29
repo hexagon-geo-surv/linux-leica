@@ -199,10 +199,10 @@
 &qspi {
 	status = "okay";
 
-	flash0: n25q00@0 {
+	flash0: n25q256a@0 {
 		#address-cells = <1>;
 		#size-cells = <1>;
-		compatible = "n25q00";
+		compatible = "micron,n25q256a", "jedec,spi-nor";
 		reg = <0>;      /* chip select */
 		spi-max-frequency = <100000000>;
 		m25p,fast-read;
@@ -221,9 +221,9 @@
 		};
 
 		partition@qspi-rootfs {
-			/* 120MB for jffs2 data. */
+			/* 24MB for jffs2 data. */
 			label = "Flash 0 jffs2 Filesystem";
-			reg = <0x800000 0x7800000>;
+			reg = <0x800000 0x1800000>;
 		};
 	};
 };

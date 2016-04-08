@@ -524,6 +524,19 @@ config VIDEO_OV7670
 	  OV7670 VGA camera.  It currently only works with the M88ALP01
 	  controller.
 
+config VIDEO_OV8858
+	tristate "Omnivision ov8858 sensor support"
+	depends on I2C && VIDEO_V4L2
+	depends on MEDIA_CAMERA_SUPPORT
+        default y
+	---help---
+	  This is a Video4Linux2 sensor-level driver for the Omnivision
+	  ov8858 RAW sensor.
+
+	  OV8858 is a 8M raw sensor.
+
+	  It currently only works with the atomisp driver.
+
 config VIDEO_OV9650
 	tristate "OmniVision OV9650/OV9652 sensor support"
 	depends on I2C && VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API

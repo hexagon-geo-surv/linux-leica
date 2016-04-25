@@ -223,10 +223,29 @@
 			reg = <0x0 0x800000>;
 		};
 
-		partition@qspi-rootfs {
-			/* 24MB for jffs2 data. */
-			label = "Flash 0 jffs2 Filesystem";
-			reg = <0x800000 0x1800000>;
+		partition@qspi-u-boot {
+			label = "u-boot";
+			reg = <0x800000 0x100000>;
+		};
+
+		partition@qspi-env1 {
+			label = "env1";
+			reg = <0x900000 0x10000>;
+		};
+
+		partition@qspi-env2 {
+			label = "env2";
+			reg = <0x910000 0x10000>;
+		};
+
+		partition@qspi-recovery {
+			label = "recovery";
+			reg = <0x920000 0x800000>;
+		};
+
+		partition@qspi-data {
+			label = "data";
+			reg = <0x1120000 0xee0000>;
 		};
 	};
 };

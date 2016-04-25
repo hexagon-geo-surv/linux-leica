@@ -856,5 +856,10 @@
 			clocks = <&osc1>;
 			status = "disabled";
 		};
+
+		bootcount@0xffd0809c {
+			compatible = "uboot,bootcount";
+			reg = <0xffd0809c 0x4>;
+		};
 	};
 };

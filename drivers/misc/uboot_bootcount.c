@@ -19,50 +19,19 @@
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/of_platform.h>
+#include <linux/platform_device.h>
 
 #define UBOOT_BOOTCOUNT_NAME "bootcount"
 
 #define	UBOOT_BOOTCOUNT_MAGIC_OFFSET	0x04	/* offset of magic number */
 #define	UBOOT_BOOTCOUNT_MAGIC		0xB001C041 /* magic number value */
 
-static void __iomem *mem;
-
-/* helper for the sysFS */
-static int show_str_bootcount(struct device *device,
-				struct device_attribute *attr,
-				char *buf)
-{
-	unsigned long counter;
-
-	counter = be32_to_cpu(readl(mem));
-
-	return sprintf(buf, "%lu\n", counter);
-}
-
-static int store_str_bootcount(struct device *dev,
-			struct device_attribute *attr,
-			const char *buf,
-			size_t count)
-{
-	int r;
-	u32 value;
-	unsigned long magic;
-
-	magic = be32_to_cpu(readl(mem + UBOOT_BOOTCOUNT_MAGIC_OFFSET));
-	if (magic != UBOOT_BOOTCOUNT_MAGIC)
-		return -EINVAL;
-
-	r = kstrtou32(buf, 0, &value);
-	if (r < 0)
-		return -EINVAL;
-
-	writel(cpu_to_be32(value), mem);
-
-	return count;
-}
-
-static DEVICE_ATTR(bootcount, S_IWUSR | S_IRUGO, show_str_bootcount,
-		store_str_bootcount);
+struct bootcount {
+	void *base;
+	bool singleword;
+	size_t magic_offset;
+	unsigned long magic_ok;
+};
 
 static const struct file_operations bootcount_fops = {
 	.owner = THIS_MODULE,
@@ -74,23 +43,101 @@ static struct miscdevice bootcount_miscdev = {
 	&bootcount_fops
 };
 
+/* helper for the sysFS */
+static int show_str_bootcount(struct device *device,
+				struct device_attribute *attr,
+				char *buf)
+{
+	struct platform_device *pdev = to_platform_device(bootcount_miscdev.parent);
+	struct bootcount *bdev = dev_get_drvdata(&pdev->dev);
+	unsigned long counter;
+
+	counter = be32_to_cpu(readl(bdev->base));
+
+	if (bdev->singleword)
+		counter &= 0x0000ffff;
+
+	return sprintf(buf, "%lu\n", counter);
+}
+
+static int store_str_bootcount(struct device *dev,
+			struct device_attribute *attr,
+			const char *buf,
+			size_t count)
+{
+	struct platform_device *pdev = to_platform_device(bootcount_miscdev.parent);
+	struct bootcount *bdev = dev_get_drvdata(&pdev->dev);
+	unsigned long magic;
+	int r;
+	u32 value;
+
+	magic = be32_to_cpu(readl(bdev->base + bdev->magic_offset));
+	if (bdev->singleword)
+		magic &= 0xffff0000;
+
+	if (magic != bdev->magic_ok)
+		return -EINVAL;
+
+	r = kstrtou32(buf, 0, &value);
+	if (r < 0)
+		return -EINVAL;
+
+	if (bdev->singleword)
+		value = value | (UBOOT_BOOTCOUNT_MAGIC & 0xffff0000);
+
+	writel(cpu_to_be32(value), bdev->base);
+
+	return count;
+}
+
+static DEVICE_ATTR(bootcount, S_IWUSR | S_IRUGO, show_str_bootcount,
+		store_str_bootcount);
 
 static int bootcount_probe(struct platform_device *ofdev)
 {
 	struct device_node *np = of_node_get(ofdev->dev.of_node);
+	const unsigned int *reg;
 	unsigned long magic;
+	unsigned int size;
+	struct bootcount *bdev;
+	static void __iomem *mem;
+
+	bdev = devm_kzalloc(&ofdev->dev, sizeof *bdev, GFP_KERNEL);
+	if (!bdev)
+		return -ENOMEM;
 
 	mem = of_iomap(np, 0);
 	if (mem == NULL) {
 		dev_err(&ofdev->dev, "couldnt map register.\n");
 		return -ENODEV;
 	}
-	magic = be32_to_cpu(readl(mem + UBOOT_BOOTCOUNT_MAGIC_OFFSET));
-	if (magic != UBOOT_BOOTCOUNT_MAGIC) {
+
+	bdev->base = mem;
+	bdev->magic_ok = UBOOT_BOOTCOUNT_MAGIC;
+
+	reg = of_get_property(np, "reg", &size);
+	if (reg && size == 8) {
+		if (be32_to_cpu(reg[1]) == 4) {
+			bdev->singleword = true;
+			bdev->magic_offset = 0;
+		} else {
+			bdev->singleword = false;
+			bdev->magic_offset = UBOOT_BOOTCOUNT_MAGIC_OFFSET;
+		}
+	}
+
+	magic = be32_to_cpu(readl(bdev->base + bdev->magic_offset));
+	if (bdev->singleword) {
+		magic &= 0xffff0000;
+		bdev->magic_ok = UBOOT_BOOTCOUNT_MAGIC & 0xffff0000;
+	}
+
+	if (magic != bdev->magic_ok) {
 		dev_err(&ofdev->dev, "bad magic.\n");
 		goto no_magic;
 	}
 
+	bootcount_miscdev.parent = &ofdev->dev;
 	if (misc_register(&bootcount_miscdev)) {
 		dev_err(&ofdev->dev, "failed to register device\n");
 		goto misc_register_fail;
@@ -102,6 +149,7 @@ static int bootcount_probe(struct platform_device *ofdev)
 		goto register_sysfs_fail;
 	}
 
+	dev_set_drvdata(&ofdev->dev, bdev);
 	return 0;
 register_sysfs_fail:
 	misc_deregister(&bootcount_miscdev);
@@ -113,8 +161,10 @@ no_magic:
 
 static int bootcount_remove(struct platform_device *ofdev)
 {
+	struct bootcount *bdev = dev_get_drvdata(&ofdev->dev);
+
 	misc_deregister(&bootcount_miscdev);
-	iounmap(mem);
+	iounmap(bdev->base);
 	return 0;
 }
 
@@ -143,8 +193,11 @@ static int __init uboot_bootcount_init(void)
 
 static void __exit uboot_bootcount_cleanup(void)
 {
-	if (mem != NULL)
-		iounmap(mem);
+	struct platform_device *pdev = to_platform_device(bootcount_miscdev.parent);
+	struct bootcount *bdev = dev_get_drvdata(&pdev->dev);
+
+	if (bdev->base != NULL)
+		iounmap(bdev->base);
 }
 
 module_init(uboot_bootcount_init);

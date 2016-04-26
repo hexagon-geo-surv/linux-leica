@@ -245,7 +245,11 @@
 
 		partition@qspi-data {
 			label = "data";
-			reg = <0x1120000 0xee0000>;
+			reg = <0x1120000 0x6e0000>;
+		};
+		partition@qspi-reserved {
+			label = "reserved";
+			reg = <0x1800000 0x800000>;
 		};
 	};
 };

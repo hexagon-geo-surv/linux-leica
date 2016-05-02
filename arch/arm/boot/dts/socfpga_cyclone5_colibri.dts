@@ -218,38 +218,37 @@
 		cdns,tslch-ns = <4>;
 
 		partition@qspi-boot {
-			/* 8MB for raw data. */
-			label = "Flash 0 Raw Data";
-			reg = <0x0 0x800000>;
-		};
-
-		partition@qspi-u-boot {
 			label = "u-boot";
-			reg = <0x800000 0x100000>;
+			reg = <0x0 0x100000>;
 		};
 
 		partition@qspi-env1 {
 			label = "env1";
-			reg = <0x900000 0x10000>;
+			reg = <0x100000 0x10000>;
 		};
 
 		partition@qspi-env2 {
 			label = "env2";
-			reg = <0x910000 0x10000>;
+			reg = <0x110000 0x10000>;
+		};
+
+		partition@qspi-fpga {
+			label = "fpgacfg";
+			reg = <0x120000 0x800000>;
 		};
 
 		partition@qspi-recovery {
 			label = "recovery";
-			reg = <0x920000 0x800000>;
+			reg = <0x920000 0xa00000>;
 		};
 
-		partition@qspi-data {
-			label = "data";
-			reg = <0x1120000 0x6e0000>;
+		partition@qspi-sysdata {
+			label = "sysdata";
+			reg = <0x1320000 0x800000>;
 		};
 		partition@qspi-reserved {
 			label = "reserved";
-			reg = <0x1800000 0x800000>;
+			reg = <0x1b20000 0x4e0000>;
 		};
 	};
 };

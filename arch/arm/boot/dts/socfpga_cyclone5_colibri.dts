@@ -111,6 +111,46 @@
 	};
 };
 
+&fpgamgr0 {
+	compatible = "altr,socfpga-fpga-mgr", "simple-bus";
+	#address-cells = <0x1>;
+	#size-cells = <0x1>;
+	ranges;
+
+	bridge@0 {
+		compatible = "altr,socfpga-lwhps2fpga-bridge", "simple-bus";
+		resets = <&rst LWHPS2FPGA_RESET>;
+		label = "lwhps2fpga";
+		reset-names = "lwhps2fpga";
+		clocks = <&l4_main_clk>;
+		#address-cells = <0x1>;
+		#size-cells = <0x1>;
+		ranges;
+	};
+
+	bridge@1 {
+		compatible = "altr,socfpga-hps2fpga-bridge", "simple-bus";
+		resets = <&rst HPS2FPGA_RESET>;
+		label = "hps2fpga";
+		reset-names = "hps2fpga";
+		clocks = <&l4_main_clk>;
+		#address-cells = <0x1>;
+		#size-cells = <0x1>;
+		ranges;
+	};
+
+	bridge@2 {
+		compatible = "altr,socfpga-fpga2hps-bridge", "simple-bus";
+		resets = <&rst FPGA2HPS_RESET>;
+		label = "fpga2hps";
+		reset-names = "fpga2hps";
+		clocks = <&l4_main_clk>;
+		#address-cells = <0x1>;
+		#size-cells = <0x1>;
+		ranges;
+	};
+};
+
 &gmac0 {
 	status = "okay";
 	phy-mode = "mii";

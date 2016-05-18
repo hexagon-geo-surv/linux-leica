@@ -1,0 +1,32 @@
+/* Device tree overlay example for FPGA configuration and device probing */
+
+/dts-v1/ /plugin/;
+
+/ {
+	fragment@0 {
+		/* controlling bridge */
+		target-path = "/soc/fpgamgr@ff706000/bridge@0";
+		__overlay__ {
+			#address-cells = <1>;
+	                #size-cells = <1>;
+
+			area@0 {
+				compatible = "fpga-area";
+
+				#address-cells = <2>;
+				#size-cells = <1>;
+				/* We use one bridge, so one range */
+				ranges = <0 0x00000000 0xff200000 0x00040000>;
+
+				firmware-name = "colibri.rbf";
+
+				ulti_sdc_0: ulti_sdc@30000 {
+					compatible = "EXOR,ulti_sdc-13.1", "EXOR,ulti_sdc-1.0", "exor,ulti_sdc-1.0", "sdhci-ultimmc";
+					reg = <0 0x30000 0x10000>;
+					interrupt-parent = <&intc>;
+					interrupts = <0 43 4>;
+				};
+			};
+		};
+	};
+};

@@ -109,7 +109,42 @@
 			gpios = <&gpio1 12 1>;
 		};
 	};
+
+	soc {
+		spi0: spi@fff00000 {
+			status = "okay";
+			/* XXX DS: Check naming spidev@1 @2, etc. ...*/
+			spidev@0 {
+				compatible = "spidev";
+				reg = <1>;
+				spi-max-frequency = <100000000>;
+				enable-dma = <0>;
+			};
+			fram@0 {
+			    compatible = "atmel,at25", "cypress,fm25l16b";
+			    reg = <0x2>;	/* chip select */
+			    spi-max-frequency = <20000000>;
+			    enable-dma = <0>;
+
+			    pagesize = <256>;
+			    size = <2048>;
+			    address-width = <16>;
+			};
+		};
+
+		spi1: spi@fff01000 {
+			status = "okay";
+
+			spidev@1 {
+				compatible = "spidev";
+				reg = <1>;
+				spi-max-frequency = <100000000>;
+				enable-dma = <0>;
+			};
+		};
+	};
 };
+
 
 &fpgamgr0 {
 	compatible = "altr,socfpga-fpga-mgr", "simple-bus";

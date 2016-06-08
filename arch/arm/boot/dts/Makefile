@@ -563,6 +563,9 @@ dtb-$(CONFIG_ARCH_SOCFPGA) += \
 	socfpga_cyclone5_socrates.dtb \
 	socfpga_cyclone5_colibri.dtb \
 	colibri.dtb \
+	colibri-wlan.dtb \
+	colibri-imager.dtb \
+	colibri-edm.dtb \
 	socfpga_vt.dtb
 dtb-$(CONFIG_ARCH_SPEAR13XX) += \
 	spear1310-evb.dtb \

@@ -254,7 +254,7 @@
 &i2c0 {
 	status = "okay";
 	speed-mode = <0>;
-	clock-frequency = <100000>
+	clock-frequency = <100000>;
 
 	eeprom@51 {
 		compatible = "atmel,24c32";

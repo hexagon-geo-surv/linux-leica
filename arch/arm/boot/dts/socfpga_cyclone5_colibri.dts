@@ -55,6 +55,18 @@
 		interrupts = <0 43 4>;
 	}; //end ulti_sdc@0x100030000 (ulti_sdc_0)
 
+	sysid_qsys: sysid@0xff210000 {
+		compatible = "altr,sysid-1.0";
+		reg = < 0xff210000 0x00000008 >;
+	};
+
+	sensor_in: sensor@0xff210040 {
+		compatible = "generic-uio";
+		reg = < 0xff210040 0x00000040 >;
+		interrupt-parent = <&intc>;
+		interrupts = < 0 72 4 >;
+	};
+
 	agpio0: gpio@ff210010 {
 		compatible = "altr,pio-1.0";
 		reg = <0xff210010 0x10>;
@@ -242,6 +254,7 @@
 &i2c0 {
 	status = "okay";
 	speed-mode = <0>;
+	clock-frequency = <100000>
 
 	eeprom@51 {
 		compatible = "atmel,24c32";

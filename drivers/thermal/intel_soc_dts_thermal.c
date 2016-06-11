@@ -43,6 +43,7 @@ static irqreturn_t soc_irq_thread_fn(int irq, void *dev_data)
 
 static const struct x86_cpu_id soc_thermal_ids[] = {
 	{ X86_VENDOR_INTEL, X86_FAMILY_ANY, 0x37, 0, BYT_SOC_DTS_APIC_IRQ},
+	{ X86_VENDOR_INTEL, X86_FAMILY_ANY, 0x4c, 0, },
 	{}
 };
 MODULE_DEVICE_TABLE(x86cpu, soc_thermal_ids);

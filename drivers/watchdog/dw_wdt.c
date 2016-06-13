@@ -57,6 +57,11 @@ module_param(nowayout, bool, 0);
 MODULE_PARM_DESC(nowayout, "Watchdog cannot be stopped once started "
 		 "(default=" __MODULE_STRING(WATCHDOG_NOWAYOUT) ")");
 
+static unsigned timeout = DW_WDT_DEFAULT_SECONDS;
+module_param(timeout, uint, 0);
+MODULE_PARM_DESC(timeout, "Watchdog timeout in seconds (default="
+		 __MODULE_STRING(DW_WDT_DEFAULT_SECONDS) ")");
+
 #define WDT_TIMEOUT		(HZ / 2)
 
 static struct {
@@ -180,7 +185,7 @@ static int dw_wdt_open(struct inode *inode, struct file *filp)
 		 * The watchdog is not currently enabled. Set the timeout to
 		 * something reasonable and then start it.
 		 */
-		dw_wdt_set_top(DW_WDT_DEFAULT_SECONDS);
+		dw_wdt_set_top(timeout);
 		writel(WDOG_CONTROL_REG_WDT_EN_MASK,
 		       dw_wdt.regs + WDOG_CONTROL_REG_OFFSET);
 	}
@@ -355,6 +360,7 @@ static int dw_wdt_drv_probe(struct platform_device *pdev)
 		pr_warn("cannot register restart handler\n");
 
 	dw_wdt_set_next_heartbeat();
+	dw_wdt_set_top(timeout);
 	setup_timer(&dw_wdt.timer, dw_wdt_ping, 0);
 	mod_timer(&dw_wdt.timer, jiffies + WDT_TIMEOUT);
 

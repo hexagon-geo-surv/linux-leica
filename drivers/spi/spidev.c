@@ -695,6 +695,9 @@ static struct class *spidev_class;
 static const struct of_device_id spidev_dt_ids[] = {
 	{ .compatible = "rohm,dh2228fv" },
 	{ .compatible = "lineartechnology,ltc2488" },
+	{ .compatible = "lgs-colibri,fast-axis-spi" },
+	{ .compatible = "lgs-colibri,slow-axis-spi" },
+	{ .compatible = "lgs-colibri,imager-spi" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, spidev_dt_ids);

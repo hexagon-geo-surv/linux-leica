@@ -125,23 +125,17 @@
 	soc {
 		spi0: spi@fff00000 {
 			status = "okay";
-			spidev@0 {
-				compatible = "lgs-colibri,imager-spi", "spidev";
-				reg = <0>;
-				spi-max-frequency = <8000000>;
-				enable-dma = <0>;
-			};
 
-			spidev@1 {
+			spidev@0 {
 				compatible = "lgs-colibri,fast-axis-spi", "spidev";
-				reg = <1>;
-				spi-max-frequency = <8000000>;
+				reg = <0>;
+			        spi-max-frequency = <8000000>;
 				enable-dma = <0>;
 			};
-			spidev@3 {
+			spidev@1 {
 				compatible = "lgs-colibri,slow-axis-spi", "spidev";
-				reg = <3>;
-				spi-max-frequency = <8000000>;
+				reg = <1>;
+			        spi-max-frequency = <8000000>;
 				enable-dma = <0>;
 			};
 
@@ -163,27 +157,10 @@
 			spidev@0 {
 				compatible = "lgs-colibri,imager-spi", "spidev";
 				reg = <0>;
-			        spi-max-frequency = <8000000>;
+				spi-max-frequency = <8000000>;
 				enable-dma = <0>;
 			};
-			spidev@1 {
-				compatible = "lgs-colibri,imager-spi", "spidev";
-				reg = <1>;
-			        spi-max-frequency = <8000000>;
-				enable-dma = <0>;
-			};
-			spidev@2 {
-				compatible = "lgs-colibri,imager-spi", "spidev";
-				reg = <2>;
-			        spi-max-frequency = <8000000>;
-				enable-dma = <0>;
-			};
-			spidev@3 {
-				compatible = "lgs-colibri,imager-spi", "spidev";
-				reg = <3>;
-			        spi-max-frequency = <8000000>;
-				enable-dma = <0>;
-			};
+
 		};
 	};
 };

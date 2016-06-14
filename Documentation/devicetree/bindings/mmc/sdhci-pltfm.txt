@@ -1,0 +1,16 @@
+Generic SHDCI platform driver
+
+The generic SDHCI platform driver should support most SDHCI host
+controllers. It uses the compatible="generic-sdhci" property and
+supports the following device tree properties as described in mmc.txt.
+
+Supported properties (described in mmc.txt):
+- reg
+- interrupts
+- wp-inverted
+- broken-cd
+- no-1-8-v
+- keep-power-in-suspend
+- enable-sdio-wakeup
+- bus-width
+- clock-frequency

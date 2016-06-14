@@ -254,6 +254,34 @@ const struct dev_pm_ops sdhci_pltfm_pmops = {
 EXPORT_SYMBOL_GPL(sdhci_pltfm_pmops);
 #endif	/* CONFIG_PM */
 
+static int sdhci_generic_probe(struct platform_device *pdev)
+{
+	return sdhci_pltfm_register(pdev, NULL, 0);
+}
+
+static int sdhci_generic_remove(struct platform_device *pdev)
+{
+	return sdhci_pltfm_unregister(pdev);
+}
+
+static const struct of_device_id sdhci_generic_of_match[] = {
+	{ .compatible = "generic-sdhci" },
+	{ }
+};
+MODULE_DEVICE_TABLE(of, sdhci_generic_of_match);
+
+static struct platform_driver sdhci_generic_driver = {
+	.driver = {
+		.name = "sdhci-generic",
+		.owner = THIS_MODULE,
+		.of_match_table = sdhci_generic_of_match,
+		.pm = SDHCI_PLTFM_PMOPS,
+	},
+	.probe = sdhci_generic_probe,
+	.remove = sdhci_generic_remove,
+};
+module_platform_driver(sdhci_generic_driver);
+
 static int __init sdhci_pltfm_drv_init(void)
 {
 	pr_info("sdhci-pltfm: SDHCI platform and OF driver helper\n");

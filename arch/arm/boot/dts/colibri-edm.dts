@@ -54,12 +54,13 @@
 					interrupts = <0 47 4>;
 				}; //end msgdma@0xff21c040 (msgdma_camera)
 
-				ulti_sdc_0: ulti_sdc@30000 {
-					status = "disabled";
-					compatible = "EXOR,ulti_sdc-13.1", "EXOR,ulti_sdc-1.0", "exor,ulti_sdc-1.0", "sdhci-ultimmc";
+				elcamino_sdc_0: elcamino_sdc@30000 {
+					/*status = "disabled";*/
+					compatible = "sdhci-generic", "generic-sdhci";
 					reg = <0 0x30000 0x10000>;
 					interrupt-parent = <&intc>;
 					interrupts = <0 43 4>;
+					clock-frequency = <100000000>;
 				};
 
 			};

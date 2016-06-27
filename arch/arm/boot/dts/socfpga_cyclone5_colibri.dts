@@ -67,9 +67,9 @@
 		interrupts = < 0 72 4 >;
 	};
 
-	agpio0: gpio@ff210010 {
+	agpio0: gpio@ff210020 {
 		compatible = "altr,pio-1.0";
-		reg = <0xff210010 0x10>;
+		reg = <0xff210020 0x20>;
 		interrupts = <0 44 4>;
 		width=<32>;
 		altr,interrupt_type = <4>;

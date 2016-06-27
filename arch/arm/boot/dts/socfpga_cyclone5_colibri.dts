@@ -47,14 +47,6 @@
 		regulator-max-microvolt = <3300000>;
 	};
 
-	ulti_sdc_0: ulti_sdc@ff230000 {
-		status = "disabled";
-		compatible = "EXOR,ulti_sdc-13.1", "EXOR,ulti_sdc-1.0", "exor,ulti_sdc-1.0", "sdhci-ultimmc";
-		reg = <0xff230000 0xffff>;
-		interrupt-parent = <&intc>;
-		interrupts = <0 43 4>;
-	}; //end ulti_sdc@0x100030000 (ulti_sdc_0)
-
 	sysid_qsys: sysid@0xff210000 {
 		compatible = "altr,sysid-1.0";
 		reg = < 0xff210000 0x00000008 >;

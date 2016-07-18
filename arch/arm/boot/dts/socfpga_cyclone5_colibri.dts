@@ -52,24 +52,84 @@
 		reg = < 0xff210000 0x00000008 >;
 	};
 
-	sensor_in: sensor@0xff210040 {
-		compatible = "generic-uio";
-		reg = < 0xff210040 0x00000040 >;
-		interrupt-parent = <&intc>;
-		interrupts = < 0 72 4 >;
-	};
-
 	agpio0: gpio@ff210020 {
+		status = "disabled";
 		compatible = "altr,pio-1.0";
 		reg = <0xff210020 0x20>;
-		interrupts = <0 44 4>;
+		interrupts = <0 44 1>;	/* edge triggered */
 		width=<32>;
-		altr,interrupt_type = <4>;
 		#gpio-cells = <2>;
 		gpio-controller;
 		#interrupt-cells = <1>;
 		interrupt-controller;
+		altr,gpio-bank-width = <32>;
+		altr,interrupt_type = <1>;
+		edge_type = <0>;
+		level_trigger = <0>;
+		resetvalue = <0>;
 	};
+
+	wlan_module: regulator@0 {
+                compatible = "regulator-fixed";
+
+                regulator-name = "WLAN module Vcc";
+                regulator-min-microvolt = <3300000>;
+                regulator-max-microvolt = <3300000>;
+
+                regulator-boot-on;
+        };
+
+        wlan_en_reg: regulator@1 {
+                compatible = "regulator-fixed";
+                regulator-name = "wlan-en-regulator";
+                regulator-min-microvolt = <1800000>;
+                regulator-max-microvolt = <1800000>;
+                /* WLAN_EN GPIO for this board - HPS_GPIO61, gpio2 3 */
+                gpio = <&gpio2 3 0>;
+                /* WLAN card specific delay */
+                startup-delay-us = <70000>;
+                enable-active-high;
+        };
+
+        wlan_elca: sdhci@0xc0020000 {
+		status = "disabled";
+                compatible = "elca,sd_mmc_elca-15.11", "generic-sdhci";
+                reg = <0xc0020000 0x00000100>;
+                interrupt-parent = <&intc>;
+                interrupts = <0 49 4>;
+                cap-mmc-highspeed = <1>;
+                cap-sd-highspeed = <1>;
+                sdhci,auto-cmd12 = <1>;
+                vmmc-supply = <&wlan_en_reg>;
+
+                #address-cells = <1>;
+                #size-cells = <0>;
+                wlcore: wlcore@0 {
+                        compatible = "ti,wl1835";
+                        reg = <2>;
+                        interrupt-parent = <&porta>; /* HPS_GPIO17 */
+                        interrupts = <17 4>;
+                };
+        }; //end sdhci@0x000020000 (wlan_elca)
+
+        sdc_elca: sdhci@0xc0030000 {
+		status = "disabled";
+                compatible = "elca,sd_mmc_elca-15.11", "generic-sdhci";
+                reg = <0xc0030000 0x00000100>;
+                interrupt-parent = <&intc>;
+                interrupts = <0 43 4>;
+                cap-mmc-highspeed = <1>;
+                cap-sd-highspeed = <1>;
+                sdhci,auto-cmd12 = <1>;
+        }; //end sdhci@0x000030000 (sdc_elca)
+
+	timing_core_0: timing_core@0xff21c0c0 {
+		status = "disabled";
+		compatible = "unknown,unknown-1.0";
+		reg = <0xff21c0c0 0x00000040>;
+		interrupt-parent = <&intc>;
+		interrupts = <0 47 4>;
+	}; //end unknown@0x10001c0c0 (timing_core_0)
 
 	leds {
 		compatible = "gpio-leds";
@@ -181,6 +241,7 @@
 		label = "hps2fpga";
 		reset-names = "hps2fpga";
 		clocks = <&l4_main_clk>;
+		bridge-enable = <1>;
 		#address-cells = <0x1>;
 		#size-cells = <0x1>;
 		ranges;
@@ -266,6 +327,12 @@
 		compatible = "st,m41t83";
 		reg = <0x68>;
 	};
+};
+
+&i2c1 {
+	status = "okay";
+	speed-mode = <0>;
+	clock-frequency = <100000>;
 };
 
 &mmc0 {

@@ -15,22 +15,34 @@
 
 				#address-cells = <2>;
 				#size-cells = <1>;
-				/* We use one bridge, so one range */
-				ranges = <0 0x00000000 0xff200000 0x00040000>;
+				ranges = <0 0x00000000 0xff200000 0x00040000>,
+					<1 0x00000000 0xc0000000 0x00040000>;
 
 				firmware-name = "colibri.rbf";
 
-				msgdma_casa: sgdma@0x10080 {
-					/* XXX DS: this one has to be changed either to shared DMA or FIFO */
+				/* used for manual CASA triggering */
+				timing_core_0: timing_core@0x1c0c0 {
 					status = "disabled";
-					compatible = "colibri-casa";
-					reg = <0 0x00010080 0x00000020>,
-					      <0 0x000100a0 0x00000010>,
-					      <0 0x000100b0 0x00000008>;
-					reg-names = "CSR", "Descriptor_Slave", "Response_Slave";
+					compatible = "unknown,unknown-1.0";
+					reg = <0 0x1c0c0 0x00000010>;
 					interrupt-parent = <&intc>;
-					interrupts = <0 73 4>;
-				}; //end sgdma@0xff210080 (msgdma_casa)
+					interrupts = <0 47 4>;
+				}; //end unknown@0x10001c0c0 (timing_core_0)
+
+				/* timestamp timer */
+				timing_module: timing_module@0x1d000 {
+					compatible = "colibri-timer";
+					reg = <0 0x1d000 0x00000040>;
+					interrupt-parent = <&intc>;
+					interrupts = <0 50 4>;
+				}; //end unknown@0x10001c0c0 (timing_core_0)
+
+				casa_fifo_streamer: casa_fifo@1c0e0 {
+					compatible = "generic-uio";
+					reg = <0 0x1c0e0 0x00000020>;
+					interrupt-parent = <&intc>;
+					interrupts = <0 48 4>;
+				};
 
 				msgdma_edm: sgdma@0x10100 {
 					/* status = "disabled"; */
@@ -43,27 +55,56 @@
 					interrupts = <0 40 4>;
 				}; //end unknown@0xff2110100 (msgdma_edm)
 
-				msgdma_camera: msgdma@0x1c040 {
-					/* status = "disabled"; */
+				msgdma_camera: msgdma@0x50000 {
+					status = "disabled";
 					compatible = "colibri-fb";
-					reg = <0 0x0001c040 0x00000020>,
-					      <0 0x0001c060 0x00000010>,
-					      <0 0x0001c070 0x00000008>;
+					reg = <0 0x00050000 0x00000020>,
+					      <0 0x00050020 0x00000010>,
+					      <0 0x00050030 0x00000008>;
 					reg-names = "csr", "descriptor_slave", "response";
 					interrupt-parent = <&intc>;
-					interrupts = <0 47 4>;
+					interrupts = <0 46 4>;
 				}; //end msgdma@0xff21c040 (msgdma_camera)
 
-				elcamino_sdc_0: elcamino_sdc@30000 {
-					/*status = "disabled";*/
-					compatible = "sdhci-generic", "generic-sdhci";
-					reg = <0 0x30000 0x10000>;
+				wlan_elca: sdhci@0x20000 {
+					compatible = "elca,sd_mmc_elca-15.11", "generic-sdhci";
+					reg = <1 0x00020000 0x00000100>;
+					interrupt-parent = <&intc>;
+					interrupts = <0 49 4>;
+					cap-mmc-highspeed = <1>;
+					cap-sd-highspeed = <1>;
+					sdhci,auto-cmd12 = <1>;
+					vmmc-supply = <&wlan_en_reg>;
+
+					#address-cells = <1>;
+					#size-cells = <0>;
+					wlcore: wlcore@0 {
+						compatible = "ti,wl1835";
+						reg = <2>;
+						interrupt-parent = <&porta>; /* HPS_GPIO17 */
+						interrupts = <17 4>;
+					};
+				}; //end sdhci@0x000020000 (wlan_elca)
+
+			      	sdc_elca: sdhci@0x30000 {
+					compatible = "elca,sd_mmc_elca-15.11", "generic-sdhci";
+					reg = <1 0x00030000 0x00000100>;
 					interrupt-parent = <&intc>;
 					interrupts = <0 43 4>;
-					clock-frequency = <100000000>;
-				};
-
+					cap-mmc-highspeed = <1>;
+					cap-sd-highspeed = <1>;
+					sdhci,auto-cmd12 = <1>;
+				}; //end sdhci@0x000030000 (sdc_elca)
 			};
+		};
+	};
+
+	fragment@1 {
+		target = <&agpio0>;
+		__overlay__ {
+			status = "okay";
+			interrupts = <0 44 1>;	/* edge triggered */
+			altr,interrupt_type = <1>;	/* edge rising */
 		};
 	};
 };

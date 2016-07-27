@@ -62,11 +62,7 @@
 		gpio-controller;
 		#interrupt-cells = <1>;
 		interrupt-controller;
-		altr,gpio-bank-width = <32>;
-		altr,interrupt_type = <1>;
-		edge_type = <0>;
-		level_trigger = <0>;
-		resetvalue = <0>;
+		altr,interrupt_type = <1>;	/* rising edge */
 	};
 
 	wlan_module: regulator@0 {
@@ -122,14 +118,6 @@
                 cap-sd-highspeed = <1>;
                 sdhci,auto-cmd12 = <1>;
         }; //end sdhci@0x000030000 (sdc_elca)
-
-	timing_core_0: timing_core@0xff21c0c0 {
-		status = "disabled";
-		compatible = "unknown,unknown-1.0";
-		reg = <0xff21c0c0 0x00000040>;
-		interrupt-parent = <&intc>;
-		interrupts = <0 47 4>;
-	}; //end unknown@0x10001c0c0 (timing_core_0)
 
 	leds {
 		compatible = "gpio-leds";
@@ -241,7 +229,6 @@
 		label = "hps2fpga";
 		reset-names = "hps2fpga";
 		clocks = <&l4_main_clk>;
-		bridge-enable = <1>;
 		#address-cells = <0x1>;
 		#size-cells = <0x1>;
 		ranges;

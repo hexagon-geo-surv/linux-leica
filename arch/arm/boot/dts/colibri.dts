@@ -29,20 +29,20 @@
 					interrupts = <0 47 4>;
 				}; //end unknown@0x10001c0c0 (timing_core_0)
 
-				/* timestamp timer */
-				timing_module: timing_module@0x1d000 {
-					compatible = "colibri-timer";
-					reg = <0 0x1d000 0x00000040>;
-					interrupt-parent = <&intc>;
-					interrupts = <0 50 4>;
-				}; //end unknown@0x10001c0c0 (timing_core_0)
-
 				casa_fifo_streamer: casa_fifo@1c0e0 {
 					compatible = "generic-uio";
 					reg = <0 0x1c0e0 0x00000020>;
 					interrupt-parent = <&intc>;
 					interrupts = <0 48 4>;
 				};
+
+				/* timestamp timer */
+				timing_module: timing_module@0x1d000 {
+					compatible = "generic-uio";
+					reg = <0 0x1d000 0x00000040>;
+					interrupt-parent = <&intc>;
+					interrupts = <0 50 4>;
+				}; //end unknown@0x10001c0c0 (timing_core_0)
 
 				msgdma_edm: sgdma@0x10100 {
 					/* status = "disabled"; */

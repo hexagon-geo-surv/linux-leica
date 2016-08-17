@@ -65,28 +65,28 @@
 					interrupts = <0 46 4>;
 				}; //end msgdma@0xff21c040 (msgdma_camera)
 
-				/* WLAN_EN pin */
-				wlan_en: wlan-en {
+				/* WLAN module power supply */
+				vwlan: vwlan {
 					compatible = "regulator-fixed";
-					regulator-name = "wlan_en";
+					regulator-name = "vwlan";
 					regulator-min-microvolt = <3300000>;
 					regulator-max-microvolt = <3300000>;
 					regulator-always-on;
 					regulator-boot-on;
-					/* WLAN_EN pin - HPS_GPIO61, gpio2 3 */
-					gpio = <&portc 3 0>;
+					/* VWLAN pin, module power switch */
+					gpio = <&agpio0 8 0>;
 					startup-delay-us = <70000>;
 					enable-active-high;
 				};
 
-				/* WLAN module power supply */
+				/* WLAN_EN pin */
 				wlan_vmmc_reg: regulator@1 {
 					compatible = "regulator-fixed";
 					regulator-name = "wlan-vmmc-regulator";
 					regulator-min-microvolt = <1800000>;
 					regulator-max-microvolt = <1800000>;
-					/* VWLAN pin, module power switch */
-					gpio = <&agpio0 8 0>;
+					/* WLAN_EN pin - HPS_GPIO61, gpio2 3 */
+					gpio = <&portc 3 0>;
 					/* WLAN card specific delay */
 					startup-delay-us = <70000>;
 					enable-active-high;
@@ -111,7 +111,8 @@
 						compatible = "ti,wl1835";
 						reg = <2>;
 						interrupt-parent = <&porta>; /* HPS_GPIO17 */
-						interrupts = <17 4>;
+						/* 1 - IRQ_TYPE_EDGE_RISING */
+						interrupts = <17 1>;
 					};
 				}; //end sdhci@0x000020000 (wlan_elca)
 
@@ -126,8 +127,9 @@
 					vmmc-supply = <&regulator_3_3v>;
 					vqmmc-supply = <&regulator_3_3v>;
 				}; //end sdhci@0x000030000 (sdc_elca)
-			};
-		};
+
+			}; /* area@0 */
+		}; /* __overlay__ */
 	};
 
 	fragment@1 {

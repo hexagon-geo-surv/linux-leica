@@ -20,20 +20,43 @@
 
 				firmware-name = "colibri.rbf";
 
+				casa_0: casa@0x00000 {
+					compatible = "unknown,unknown-15.0";
+					reg = <0 0x00000000 0x00010000>;
+				}; //end unknown@0x100000000 (casa_0)
+
+
+				flash_epc901_cntrl_0: flash_epc901_cntrl@0x1c000 {
+					compatible = "unknown,unknown-1.0";
+					reg = <0 0x0001c000 0x00000020>;
+				};
+
+				fast_axis_ad7276_if_0: fast_axis_ad7276_if@0x1c020 {
+					compatible = "unknown,unknown-1.0";
+					reg = <0 0x0001c020 0x00000020>;
+				};
+
 				/* used for manual CASA triggering */
-				timing_core_0: timing_core@0x1c0c0 {
-					status = "disabled";
+				trigger_core_0: trigger_core@0x1c0c0 {
+					/* status = "disabled"; */
 					compatible = "unknown,unknown-1.0";
 					reg = <0 0x1c0c0 0x00000010>;
 					interrupt-parent = <&intc>;
 					interrupts = <0 47 4>;
-				}; //end unknown@0x10001c0c0 (timing_core_0)
+				};
 
-				casa_fifo_streamer: casa_fifo@1c0e0 {
+				casa_fifo_streamer: casa_fifo@0x1c0e0 {
 					compatible = "generic-uio";
 					reg = <0 0x1c0e0 0x00000020>;
 					interrupt-parent = <&intc>;
 					interrupts = <0 48 4>;
+				};
+
+				casa_adpt_0: casa_adpt@0x20000 {
+					compatible = "unknown,unknown-1.1";
+					reg = <0 0x00020000 0x00004000>;
+					interrupt-parent = <&intc>;
+					interrupts = <0 73 4>;
 				};
 
 				/* timestamp timer */

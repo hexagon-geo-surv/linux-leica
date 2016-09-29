@@ -652,6 +652,46 @@ static void wc_set_thermal_pdata(void)
 				sizeof(whiskey_cove_thermal_data), 0);
 }
 
+static struct regulator_consumer_supply sd_vqmmc_consumer[] = {
+	REGULATOR_SUPPLY("vqmmc", "80860F14:02"),
+};
+
+/* vsdio regulator */
+static struct regulator_init_data vqmmc_data = {
+	.constraints = {
+		.min_uV			= 1800000,
+		.max_uV			= 3300000,
+		.valid_ops_mask		= REGULATOR_CHANGE_VOLTAGE |
+					REGULATOR_CHANGE_STATUS,
+		.valid_modes_mask	= REGULATOR_MODE_NORMAL,
+	},
+	.num_consumer_supplies	= ARRAY_SIZE(sd_vqmmc_consumer),
+	.consumer_supplies	= sd_vqmmc_consumer,
+};
+
+/*************************************************************
+*
+* WCOVE SD card related regulator
+*
+*************************************************************/
+static struct regulator_init_data wcove_vqmmc_data;
+
+static struct wcove_regulator_info wcove_vqmmc_info = {
+	.init_data = &wcove_vqmmc_data,
+};
+
+static void wc_set_vsdio_pdata(void)
+{
+	memcpy((void *)&wcove_vqmmc_data, (void *)&vqmmc_data,
+			sizeof(struct regulator_init_data));
+
+	/* set enable time for vqmmc regulator, stabilize power rail */
+	wcove_vqmmc_data.constraints.enable_time = 20000;
+
+	intel_soc_pmic_set_pdata("wcove_regulator", &wcove_vqmmc_info,
+		sizeof(struct wcove_regulator_info), WCOVE_ID_VSDIO + 1);
+}
+
 static struct regulator_consumer_supply v1p2a_consumer[] = {
 	REGULATOR_SUPPLY("v1p2a", "INT3477:00"),
 };
@@ -913,6 +953,7 @@ static int whiskey_cove_init(void)
 	wcove_set_bcu_pdata();
 	wc_set_adc_pdata();
 	wc_set_gpio_pdata();
+	wc_set_vsdio_pdata();
 	wc_set_v1p2_pdata();
 	wc_set_v1p8_pdata();
 	wc_set_v2p8_pdata();

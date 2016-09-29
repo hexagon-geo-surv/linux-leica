@@ -757,6 +757,12 @@ config REGULATOR_VEXPRESS
 	  This driver provides support for voltage regulators available
 	  on the ARM Ltd's Versatile Express platform.
 
+config REGULATOR_WHISKEY_COVE
+	tristate "PMIC Whiskey Cove voltage regulator"
+	help
+	  This driver controls Intel Whiskey Cove pmic voltage output
+	  regulator.
+
 config REGULATOR_WM831X
 	tristate "Wolfson Microelectronics WM831x PMIC regulators"
 	depends on MFD_WM831X

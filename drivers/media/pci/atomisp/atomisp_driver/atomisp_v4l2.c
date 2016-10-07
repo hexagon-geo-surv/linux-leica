@@ -1516,11 +1516,6 @@ static int atomisp_pci_probe(struct pci_dev *dev,
 	if (init_atomisp_wdts(isp) != 0)
 		goto wdt_work_queue_fail;
 
-	/* save the iunit context only once after all the values are init'ed. */
-	atomisp_save_iunit_reg(isp);
-
-	pm_runtime_put_noidle(&dev->dev);
-	pm_runtime_allow(&dev->dev);
 
 	hmm_init_mem_stat(repool_pgnr, dypool_enable, dypool_pgnr);
 	err = hmm_pool_register(repool_pgnr, HMM_POOL_TYPE_RESERVED);
@@ -1539,6 +1534,11 @@ static int atomisp_pci_probe(struct pci_dev *dev,
 		dev_err(&dev->dev, "Failed to request irq (%d)\n", err);
 		goto request_irq_fail;
 	}
+
+	/* save the iunit context only once after all the values are init'ed. */
+	atomisp_save_iunit_reg(isp);
+	pm_runtime_put_noidle(&dev->dev);
+	pm_runtime_allow(&dev->dev);
 
 	/* Load firmware into ISP memory */
 	if (!defer_fw_load) {

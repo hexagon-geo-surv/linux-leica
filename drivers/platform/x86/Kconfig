@@ -766,6 +766,15 @@ config INTEL_MID_POWER_BUTTON
 
 	  If unsure, say N.
 
+config INTEL_MID_KEYBOARD_GPIO
+	tristate "keyboard button driver for Intel MID platforms"
+	depends on INTEL_SCU_IPC && INPUT && KEYBOARD_GPIO
+	help
+	  This driver handles the SOC Array buttons on the Intel MID platforms
+	  using SFI.
+
+	  If unsure, say N.
+
 config INTEL_MFLD_THERMAL
        tristate "Thermal driver for Intel Medfield platform"
        depends on MFD_INTEL_MSIC && THERMAL

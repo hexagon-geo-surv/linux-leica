@@ -33,6 +33,7 @@ struct soc_button_info {
 	unsigned int event_code;
 	bool autorepeat;
 	bool wakeup;
+	int debounce;
 };
 
 /*
@@ -101,6 +102,7 @@ soc_button_device_create(struct platform_device *pdev,
 		gpio_keys[n_buttons].active_low = 1;
 		gpio_keys[n_buttons].desc = info->name;
 		gpio_keys[n_buttons].wakeup = info->wakeup;
+		gpio_keys[n_buttons].debounce_interval = info->debounce;
 		n_buttons++;
 	}
 
@@ -193,11 +195,11 @@ static int soc_button_probe(struct platform_device *pdev)
 }
 
 static struct soc_button_info soc_button_PNP0C40[] = {
-	{ "power", 0, EV_KEY, KEY_POWER, false, true },
-	{ "home", 1, EV_KEY, KEY_LEFTMETA, false, true },
-	{ "volume_up", 2, EV_KEY, KEY_VOLUMEUP, true, false },
-	{ "volume_down", 3, EV_KEY, KEY_VOLUMEDOWN, true, false },
-	{ "rotation_lock", 4, EV_SW, SW_ROTATE_LOCK, false, false },
+	{ "power", 0, EV_KEY, KEY_POWER, false, true, 3000 },
+	{ "home", 1, EV_KEY, KEY_LEFTMETA, false, true, 20 },
+	{ "volume_up", 2, EV_KEY, KEY_VOLUMEUP, true, false, 20 },
+	{ "volume_down", 3, EV_KEY, KEY_VOLUMEDOWN, true, false, 20 },
+	{ "rotation_lock", 4, EV_SW, SW_ROTATE_LOCK, false, false, 20 },
 	{ }
 };
 

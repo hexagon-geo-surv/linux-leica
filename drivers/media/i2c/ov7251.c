@@ -804,8 +804,6 @@ static int power_ctrl(struct v4l2_subdev *sd, bool flag)
 	if (!dev || !dev->platform_data)
 		return -ENODEV;
 
-	return 0;
-
 	/* Non-gmin platforms use the legacy callback */
 	if (dev->platform_data->power_ctrl)
 		return dev->platform_data->power_ctrl(sd, flag);

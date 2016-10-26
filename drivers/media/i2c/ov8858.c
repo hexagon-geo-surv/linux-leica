@@ -2263,7 +2263,16 @@ static int ov8858_probe(struct i2c_client *client,
 	/* Use same lock for controls as for everything else. */
 	dev->ctrl_handler.lock = &dev->input_lock;
 	dev->sd.ctrl_handler = &dev->ctrl_handler;
+
+	ret = __ov8858_s_power(&dev->sd, 1);
+	if (ret) {
+		dev_err(&client->dev, "power-up error %d!\n", ret);
+		return ret;
+	}
+
 	v4l2_ctrl_handler_setup(&dev->ctrl_handler);
+
+	__ov8858_s_power(&dev->sd, 0);
 
 	ret = media_entity_init(&dev->sd.entity, 1, &dev->pad, 0);
 	if (ret) {

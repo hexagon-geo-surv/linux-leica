@@ -15,7 +15,7 @@
 
 				#address-cells = <2>;
 				#size-cells = <1>;
-				ranges = <0 0x00000000 0xff200000 0x00060000>,
+				ranges = <0 0x00000000 0xff200000 0x00080000>,
 					<1 0x00000000 0xc0000000 0x00040000>;
 
 				firmware-name = "colibri.rbf";
@@ -97,6 +97,11 @@
 					interrupt-parent = <&intc>;
 					interrupts = <0 46 4>;
 				}; //end msgdma@0xff21c040 (msgdma_camera)
+
+				angle_estimation: unknown@0x70000 {
+					compatible = "unknown,unknown-1.0";
+					reg = <0 0x00070000 0x00000040>;
+				}; //end unknown@0x70000 (angle_estimation_0)
 
 				/* WLAN module power supply */
 				vwlan: vwlan {

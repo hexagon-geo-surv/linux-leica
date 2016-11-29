@@ -88,20 +88,17 @@
 				compatible = "lgs-colibri,fast-axis-spi", "spidev";
 				reg = <0>;
 			        spi-max-frequency = <8000000>;
-				enable-dma = <0>;
 			};
 			spidev@1 {
 				compatible = "lgs-colibri,slow-axis-spi", "spidev";
 				reg = <1>;
 			        spi-max-frequency = <8000000>;
-				enable-dma = <0>;
 			};
 
 			fram@0 {
 			    compatible = "atmel,at25", "cypress,fm25l16b";
 			    reg = <0x2>;	/* chip select */
 			    spi-max-frequency = <8000000>;
-			    enable-dma = <0>;
 
 			    pagesize = <256>;
 			    size = <2048>;
@@ -116,7 +113,6 @@
 				compatible = "lgs-colibri,imager-spi", "spidev";
 				reg = <0>;
 				spi-max-frequency = <8000000>;
-				enable-dma = <0>;
 			};
 
 		};

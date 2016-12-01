@@ -606,6 +606,13 @@ int acpi_device_add(struct acpi_device *device,
 	struct acpi_device_bus_id *acpi_device_bus_id, *new_bus_id;
 	int found = 0;
 
+	/* Workaround: Do not add MCHP2515 CAN controller */
+	struct acpi_hardware_id *hwid;
+	list_for_each_entry(hwid, &device->pnp.ids, list)
+		if (!strcmp("MCHP2515", hwid->id))
+			return -ENODEV;
+	/* End of Workaround */
+
 	if (device->handle) {
 		acpi_status status;
 

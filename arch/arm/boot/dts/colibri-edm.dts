@@ -20,7 +20,7 @@
 
 				firmware-name = "colibri-edm.rbf";
 
-				msgdma_casa: sgdma@0x10080 {
+				msgdma_casa: msgdma@0x10080 {
 					/* XXX DS: this one has to be changed either to shared DMA or FIFO */
 					status = "disabled";
 					compatible = "colibri-casa";
@@ -30,9 +30,9 @@
 					reg-names = "CSR", "Descriptor_Slave", "Response_Slave";
 					interrupt-parent = <&intc>;
 					interrupts = <0 73 4>;
-				}; //end sgdma@0xff210080 (msgdma_casa)
+				}; //end msgdma@0xff210080 (msgdma_casa)
 
-				msgdma_edm: sgdma@0x10100 {
+				msgdma_edm: msgdma@0x10100 {
 					/* status = "disabled"; */
 					compatible = "colibri-edm";
 					reg = <0 0x00010100 0x00000020>,

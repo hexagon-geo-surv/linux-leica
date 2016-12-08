@@ -67,7 +67,7 @@
 					interrupts = <0 50 4>;
 				}; //end timing_module@0xff21d000
 
-				msgdma_edm: sgdma@0x10100 {
+				msgdma_edm: msgdma@0x10100 {
 					compatible = "colibri-edm";
 					reg = <0 0x00010100 0x00000020>,
 					      <0 0x00010120 0x00000010>,

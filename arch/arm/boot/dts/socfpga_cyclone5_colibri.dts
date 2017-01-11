@@ -104,6 +104,12 @@
 			    size = <2048>;
 			    address-width = <16>;
 			};
+
+			spidev@2 {
+				compatible = "spidev";
+				reg = <3>;
+			        spi-max-frequency = <1000000>;
+			};
 		};
 
 		spi1: spi@fff01000 {

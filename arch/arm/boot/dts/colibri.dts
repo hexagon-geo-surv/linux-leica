@@ -103,6 +103,13 @@
 					reg = <0 0x00070000 0x00000040>;
 				}; //end unknown@0x70000 (angle_estimation_0)
 
+				laser_safety@0 {
+					compatible = "generic-uio";
+					status = "okay";
+					interrupt-parent = <&intc>;
+					interrupts = <0 74 4>;
+				};
+
 				/* WLAN module power supply */
 				vwlan: vwlan {
 					compatible = "regulator-fixed";

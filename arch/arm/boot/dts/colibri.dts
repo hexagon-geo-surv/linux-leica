@@ -20,6 +20,13 @@
 
 				firmware-name = "colibri.rbf";
 
+				laser_safety@0 {
+					compatible = "generic-uio";
+					status = "okay";
+					interrupt-parent = <&intc>;
+					interrupts = <0 74 4>;
+				};
+
 				casa_0: casa@0x00000 {
 					compatible = "unknown,unknown-15.0";
 					reg = <0 0x00000000 0x00010000>;

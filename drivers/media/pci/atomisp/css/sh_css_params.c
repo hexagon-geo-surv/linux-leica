@@ -4943,9 +4943,10 @@ sh_css_invalidate_params(struct ia_css_stream *stream)
 
 	/*Free up theDVS table memory blocks before recomputing new table  */
 	for (i = 0; i < IA_CSS_PIPE_ID_NUM; i++) {
-		if (params->pipe_dvs_6axis_config[i])
+		if (params->pipe_dvs_6axis_config[i]) {
 			free_dvs_6axis_table(&(params->pipe_dvs_6axis_config[i]));
 			params->pipe_dvs_6axis_config_changed[i] = true;
+		}
 	}
 
 	IA_CSS_LEAVE_PRIVATE("void");

@@ -569,13 +569,13 @@ static int atomisp_querycap(struct file *file, void *fh,
 
 	cap->version = VERSION;
 
-    if (video->type == V4L2_BUF_TYPE_VIDEO_CAPTURE)
-        cap->device_caps = V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING;
-    else
-        cap->device_caps = V4L2_CAP_VIDEO_OUTPUT | V4L2_CAP_STREAMING;
+	if (video->type == V4L2_BUF_TYPE_VIDEO_CAPTURE)
+		cap->device_caps = V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING;
+	else
+		cap->device_caps = V4L2_CAP_VIDEO_OUTPUT | V4L2_CAP_STREAMING;
 
 	cap->capabilities = V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING |
-        V4L2_CAP_VIDEO_OUTPUT | V4L2_CAP_DEVICE_CAPS;
+			    V4L2_CAP_VIDEO_OUTPUT | V4L2_CAP_DEVICE_CAPS;
 
 	return ret;
 }

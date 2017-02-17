@@ -767,13 +767,13 @@ int gmin_get_config_var(struct device *dev, const char *var, char *out, size_t *
 	int i, j, ret;
 	unsigned long efilen;
 
-    if (dev && ACPI_COMPANION(dev))
-        dev = &ACPI_COMPANION(dev)->dev;
+	if (dev && ACPI_COMPANION(dev))
+		dev = &ACPI_COMPANION(dev)->dev;
 
-    if (dev)
-        ret = snprintf(var8, sizeof(var8), "%s_%s", dev_name(dev), var);
-    else
-        ret = snprintf(var8, sizeof(var8), "gmin_%s", var);
+	if (dev)
+		ret = snprintf(var8, sizeof(var8), "%s_%s", dev_name(dev), var);
+	else
+		ret = snprintf(var8, sizeof(var8), "gmin_%s", var);
 
 	if (ret < 0 || ret >= sizeof(var8)-1)
 		return -EINVAL;
@@ -902,8 +902,10 @@ int gmin_get_var_int(struct device *dev, const char *var, int def)
 
 	ret = gmin_get_config_var(dev, var, val, &len);
 	if (!ret) {
+		long result_long;
 		val[len] = 0;
-		ret = kstrtol(val, 0, &result);
+		ret = kstrtol(val, 0, &result_long);
+		result = result_long;
 	} else {
 		/* Try ACPI Scan */
 		ret = gmin_acpi_get_config_var(dev, var, &result);

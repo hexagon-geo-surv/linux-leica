@@ -83,8 +83,8 @@ static int get_v4l2_framebuffer32(struct v4l2_framebuffer *kp,
 
 	kp->base = compat_ptr(tmp);
 	/*get_v4l2_pix_format(&kp->fmt, &up->fmt); */
-    if (copy_from_user(&kp->fmt, &up->fmt, sizeof(up->fmt)))
-        return -EFAULT;
+	if (copy_from_user(&kp->fmt, &up->fmt, sizeof(up->fmt)))
+		return -EFAULT;
 	return 0;
 }
 

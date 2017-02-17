@@ -26,7 +26,7 @@ static int __init vlv2_plat_clk_init(void)
 	pdev = platform_device_register_simple("vlv2_plat_clk", -1, NULL, 0);
 	if (IS_ERR(pdev)) {
 		pr_err("platform_vlv2_plat_clk:register failed: %p\n",
-			PTR_ERR(pdev));
+			pdev);
 		return PTR_ERR(pdev);
 	}
 

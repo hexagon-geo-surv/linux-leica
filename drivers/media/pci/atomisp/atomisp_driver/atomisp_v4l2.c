@@ -414,14 +414,14 @@ void punit_ddr_dvfs_enable(bool enable)
 	intel_mid_msgbus_write32(PUNIT_PORT, MRFLD_ISPSSDVFS, reg);
 
 	/*Check Req_ACK to see freq status, wait until door_bell is cleared*/
-	if (reg & door_bell) {
-		while (max_wait--) {
-			if (0 == (intel_mid_msgbus_read32(PUNIT_PORT,
-				MRFLD_ISPSSDVFS) & door_bell));
-				break;
+	if (!(reg & door_bell))
+		return;
 
-			usleep_range(100, 500);
-		}
+	while (max_wait--) {
+		reg = intel_mid_msgbus_read32(PUNIT_PORT, MRFLD_ISPSSDVFS);
+		if (!(reg & door_bell))
+			break;
+		usleep_range(100, 500);
 	}
 
 	if (max_wait == 0)

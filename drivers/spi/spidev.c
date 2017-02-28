@@ -698,6 +698,7 @@ static const struct of_device_id spidev_dt_ids[] = {
 	{ .compatible = "lgs-colibri,fast-axis-spi" },
 	{ .compatible = "lgs-colibri,slow-axis-spi" },
 	{ .compatible = "lgs-colibri,imager-spi" },
+	{ .compatible = "lgs-colibri,hw-rev" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, spidev_dt_ids);

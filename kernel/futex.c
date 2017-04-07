@@ -1092,7 +1092,8 @@ static int attach_to_pi_state(u32 __user *uaddr, u32 uval,
 			      struct futex_pi_state **ps)
 {
 	pid_t pid = uval & FUTEX_TID_MASK;
-	int ret, uval2;
+	u32 uval2;
+	int ret;
 
 	/*
 	 * Userspace might have messed up non-PI and PI futexes [3]

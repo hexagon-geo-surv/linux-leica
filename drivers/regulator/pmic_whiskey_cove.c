@@ -150,7 +150,7 @@ static unsigned int WCOVE_V3P3A_VSEL_TABLE[WCOVE_V3P3A_VRANGE],
  * The VSDIO regulator should only support 1.8V and 3.3V. All other
  * voltages are invalid for sd card, so disable them here.
  */
-static const unsigned int WCOVE_VSDIO_VSEL_TABLE[WCOVE_VSDIO_VRANGE] = {
+static unsigned int WCOVE_VSDIO_VSEL_TABLE[WCOVE_VSDIO_VRANGE] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 1800000, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,

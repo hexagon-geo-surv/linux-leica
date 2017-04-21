@@ -133,9 +133,6 @@ static void dwc_initialize(struct dw_dma_chan *dwc)
 	u32 cfghi = DWC_CFGH_FIFO_MODE;
 	u32 cfglo = DWC_CFGL_CH_PRIOR(dwc->priority);
 
-	if (dwc->initialized == true)
-		return;
-
 	cfghi |= DWC_CFGH_DST_PER(dwc->dst_id);
 	cfghi |= DWC_CFGH_SRC_PER(dwc->src_id);
 
@@ -145,8 +142,6 @@ static void dwc_initialize(struct dw_dma_chan *dwc)
 	/* Enable interrupts */
 	channel_set_bit(dw, MASK.XFER, dwc->mask);
 	channel_set_bit(dw, MASK.ERROR, dwc->mask);
-
-	dwc->initialized = true;
 }
 
 /*----------------------------------------------------------------------*/
@@ -1114,9 +1109,6 @@ static void dw_dma_off(struct dw_dma *dw)
 
 	while (dma_readl(dw, CFG) & DW_CFG_DMA_EN)
 		cpu_relax();
-
-	for (i = 0; i < dw->dma.chancnt; i++)
-		dw->chan[i].initialized = false;
 }
 
 static void dw_dma_on(struct dw_dma *dw)
@@ -1224,8 +1216,6 @@ static void dwc_free_chan_resources(struct dma_chan *chan)
 
 	dwc->src_master = 0;
 	dwc->dst_master = 0;
-
-	dwc->initialized = false;
 
 	/* Disable interrupts */
 	channel_clear_bit(dw, MASK.XFER, dwc->mask);

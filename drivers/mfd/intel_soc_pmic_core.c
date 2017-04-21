@@ -1,5 +1,5 @@
 /*
- * intel_soc_pmic_core.c - Intel SoC PMIC MFD Driver
+ * intel_soc_pmic_core.c - Intel SoC PMIC Core Functions
  *
  * Copyright (C) 2013, 2014 Intel Corporation. All rights reserved.
  *
@@ -13,192 +13,471 @@
  * GNU General Public License for more details.
  *
  * Author: Yang, Bin <bin.yang@intel.com>
- * Author: Zhu, Lejun <lejun.zhu@linux.intel.com>
  */
 
+#include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/delay.h>
+#include <linux/mutex.h>
 #include <linux/mfd/core.h>
-#include <linux/i2c.h>
+#include <linux/err.h>
+#include <linux/irq.h>
 #include <linux/interrupt.h>
-#include <linux/gpio/consumer.h>
+#include <linux/workqueue.h>
 #include <linux/acpi.h>
-#include <linux/regmap.h>
+#include <linux/version.h>
+#include <linux/gpio.h>
 #include <linux/mfd/intel_soc_pmic.h>
-#include <linux/gpio/machine.h>
-#include <linux/pwm.h>
 #include "intel_soc_pmic_core.h"
 
-/* Lookup table for the Panel Enable/Disable line as GPIO signals */
-static struct gpiod_lookup_table panel_gpio_table = {
-	/* Intel GFX is consumer */
-	.dev_id = "0000:00:02.0",
-	.table = {
-		/* Panel EN/DISABLE */
-		GPIO_LOOKUP("gpio_crystalcove", 94, "panel", GPIO_ACTIVE_HIGH),
-		{ },
-	},
+struct cell_dev_pdata {
+	struct list_head	list;
+	const char		*name;
+	void			*data;
+	int			len;
+	int			id;
 };
+static LIST_HEAD(pdata_list);
 
-/* PWM consumed by the Intel GFX */
-static struct pwm_lookup crc_pwm_lookup[] = {
-	PWM_LOOKUP("crystal_cove_pwm", 0, "0000:00:02.0", "pwm_backlight", 0, PWM_POLARITY_NORMAL),
-};
+static struct intel_soc_pmic *pmic;
+static int cache_offset = -1;
+static int cache_read_val;
+static int cache_write_val;
+static int cache_write_pending;
+static int cache_flags;
 
-static int intel_soc_pmic_find_gpio_irq(struct device *dev)
+struct device *intel_soc_pmic_dev(void)
 {
-	struct gpio_desc *desc;
-	int irq;
-
-	desc = devm_gpiod_get_index(dev, "intel_soc_pmic", 0, GPIOD_IN);
-	if (IS_ERR(desc))
-		return PTR_ERR(desc);
-
-	irq = gpiod_to_irq(desc);
-	if (irq < 0)
-		dev_warn(dev, "Can't get irq: %d\n", irq);
-
-	return irq;
+	return pmic->dev;
 }
+EXPORT_SYMBOL(intel_soc_pmic_dev);
 
-static int intel_soc_pmic_i2c_probe(struct i2c_client *i2c,
-				    const struct i2c_device_id *i2c_id)
+int intel_soc_pmic_readb(int reg)
 {
-	struct device *dev = &i2c->dev;
-	const struct acpi_device_id *id;
-	struct intel_soc_pmic_config *config;
-	struct intel_soc_pmic *pmic;
 	int ret;
-	int irq;
 
-	id = acpi_match_device(dev->driver->acpi_match_table, dev);
-	if (!id || !id->driver_data)
-		return -ENODEV;
-
-	config = (struct intel_soc_pmic_config *)id->driver_data;
-
-	pmic = devm_kzalloc(dev, sizeof(*pmic), GFP_KERNEL);
 	if (!pmic)
+		return -EIO;
+
+	mutex_lock(&pmic->io_lock);
+	ret = pmic->readb(reg);
+	mutex_unlock(&pmic->io_lock);
+
+	return ret;
+}
+EXPORT_SYMBOL(intel_soc_pmic_readb);
+
+int intel_soc_pmic_writeb(int reg, u8 val)
+{
+	int ret;
+
+	if (!pmic)
+		return -EIO;
+
+	mutex_lock(&pmic->io_lock);
+	ret = pmic->writeb(reg, val);
+	mutex_unlock(&pmic->io_lock);
+
+	return ret;
+}
+EXPORT_SYMBOL(intel_soc_pmic_writeb);
+
+int intel_soc_pmic_setb(int reg, u8 mask)
+{
+	int ret;
+	int val;
+
+	if (!pmic)
+		return -EIO;
+
+	mutex_lock(&pmic->io_lock);
+
+	val = pmic->readb(reg);
+	val |= mask;
+	ret = pmic->writeb(reg, val);
+
+	mutex_unlock(&pmic->io_lock);
+
+	return ret;
+}
+EXPORT_SYMBOL(intel_soc_pmic_setb);
+
+int intel_soc_pmic_clearb(int reg, u8 mask)
+{
+	int ret;
+	int val;
+
+	if (!pmic)
+		return -EIO;
+
+	mutex_lock(&pmic->io_lock);
+
+	val = pmic->readb(reg);
+	val &= ~mask;
+	ret = pmic->writeb(reg, val);
+
+	mutex_unlock(&pmic->io_lock);
+
+	return ret;
+}
+EXPORT_SYMBOL(intel_soc_pmic_clearb);
+
+int intel_soc_pmic_update(int reg, u8 val, u8 mask)
+{
+	int ret;
+
+	if (!pmic)
+		return -EIO;
+
+	mutex_lock(&pmic->io_lock);
+
+	ret = pmic->readb(reg);
+	if (ret < 0)
+		goto err;
+
+	val &= mask;
+	ret &= ~mask;
+	ret |= val;
+	ret = pmic->writeb(reg, ret);
+
+err:
+	mutex_unlock(&pmic->io_lock);
+
+	return ret;
+}
+EXPORT_SYMBOL(intel_soc_pmic_update);
+
+int intel_soc_pmic_set_pdata(const char *name, void *data, int len, int id)
+{
+	struct cell_dev_pdata *pdata;
+
+	pdata = kzalloc(sizeof(*pdata), GFP_KERNEL);
+	if (!pdata)
 		return -ENOMEM;
 
-	dev_set_drvdata(dev, pmic);
-
-	pmic->regmap = devm_regmap_init_i2c(i2c, config->regmap_config);
-
-	/*
-	 * On some boards the PMIC interrupt may come from a GPIO line. Try to
-	 * lookup the ACPI table for a such connection and setup a GPIO
-	 * interrupt if it exists. Otherwise use the IRQ provided by I2C
-	 */
-	irq = intel_soc_pmic_find_gpio_irq(dev);
-	pmic->irq = (irq < 0) ? i2c->irq : irq;
-
-	ret = regmap_add_irq_chip(pmic->regmap, pmic->irq,
-				  config->irq_flags | IRQF_ONESHOT,
-				  0, config->irq_chip,
-				  &pmic->irq_chip_data);
-	if (ret)
-		return ret;
-
-	ret = enable_irq_wake(pmic->irq);
-	if (ret)
-		dev_warn(dev, "Can't enable IRQ as wake source: %d\n", ret);
-
-	/* Add lookup table binding for Panel Control to the GPIO Chip */
-	gpiod_add_lookup_table(&panel_gpio_table);
-
-	/* Add lookup table for crc-pwm */
-	pwm_add_table(crc_pwm_lookup, ARRAY_SIZE(crc_pwm_lookup));
-
-	ret = mfd_add_devices(dev, -1, config->cell_dev,
-			      config->n_cell_devs, NULL, 0,
-			      regmap_irq_get_domain(pmic->irq_chip_data));
-	if (ret)
-		goto err_del_irq_chip;
+	pdata->name = name;
+	pdata->data = data;
+	pdata->len = len;
+	pdata->id = id;
+	list_add_tail(&pdata->list, &pdata_list);
 
 	return 0;
+}
+EXPORT_SYMBOL(intel_soc_pmic_set_pdata);
 
-err_del_irq_chip:
-	regmap_del_irq_chip(pmic->irq, pmic->irq_chip_data);
+static void __pmic_regmap_flush(void)
+{
+	if (cache_write_pending)
+		pmic->writeb(cache_offset, cache_write_val);
+	cache_offset = -1;
+	cache_write_pending = 0;
+}
+
+static void pmic_regmap_flush(void)
+{
+	mutex_lock(&pmic->io_lock);
+	__pmic_regmap_flush();
+	mutex_unlock(&pmic->io_lock);
+}
+
+static int pmic_regmap_write(struct intel_pmic_regmap *map, int val)
+{
+	int ret = 0;
+
+	if (!IS_PMIC_REG_VALID(map))
+		return -ENXIO;
+
+	if (IS_PMIC_REG_INV(map))
+		val = ~val;
+
+	mutex_lock(&pmic->io_lock);
+
+	if (cache_offset == map->offset) {
+		if (cache_flags != map->flags) {
+			dev_err(pmic->dev, "Same reg with diff flags\n");
+			__pmic_regmap_flush();
+		}
+	}
+
+	if (cache_offset != map->offset) {
+		__pmic_regmap_flush();
+		if (IS_PMIC_REG_WO(map) || IS_PMIC_REG_W1C(map)) {
+			cache_write_val = 0;
+			cache_read_val = pmic->readb(map->offset);
+		} else {
+			cache_read_val = pmic->readb(map->offset);
+			cache_write_val = cache_read_val;
+		}
+		if (cache_read_val < 0) {
+			dev_err(pmic->dev, "Register access error\n");
+			ret = -EIO;
+			goto err;
+		}
+		cache_offset = map->offset;
+		cache_flags = map->flags;
+	}
+
+	val = ((val & map->mask) << map->shift);
+	cache_write_val &= ~(map->mask << map->shift);
+	cache_write_val |= val;
+	cache_write_pending = 1;
+
+	if (!IS_PMIC_REG_WO(map) && !IS_PMIC_REG_W1C(map))
+		cache_read_val = cache_write_val;
+
+err:
+	dev_dbg(pmic->dev, "offset=%x, shift=%x, mask=%x, flags=%x\n",
+		map->offset, map->shift, map->mask, map->flags);
+	dev_dbg(pmic->dev, "cache_read=%x, cache_write=%x, ret=%x\n",
+		cache_read_val, cache_write_val, ret);
+
+	mutex_unlock(&pmic->io_lock);
+
 	return ret;
 }
 
-static int intel_soc_pmic_i2c_remove(struct i2c_client *i2c)
+static int pmic_regmap_read(struct intel_pmic_regmap *map)
 {
-	struct intel_soc_pmic *pmic = dev_get_drvdata(&i2c->dev);
+	int ret = 0;
 
-	regmap_del_irq_chip(pmic->irq, pmic->irq_chip_data);
+	if (!IS_PMIC_REG_VALID(map))
+		return -ENXIO;
 
-	/* Remove lookup table for Panel Control from the GPIO Chip */
-	gpiod_remove_lookup_table(&panel_gpio_table);
+	mutex_lock(&pmic->io_lock);
 
-	/* remove crc-pwm lookup table */
-	pwm_remove_table(crc_pwm_lookup, ARRAY_SIZE(crc_pwm_lookup));
+	if (cache_offset == map->offset) {
+		if (cache_flags != map->flags) {
+			dev_err(pmic->dev, "Same reg with diff flags\n");
+			__pmic_regmap_flush();
+		}
+	}
 
-	mfd_remove_devices(&i2c->dev);
+	if (cache_offset != map->offset) {
+		__pmic_regmap_flush();
+		if (IS_PMIC_REG_WO(map) || IS_PMIC_REG_W1C(map)) {
+			cache_write_val = 0;
+			cache_read_val = pmic->readb(map->offset);
+		} else {
+			cache_read_val = pmic->readb(map->offset);
+			cache_write_val = cache_read_val;
+		}
+		if (cache_read_val < 0) {
+			dev_err(pmic->dev, "Register access error\n");
+			ret = -EIO;
+			goto err;
+		}
+		cache_offset = map->offset;
+		cache_flags = map->flags;
+	}
+
+	if (IS_PMIC_REG_INV(map))
+		ret = ~cache_read_val;
+	else
+		ret = cache_read_val;
+
+	ret = (ret >> map->shift) & map->mask;
+	if (!IS_PMIC_REG_WO(map) && !IS_PMIC_REG_W1C(map))
+		cache_write_val = cache_read_val;
+
+err:
+	dev_dbg(pmic->dev, "offset=%x, shift=%x, mask=%x, flags=%x\n",
+		map->offset, map->shift, map->mask, map->flags);
+	dev_dbg(pmic->dev, "cache_read=%x, cache_write=%x, ret=%x\n",
+		cache_read_val, cache_write_val, ret);
+
+	mutex_unlock(&pmic->io_lock);
+
+	return ret;
+}
+
+static void pmic_irq_enable(struct irq_data *data)
+{
+	clear_bit((data->irq - pmic->irq_base) % 32,
+		  &(pmic->irq_mask[(data->irq - pmic->irq_base) / 32]));
+	pmic->irq_need_update = 1;
+}
+
+static void pmic_irq_disable(struct irq_data *data)
+{
+	set_bit((data->irq - pmic->irq_base) % 32,
+		&(pmic->irq_mask[(data->irq - pmic->irq_base) / 32]));
+	pmic->irq_need_update = 1;
+}
+
+static void pmic_irq_sync_unlock(struct irq_data *data)
+{
+	struct intel_pmic_regmap *map;
+
+	dev_dbg(pmic->dev, "[%s]: irq_mask = %lx", __func__,
+			pmic->irq_mask[(data->irq - pmic->irq_base)/32]);
+
+	if (pmic->irq_need_update) {
+		map = &pmic->irq_regmap[(data->irq - pmic->irq_base)].mask;
+
+		if (test_bit((data->irq - pmic->irq_base) % 32,
+			&(pmic->irq_mask[(data->irq - pmic->irq_base) / 32])))
+			pmic_regmap_write(map, map->mask);
+		else
+			pmic_regmap_write(map, 0);
+
+		pmic->irq_need_update = 0;
+		pmic_regmap_flush();
+	}
+	mutex_unlock(&pmic->irq_lock);
+}
+
+static void pmic_irq_lock(struct irq_data *data)
+{
+	mutex_lock(&pmic->irq_lock);
+}
+
+static irqreturn_t pmic_irq_isr(int irq, void *data)
+{
+	return IRQ_WAKE_THREAD;
+}
+
+static irqreturn_t pmic_irq_thread(int irq, void *data)
+{
+	int i;
+
+	mutex_lock(&pmic->irq_lock);
+
+	for (i = 0; i < pmic->irq_num; i++) {
+		if (test_bit(i % 32, &(pmic->irq_mask[i / 32])))
+			continue;
+
+		if (pmic_regmap_read(&pmic->irq_regmap[i].status) > 0) {
+			pmic_regmap_write(&pmic->irq_regmap[i].ack,
+				pmic->irq_regmap[i].ack.mask);
+			handle_nested_irq(pmic->irq_base + i);
+		}
+	}
+
+	pmic_regmap_flush();
+
+	mutex_unlock(&pmic->irq_lock);
+
+	return IRQ_HANDLED;
+}
+
+static struct irq_chip pmic_irq_chip = {
+	.name			= "intel_soc_pmic",
+	.irq_bus_lock		= pmic_irq_lock,
+	.irq_bus_sync_unlock	= pmic_irq_sync_unlock,
+	.irq_disable		= pmic_irq_disable,
+	.irq_enable		= pmic_irq_enable,
+};
+
+static int pmic_irq_init(void)
+{
+	int cur_irq;
+	int ret;
+	int i;
+	struct intel_pmic_regmap *map;
+
+	/* Mostly, it can help to increase cache hit if merge same register
+	 * access in one loop
+	 */
+	for (i = 0; i < pmic->irq_num; i++) {
+		map = &pmic->irq_regmap[i].mask;
+		if (IS_PMIC_REG_VALID(map)) {
+			pmic_regmap_write(map, map->mask);
+			set_bit(i % 32, &(pmic->irq_mask[i / 32]));
+		}
+	}
+	for (i = 0; i < pmic->irq_num; i++) {
+		map = &pmic->irq_regmap[i].ack;
+		if (IS_PMIC_REG_VALID(map))
+			pmic_regmap_write(map, map->mask);
+	}
+	pmic_regmap_flush();
+
+	pmic->irq_base = irq_alloc_descs(-1, INTEL_PMIC_IRQBASE,
+					 pmic->irq_num, 0);
+	if (pmic->irq_base < 0) {
+		dev_warn(pmic->dev, "Failed to allocate IRQs: %d\n",
+			 pmic->irq_base);
+		pmic->irq_base = 0;
+		return -EINVAL;
+	}
+	dev_info(pmic->dev, "PMIC IRQ Base:%d\n", pmic->irq_base);
+
+	/* Register them with genirq */
+	for (cur_irq = pmic->irq_base;
+	     cur_irq < pmic->irq_num + pmic->irq_base;
+	     cur_irq++) {
+		irq_set_chip_data(cur_irq, pmic);
+		irq_set_chip_and_handler(cur_irq, &pmic_irq_chip,
+					 handle_edge_irq);
+		irq_set_nested_thread(cur_irq, 1);
+		irq_set_noprobe(cur_irq);
+	}
+
+	ret = request_threaded_irq(pmic->irq, pmic_irq_isr, pmic_irq_thread,
+				   pmic->irq_flags, "intel_soc_pmic", pmic);
+	if (ret != 0) {
+		dev_err(pmic->dev, "Failed to request IRQ %d: %d\n",
+			pmic->irq, ret);
+		if (gpio_is_valid(pmic->pmic_int_gpio))
+			gpio_free(pmic->pmic_int_gpio);
+		return ret;
+	}
+
+	ret = enable_irq_wake(pmic->irq);
+	if (ret != 0)
+		dev_warn(pmic->dev, "Can't enable IRQ as wake source: %d\n",
+			 ret);
 
 	return 0;
 }
 
-static void intel_soc_pmic_shutdown(struct i2c_client *i2c)
+int intel_pmic_add(struct intel_soc_pmic *chip)
 {
-	struct intel_soc_pmic *pmic = dev_get_drvdata(&i2c->dev);
+	int i, ret;
+	struct cell_dev_pdata *pdata;
 
-	disable_irq(pmic->irq);
+	if (pmic != NULL)
+		return -EBUSY;
 
-	return;
+	mutex_init(&chip->io_lock);
+	mutex_init(&chip->irq_lock);
+
+	pmic = chip;
+
+	if (pmic->init) {
+		ret = pmic->init();
+		if (ret != 0) {
+			pmic = NULL;
+			return ret;
+		}
+	}
+
+	pmic_irq_init();
+
+	for (i = 0; pmic->cell_dev[i].name != NULL; i++) {
+		list_for_each_entry(pdata, &pdata_list, list) {
+			if (!strcmp(pdata->name, pmic->cell_dev[i].name) &&
+					(pdata->id == pmic->cell_dev[i].id)) {
+				pmic->cell_dev[i].platform_data = pdata->data;
+				pmic->cell_dev[i].pdata_size = pdata->len;
+			}
+		}
+	}
+
+	return mfd_add_devices(pmic->dev, -1, pmic->cell_dev, i,
+			NULL, pmic->irq_base, NULL);
 }
 
-#if defined(CONFIG_PM_SLEEP)
-static int intel_soc_pmic_suspend(struct device *dev)
+int intel_pmic_remove(struct intel_soc_pmic *chip)
 {
-	struct intel_soc_pmic *pmic = dev_get_drvdata(dev);
+	if (pmic != chip)
+		return -ENODEV;
 
-	disable_irq(pmic->irq);
+	mfd_remove_devices(pmic->dev);
+	pmic = NULL;
 
 	return 0;
 }
 
-static int intel_soc_pmic_resume(struct device *dev)
-{
-	struct intel_soc_pmic *pmic = dev_get_drvdata(dev);
-
-	enable_irq(pmic->irq);
-
-	return 0;
-}
-#endif
-
-static SIMPLE_DEV_PM_OPS(intel_soc_pmic_pm_ops, intel_soc_pmic_suspend,
-			 intel_soc_pmic_resume);
-
-static const struct i2c_device_id intel_soc_pmic_i2c_id[] = {
-	{ }
-};
-MODULE_DEVICE_TABLE(i2c, intel_soc_pmic_i2c_id);
-
-#if defined(CONFIG_ACPI)
-static const struct acpi_device_id intel_soc_pmic_acpi_match[] = {
-	{"INT33FD", (kernel_ulong_t)&intel_soc_pmic_config_crc},
-	{ },
-};
-MODULE_DEVICE_TABLE(acpi, intel_soc_pmic_acpi_match);
-#endif
-
-static struct i2c_driver intel_soc_pmic_i2c_driver = {
-	.driver = {
-		.name = "intel_soc_pmic_i2c",
-		.pm = &intel_soc_pmic_pm_ops,
-		.acpi_match_table = ACPI_PTR(intel_soc_pmic_acpi_match),
-	},
-	.probe = intel_soc_pmic_i2c_probe,
-	.remove = intel_soc_pmic_i2c_remove,
-	.id_table = intel_soc_pmic_i2c_id,
-	.shutdown = intel_soc_pmic_shutdown,
-};
-
-module_i2c_driver(intel_soc_pmic_i2c_driver);
-
-MODULE_DESCRIPTION("I2C driver for Intel SoC PMIC");
-MODULE_LICENSE("GPL v2");
-MODULE_AUTHOR("Yang, Bin <bin.yang@intel.com>");
-MODULE_AUTHOR("Zhu, Lejun <lejun.zhu@linux.intel.com>");
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Yang, Bin <bin.yang@intel.com");

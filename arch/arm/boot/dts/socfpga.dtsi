@@ -686,7 +686,7 @@
 
 		ocram: sram@ffff0000 {
 			compatible = "mmio-sram";
-			reg = <0xffff0000 0x10000>;
+			reg = <0xfffff000 0x01000>;
 		};
 
 		rst: rstmgr@ffd05000 {

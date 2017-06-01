@@ -295,8 +295,44 @@ static int dw_wdt_release(struct inode *inode, struct file *filp)
 }
 
 #ifdef CONFIG_PM_SLEEP
+
+#define SOCFPGA_RSTMGR_PERMODRST	0x14
+extern void __iomem *rst_manager_base_addr;
+
+/* Once enabled we cannot stop it, but hold it in reset */
+static void dw_wdt_stop(void)
+{
+	u32 temp;
+
+	pr_info("%s\n", __func__);
+	temp = readl(rst_manager_base_addr + SOCFPGA_RSTMGR_PERMODRST);
+	temp |= 0x40;
+	writel(temp, rst_manager_base_addr + SOCFPGA_RSTMGR_PERMODRST);
+	pr_info("%s: rst_manager_base_addr %p, temp 0x%x\n", __func__,
+			rst_manager_base_addr, temp);
+}
+
+static void dw_wdt_start(void)
+{
+	u32 temp;
+
+	pr_info("%s\n", __func__);
+
+	/* take the wd out of reset */
+	temp = readl(rst_manager_base_addr + SOCFPGA_RSTMGR_PERMODRST);
+	temp &= ~0x40;
+	writel(temp, rst_manager_base_addr + SOCFPGA_RSTMGR_PERMODRST);
+
+	dw_wdt_set_top(timeout);
+
+	writel(WDOG_CONTROL_REG_WDT_EN_MASK,
+	       dw_wdt.regs + WDOG_CONTROL_REG_OFFSET);
+}
+
 static int dw_wdt_suspend(struct device *dev)
 {
+	pr_info("%s\n", __func__);
+	dw_wdt_stop();
 	clk_disable_unprepare(dw_wdt.clk);
 
 	return 0;
@@ -306,9 +342,12 @@ static int dw_wdt_resume(struct device *dev)
 {
 	int err = clk_prepare_enable(dw_wdt.clk);
 
+	pr_info("%s\n", __func__);
 	if (err)
 		return err;
 
+	dw_wdt_start();
+	dw_wdt_set_next_heartbeat();
 	dw_wdt_keepalive();
 
 	return 0;

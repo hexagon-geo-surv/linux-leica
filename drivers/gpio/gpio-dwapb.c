@@ -341,6 +341,8 @@ static void dwapb_configure_irqs(struct dwapb_gpio *gpio,
 		ct->regs.ack = GPIO_PORTA_EOI;
 		ct->regs.mask = GPIO_INTMASK;
 		ct->type = IRQ_TYPE_LEVEL_MASK;
+
+		ct->chip.irq_set_wake = irq_gc_set_wake;
 	}
 
 	irq_gc->chip_types[0].type = IRQ_TYPE_LEVEL_MASK;
@@ -366,6 +368,7 @@ static void dwapb_configure_irqs(struct dwapb_gpio *gpio,
 		}
 	}
 
+	irq_gc->wake_enabled = 0xffffffff;
 	for (hwirq = 0 ; hwirq < ngpio ; hwirq++)
 		irq_create_mapping(gpio->domain, hwirq);
 
@@ -621,7 +624,10 @@ static int dwapb_gpio_suspend(struct device *dev)
 			ctx->int_deb	= dwapb_read(gpio, GPIO_PORTA_DEBOUNCE);
 
 			/* Mask out interrupts */
-			dwapb_write(gpio, GPIO_INTMASK, 0xffffffff);
+			/* XXX: should mask out all but the wakeup ones
+			 * In the meanwhile allow all.
+			 */
+			/* dwapb_write(gpio, GPIO_INTMASK, 0xffffffff); */
 		}
 	}
 	spin_unlock_irqrestore(&bgc->lock, flags);

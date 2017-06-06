@@ -262,7 +262,7 @@ static const struct i2c_device_id ov7251_id[] = {
 	{}
 };
 
-static struct ov7251_reg const ov7251_480P_30fps[] = {
+static struct ov7251_reg const ov7251_480P_75fps[] = {
 /*	{OV7251_8BIT, SC_SOFTWARE_RESET_REG, 0x1}, */
 	{OV7251_8BIT, 0x100, 0x0}, /* disable OTP memory access */
 	{OV7251_8BIT, SC_REG5_REG, 0x8}, /* Strobe output enabled, PWM output disabled, vsync output disabled, SIOD output disabled */
@@ -280,17 +280,17 @@ static struct ov7251_reg const ov7251_480P_30fps[] = {
 	{OV7251_8BIT, 0x3023, 0x5},
 	{OV7251_8BIT, 0x3037, 0xf0},
 
-	{OV7251_8BIT, PLL2_PRE_DIVIDER_REG, 0x4},/* =/2 */
-	{OV7251_8BIT, PLL2_MULTIPLIER_REG, 0x32},/* =*50 */
+	{OV7251_8BIT, PLL2_PRE_DIVIDER_REG, 0x2},/* =/1 */
+	{OV7251_8BIT, PLL2_MULTIPLIER_REG, 0x4B},/* =*75 */
 	{OV7251_8BIT, PLL2_DIVIDER_REG, 0x0},/* =/1 */
-	{OV7251_8BIT, PLL2_SYS_DIVIDER_REG, 0x5},/* =/10 | sys_clk = ((external_clk / 2) * 50) / 10 */
-	{OV7251_8BIT, PLL2_ADC_DIVIDER_REG, 0x4},/* =/2 | adc_clk = ((external_clk / 2) * 50) / 2 */
+	{OV7251_8BIT, PLL2_SYS_DIVIDER_REG, 0x5},/* =/10 | sys_clk = ((external_clk / 1) * 75) / 10 */
+	{OV7251_8BIT, PLL2_ADC_DIVIDER_REG, 0x4},/* =/2 | adc_clk = ((external_clk / 1) * 75) / 2 */
 
-	{OV7251_8BIT, PLL1_PRE_DIVIDER_REG, 0x3},/* =/3 */
+	{OV7251_8BIT, PLL1_PRE_DIVIDER_REG, 0x2},/* =/2 */
 	{OV7251_8BIT, PLL1_MULTIPLIER_REG, 0x64},/* =*100 */
 	{OV7251_8BIT, PLL1_DIVIDER_REG, 0x1},/* =/1 */
-	{OV7251_8BIT, PLL1_PIX_DIVIDER_REG, 0xa},/* =/10 | pix_clk = ((external_clk / 3) * 100) / 10 */
-	{OV7251_8BIT, PLL1_MIPI_DIVIDER_REG, 0x5},/* 0x5 is not valid, only 2 bits are used to it should be 0x1. =/1 | mipi_clk = ((external_clk / 3) * 100) / 1 */
+	{OV7251_8BIT, PLL1_PIX_DIVIDER_REG, 0xa},/* =/10 | pix_clk = ((external_clk / 2) * 100) / 10 */
+	{OV7251_8BIT, PLL1_MIPI_DIVIDER_REG, 0x5},/* 0x5 is not valid, only 2 bits are used to it should be 0x1. =/1 | mipi_clk = ((external_clk / 2) * 100) / 1 */
 
 	/* tal check */
 	{OV7251_8BIT, SB_SRB_CTRL_REG, 0xda},
@@ -442,10 +442,10 @@ static struct ov7251_reg const ov7251_480P_30fps[] = {
 
 struct ov7251_resolution ov7251_res_preview[] = {
 	{
-		.desc = "ov7251_480P_30fps",
+		.desc = "ov7251_480P_75fps",
 		.width = 640,
 		.height = 480,
-		.fps = 30,
+		.fps = 75,
 		.used = 0,
 /*		.pixels_per_line = 2048,
 //		.lines_per_frame = 1184, */
@@ -455,7 +455,7 @@ struct ov7251_resolution ov7251_res_preview[] = {
 		.bin_factor_y = 1,
 		.bin_mode = 0,
 		.skip_frames = 3,
-		.regs = ov7251_480P_30fps,
+		.regs = ov7251_480P_75fps,
 	},
 
 };
@@ -463,10 +463,10 @@ struct ov7251_resolution ov7251_res_preview[] = {
 
 struct ov7251_resolution ov7251_res_still[] = {
 	{
-		.desc = "ov7251_480P_30fps",
+		.desc = "ov7251_480P_75fps",
 		.width = 640,
 		.height = 480,
-		.fps = 30,
+		.fps = 75,
 		.used = 0,
 /*		.pixels_per_line = 2048,
 //		.lines_per_frame = 1184, */
@@ -476,7 +476,7 @@ struct ov7251_resolution ov7251_res_still[] = {
 		.bin_factor_y = 1,
 		.bin_mode = 0,
 		.skip_frames = 3,
-		.regs = ov7251_480P_30fps,
+		.regs = ov7251_480P_75fps,
 		.mipi_freq = 422400,
 	},
 };
@@ -484,12 +484,12 @@ struct ov7251_resolution ov7251_res_still[] = {
 
 struct ov7251_resolution ov7251_res_video[] = {
 	{
-		.desc = "ov7251_480P_30fps",
+		.desc = "ov7251_480P_75fps",
 /*		.width = 652,
 //		.height = 492, */
 		.width = 640,
 		.height = 480,
-		.fps = 30,
+		.fps = 75,
 		.used = 0,
 /*		.pixels_per_line = 2048,
 //		.lines_per_frame = 1184, */
@@ -499,7 +499,7 @@ struct ov7251_resolution ov7251_res_video[] = {
 		.bin_factor_y = 1,
 		.bin_mode = 0,
 		.skip_frames = 3,
-		.regs = ov7251_480P_30fps,
+		.regs = ov7251_480P_75fps,
 	},
 };
 #define N_RES_VIDEO (ARRAY_SIZE(ov7251_res_video))

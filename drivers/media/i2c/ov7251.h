@@ -163,7 +163,7 @@
 #define SC_REG5_REG 0x3005
 
 #define EC_EXPO_19_16_BITS_REG 0x3500
-#define EC_EXPO_18_8_BITS_REG 0x3501
+#define EC_EXPO_15_8_BITS_REG 0x3501
 #define EC_EXPO_7_0_BITS_REG 0x3502
 #define AEC_MANUAL_REG 0x3503
 #define AEC_GAIN_CONVERT_REG 0x3509
@@ -213,6 +213,9 @@ struct ov7251_device {
 	u16 lines_per_frame;
 	u8 res;
 	u8 type;
+
+	uint16_t exposure;
+	uint8_t gain;
 
 	struct v4l2_ctrl_handler ctrl_handler;
 	struct v4l2_ctrl *link_freq;
@@ -296,7 +299,7 @@ static struct ov7251_reg const ov7251_480P_75fps[] = {
 	{OV7251_8BIT, SB_SRB_CTRL_REG, 0xda},
 
 	{OV7251_8BIT, EC_EXPO_19_16_BITS_REG, 0x00},
-	{OV7251_8BIT, EC_EXPO_18_8_BITS_REG, 0x35},
+	{OV7251_8BIT, EC_EXPO_15_8_BITS_REG, 0x35},
 	{OV7251_8BIT, EC_EXPO_7_0_BITS_REG, 0x20},
 	{OV7251_8BIT, AEC_MANUAL_REG, 0x07},/* this chip don't have AEC or AGC modules, so changing to manual control  */
 	{OV7251_8BIT, AEC_GAIN_CONVERT_REG, 0x10},

@@ -387,144 +387,140 @@ static int ov7251_get_intg_factor(struct i2c_client *client,
 }
 
 typedef union {
-    unsigned int exp32;
+    u32 exp32;
     uint8_t regs[4];
-} OV7251ExposureRegsWrapper;
+} OV7251RegsWrapper;
 
+#define GROUP_HOLD_START_VAL 0x00
+#define GROUP_HOLD_END_VAL 0x10
+#define GROUP_HOLD_LUNCH_VAL 0xA0
 
-static long __ov7251_set_exposure(struct v4l2_subdev *sd, int exposure,
-    int gain, int digitgain)
+static long __ov7251_set_exposure_gain(struct v4l2_subdev *sd, u32 exposure, u32 gain)
 
 {
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
-	OV7251ExposureRegsWrapper exp_regs;
+	OV7251RegsWrapper *exp_regs = (OV7251RegsWrapper *)&exposure;
+	OV7251RegsWrapper *gain_regs = (OV7251RegsWrapper *)&gain;
 	int ret;
-	uint8_t gain8;
 
-	uint8_t group_hold_start_val = 0x00;
-	uint8_t group_hold_end_val = 0x10;
-	uint8_t group_hold_lunch_val = 0xA0;
+	unsigned char group_start_transaction[3];
+	unsigned char group_end_transaction[3];
+	unsigned char group_lunch_transaction[3];
+	unsigned char exp_3500_transaction[3]; /*{0x35,0x00,exp_regs.regs[0]}; */
+	unsigned char exp_3501_transaction[3]; /*{0x35,0x01,exp_regs.regs[1]}; */
+	unsigned char exp_3502_transaction[3]; /*{0x35,0x02,exp_regs.regs[2]}; */
+	unsigned char exp_350A_transaction[3]; /*{0x35,0x0B,gain8}; */
+	unsigned char exp_350B_transaction[3]; /*{0x35,0x0B,gain8}; */
+	struct i2c_msg msgs[8];
 
-
-	{
-		unsigned char group_start_transaction[3];
-		unsigned char group_end_transaction[3];
-		unsigned char group_lunch_transaction[3];
-		unsigned char exp_3500_transaction[3]; /*{0x35,0x00,exp_regs.regs[0]}; */
-		unsigned char exp_3501_transaction[3]; /*{0x35,0x01,exp_regs.regs[1]}; */
-		unsigned char exp_3502_transaction[3]; /*{0x35,0x02,exp_regs.regs[2]}; */
-		unsigned char exp_350B_transaction[3]; /*{0x35,0x0B,gain8}; */
-		struct i2c_msg msgs[7];
-
-		exp_regs.exp32 = exposure;
-
-		gain8 = gain;
-
-		/* setup transactions buffers for the different registers */
-		group_start_transaction[0] = 0x32;
-		group_start_transaction[1] = 0x08;
-		group_start_transaction[2] = group_hold_start_val;
-
-		group_end_transaction[0] = 0x32;
-		group_end_transaction[1] = 0x08;
-		group_end_transaction[2] = group_hold_end_val;
-
-		group_lunch_transaction[0] = 0x32;
-		group_lunch_transaction[1] = 0x08;
-		group_lunch_transaction[2] = group_hold_lunch_val;
-
-		exp_3500_transaction[0] = 0x35;
-		exp_3500_transaction[1] = 0x00;
-		exp_3500_transaction[2] = exp_regs.regs[0];
-
-		exp_3501_transaction[0] = 0x35;
-		exp_3501_transaction[1] = 0x01;
-		exp_3501_transaction[2] = exp_regs.regs[1];
-
-		exp_3502_transaction[0] = 0x35;
-		exp_3502_transaction[1] = 0x02;
-		exp_3502_transaction[2] = exp_regs.regs[2];
-
-		exp_350B_transaction[0] = 0x35;
-		exp_350B_transaction[1] = 0x0B;
-		exp_350B_transaction[2] = gain8;
-
-		/* setup messages for the different transactions */
-		msgs[0].addr = client->addr;
-		msgs[0].flags = 0;
-		msgs[0].len   = 3;
-		msgs[0].buf   = group_start_transaction;
-
-		msgs[1].addr = client->addr;
-		msgs[1].flags = 0;
-		msgs[1].len   = 3;
-		msgs[1].buf   = exp_3500_transaction;
-
-		msgs[2].addr = client->addr;
-		msgs[2].flags = 0;
-		msgs[2].len   = 3;
-		msgs[2].buf   = exp_3501_transaction;
-
-		msgs[3].addr = client->addr;
-		msgs[3].flags = 0;
-		msgs[3].len   = 3;
-		msgs[3].buf   = exp_3502_transaction;
-
-		msgs[4].addr = client->addr;
-		msgs[4].flags = 0;
-		msgs[4].len   = 3;
-		msgs[4].buf   = exp_350B_transaction;
-
-		msgs[5].addr = client->addr;
-		msgs[5].flags = 0;
-		msgs[5].len   = 3;
-		msgs[5].buf   = group_end_transaction;
-
-		msgs[6].addr = client->addr;
-		msgs[6].flags = 0;
-		msgs[6].len   = 3;
-		msgs[6].buf   = group_lunch_transaction;
-
-		/*perform the transaction */
-		ret = i2c_transfer(client->adapter, msgs, 7);  /* This call should return 7 if the transfers succeed (7 messages) */
-
-		return ret == 7 ? 0 : -EIO;
+	if (exp_regs->exp32 > 0xFFFF) {
+		return -EINVAL;
 	}
-}
 
-static int ov7251_set_exposure(struct v4l2_subdev *sd, int exposure,
-	int gain, int digitgain)
-{
-	struct ov7251_device *dev = to_ov7251_sensor(sd);
-	int ret;
+	/* only 7 bits is valid */
+	if (gain_regs->exp32 > 0x7F) {
+		return -EINVAL;
+	}
 
-	mutex_lock(&dev->input_lock);
-	ret = __ov7251_set_exposure(sd, exposure, gain, digitgain);
-	mutex_unlock(&dev->input_lock);
+	/* 4 first bits is fraction bits */
+	exp_regs->exp32 <<= 4;
 
-	return ret;
-}
+	/* 4 first bits is fraction bits */
+	gain_regs->exp32 <<= 4;
 
-static long ov7251_s_exposure(struct v4l2_subdev *sd,
-			       struct atomisp_exposure *exposure)
-{
-	int exp = exposure->integration_time[0];
-	int gain = exposure->gain[0];
-	int digitgain = exposure->gain[1];
+	/* setup transactions buffers for the different registers */
+	group_start_transaction[0] = 0x32;
+	group_start_transaction[1] = 0x08;
+	group_start_transaction[2] = GROUP_HOLD_START_VAL;
 
-	return ov7251_set_exposure(sd, exp, gain, digitgain);
+	group_end_transaction[0] = 0x32;
+	group_end_transaction[1] = 0x08;
+	group_end_transaction[2] = GROUP_HOLD_END_VAL;
+
+	group_lunch_transaction[0] = 0x32;
+	group_lunch_transaction[1] = 0x08;
+	group_lunch_transaction[2] = GROUP_HOLD_LUNCH_VAL;
+
+	exp_3500_transaction[0] = 0x35;
+	exp_3500_transaction[1] = 0x00;
+	exp_3500_transaction[2] = exp_regs->regs[0];
+
+	exp_3501_transaction[0] = 0x35;
+	exp_3501_transaction[1] = 0x01;
+	exp_3501_transaction[2] = exp_regs->regs[1];
+
+	exp_3502_transaction[0] = 0x35;
+	exp_3502_transaction[1] = 0x02;
+	exp_3502_transaction[2] = exp_regs->regs[2];
+
+	exp_350A_transaction[0] = 0x35;
+	exp_350A_transaction[1] = 0x0A;
+	exp_350A_transaction[2] = gain_regs->regs[0];
+
+	exp_350B_transaction[0] = 0x35;
+	exp_350B_transaction[1] = 0x0B;
+	exp_350B_transaction[2] = gain_regs->regs[1];
+
+	/* setup messages for the different transactions */
+	msgs[0].addr = client->addr;
+	msgs[0].flags = 0;
+	msgs[0].len   = 3;
+	msgs[0].buf   = group_start_transaction;
+
+	msgs[1].addr = client->addr;
+	msgs[1].flags = 0;
+	msgs[1].len   = 3;
+	msgs[1].buf   = exp_3500_transaction;
+
+	msgs[2].addr = client->addr;
+	msgs[2].flags = 0;
+	msgs[2].len   = 3;
+	msgs[2].buf   = exp_3501_transaction;
+
+	msgs[3].addr = client->addr;
+	msgs[3].flags = 0;
+	msgs[3].len   = 3;
+	msgs[3].buf   = exp_3502_transaction;
+
+	msgs[4].addr = client->addr;
+	msgs[4].flags = 0;
+	msgs[4].len   = 3;
+	msgs[4].buf   = exp_350A_transaction;
+
+	msgs[5].addr = client->addr;
+	msgs[5].flags = 0;
+	msgs[5].len   = 3;
+	msgs[5].buf   = exp_350B_transaction;
+
+	msgs[6].addr = client->addr;
+	msgs[6].flags = 0;
+	msgs[6].len   = 3;
+	msgs[6].buf   = group_end_transaction;
+
+	msgs[7].addr = client->addr;
+	msgs[7].flags = 0;
+	msgs[7].len   = 3;
+	msgs[7].buf   = group_lunch_transaction;
+
+	/*perform the transaction */
+	ret = i2c_transfer(client->adapter, msgs, sizeof(msgs) / sizeof(struct i2c_msg));
+
+	if (ret == (sizeof(msgs) / sizeof(struct i2c_msg))) {
+		struct ov7251_device *dev = to_ov7251_sensor(sd);
+
+		dev->gain = gain_regs->exp32 >> 4;
+		dev->exposure = exp_regs->exp32 >> 4;
+
+		return 0;
+	} else {
+		return -EIO;
+	}
 }
 
 static long ov7251_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 {
-
-	switch (cmd) {
-	case ATOMISP_IOC_S_EXPOSURE:
-		return ov7251_s_exposure(sd, arg);
-	default:
-		return -EINVAL;
-	}
-	return 0;
+	/* lets do not implement any ioctl specific to atomisp */
+	return -EINVAL;
 }
 
 /* This returns the exposure time being used. This should only be used
@@ -532,47 +528,109 @@ static long ov7251_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 static int ov7251_q_exposure(struct v4l2_subdev *sd, s32 *value)
 {
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
-	u16 reg_v, reg_v2;
+	u16 reg_v;
 	int ret;
+	u32 v;
 
-	/* get exposure */
 	ret = ov7251_read_reg(client, OV7251_8BIT,
 					EC_EXPO_7_0_BITS_REG,
 					&reg_v);
 	if (ret)
 		goto err;
 
+	/* 4 first bits is fraction */
+	v = reg_v >> 4;
+
 	ret = ov7251_read_reg(client, OV7251_8BIT,
-					EC_EXPO_18_8_BITS_REG,
-					&reg_v2);
+					EC_EXPO_15_8_BITS_REG,
+					&reg_v);
 	if (ret)
 		goto err;
 
-	reg_v += reg_v2 << 8;
+	v |= reg_v << 4;
+
 	ret = ov7251_read_reg(client, OV7251_8BIT,
 					EC_EXPO_19_16_BITS_REG,
-					&reg_v2);
+					&reg_v);
 	if (ret)
 		goto err;
 
-	*value = reg_v + (((u32)reg_v2 << 16));
+	v |= reg_v << 12;
+	*value = v;
 err:
 	return ret;
+}
+
+static int ov7251_q_gain(struct v4l2_subdev *sd, s32 *value)
+{
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	u16 reg_v;
+	int ret;
+	u32 v;
+
+	ret = ov7251_read_reg(client, OV7251_8BIT,
+					AEC_AGC_ADJ_7_0_REG,
+					&reg_v);
+	if (ret)
+		goto err;
+
+	/* 4 first bits is fraction */
+	v = reg_v >> 4;
+
+	ret = ov7251_read_reg(client, OV7251_8BIT,
+					AEC_AGC_ADJ_10_8_REG,
+					&reg_v);
+	if (ret)
+		goto err;
+
+	v |= reg_v << 4;
+	*value = v;
+err:
+	return ret;
+}
+
+static int ov7251_s_exposure(struct v4l2_subdev *sd, s32 value)
+{
+	struct ov7251_device *dev = to_ov7251_sensor(sd);
+
+	return __ov7251_set_exposure_gain(sd, value, dev->gain);
+}
+
+static int ov7251_s_gain(struct v4l2_subdev *sd, s32 value)
+{
+	struct ov7251_device *dev = to_ov7251_sensor(sd);
+
+	return __ov7251_set_exposure_gain(sd, dev->exposure, value);
 }
 
 struct ov7251_control ov7251_controls[] = {
 	{
 		.qc = {
 			.id = V4L2_CID_EXPOSURE_ABSOLUTE,
-			.type = V4L2_CTRL_TYPE_INTEGER,
+			.type = V4L2_CTRL_TYPE_U16,
 			.name = "exposure",
 			.minimum = 0x0,
-			.maximum = 0xffff,
+			.maximum = 0xFFFF,
 			.step = 0x01,
 			.default_value = 0x00,
 			.flags = 0,
 		},
 		.query = ov7251_q_exposure,
+		.tweak = ov7251_s_exposure,
+	},
+	{
+		.qc = {
+			.id = V4L2_CID_GAIN,
+			.type = V4L2_CTRL_TYPE_U8,
+			.name = "gain",
+			.minimum = 0x0,
+			.maximum = 0x7F,
+			.step = 0x01,
+			.default_value = 0x00,
+			.flags = 0,
+		},
+		.query = ov7251_q_gain,
+		.tweak = ov7251_s_gain,
 	},
 	{
 		.qc = {

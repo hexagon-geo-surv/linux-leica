@@ -386,19 +386,16 @@ static int ov7251_get_intg_factor(struct i2c_client *client,
 	return 0;
 }
 
-#define SINGLE_XFER
-
 typedef union {
     unsigned int exp32;
     uint8_t regs[4];
 } OV7251ExposureRegsWrapper;
 
 
-static long __ov7251_set_exposure(struct v4l2_subdev *sd, int coarse_itg,
+static long __ov7251_set_exposure(struct v4l2_subdev *sd, int exposure,
     int gain, int digitgain)
 
 {
-
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	OV7251ExposureRegsWrapper exp_regs;
 	int ret;
@@ -409,9 +406,7 @@ static long __ov7251_set_exposure(struct v4l2_subdev *sd, int coarse_itg,
 	uint8_t group_hold_lunch_val = 0xA0;
 
 
-#ifdef SINGLE_XFER
 	{
-
 		unsigned char group_start_transaction[3];
 		unsigned char group_end_transaction[3];
 		unsigned char group_lunch_transaction[3];
@@ -421,14 +416,11 @@ static long __ov7251_set_exposure(struct v4l2_subdev *sd, int coarse_itg,
 		unsigned char exp_350B_transaction[3]; /*{0x35,0x0B,gain8}; */
 		struct i2c_msg msgs[7];
 
-		exp_regs.exp32 = coarse_itg;
-
-		printk("tal i2c set exposure start. regs= 00:%x 01:%x 02:%x, 0B:%x\n", exp_regs.regs[0], exp_regs.regs[1], exp_regs.regs[2], gain);
-
+		exp_regs.exp32 = exposure;
 
 		gain8 = gain;
 
-		/*setup trasactions buffers for the different registers */
+		/* setup transactions buffers for the different registers */
 		group_start_transaction[0] = 0x32;
 		group_start_transaction[1] = 0x08;
 		group_start_transaction[2] = group_hold_start_val;
@@ -457,7 +449,7 @@ static long __ov7251_set_exposure(struct v4l2_subdev *sd, int coarse_itg,
 		exp_350B_transaction[1] = 0x0B;
 		exp_350B_transaction[2] = gain8;
 
-		/*setup messages for the different transcations */
+		/* setup messages for the different transactions */
 		msgs[0].addr = client->addr;
 		msgs[0].flags = 0;
 		msgs[0].len   = 3;
@@ -493,78 +485,11 @@ static long __ov7251_set_exposure(struct v4l2_subdev *sd, int coarse_itg,
 		msgs[6].len   = 3;
 		msgs[6].buf   = group_lunch_transaction;
 
-		/*perform the transcation */
+		/*perform the transaction */
 		ret = i2c_transfer(client->adapter, msgs, 7);  /* This call should return 7 if the transfers succeed (7 messages) */
 
-		if (ret == 7) {
-			printk("tal i2c set exposure OK\n");
-			return 0;
-		} else {
-			printk("tal i2c set exposure FAIL: %d\n", ret);
-			return -EIO;
-		}
+		return ret == 7 ? 0 : -EIO;
 	}
-#else
-	{
-		int ret3500, ret3501, ret3502, ret350b;
-
-	/*	ret = ov7251_write_reg(client, OV7251_8BIT, 0x3503, aec_setup);
-	//	if (ret)
-	//	  return ret;
-
-		//group hold
-		//end previous group (if any)
-	//	ret = ov7251_write_reg(client, OV7251_8BIT, OV7251_GROUP_ACCESS, group_hold_end);
-	//	if (ret)
-	//	  return ret; */
-
-		exp_regs.exp32 = coarse_itg;
-
-
-		ret = ov7251_write_reg(client, OV7251_8BIT, OV7251_GROUP_ACCESS, group_hold_start);
-		if (ret)
-		  return ret;
-
-
-		ret3500 = ov7251_write_reg(client, OV7251_8BIT, 0x3500, exp_regs.regs[0]);
-		if (ret)
-		  return ret;
-
-		ret3501 = ov7251_write_reg(client, OV7251_8BIT, 0x3501, exp_regs.regs[1]);
-		if (ret)
-		  return ret;
-
-		ret3502 = ov7251_write_reg(client, OV7251_8BIT, 0x3502, exp_regs.regs[2]);
-		if (ret)
-		 return ret;
-
-		gain8 = gain;
-		ret350b = ov7251_write_reg(client, OV7251_8BIT, 0x350B, gain8);
-
-		if ((!ret3500) && (!ret3501) && (!ret3502) && (!ret350b)) {
-			/*all went well - execute group
-
-			//group hold end */
-			ret = ov7251_write_reg(client, OV7251_8BIT, OV7251_GROUP_ACCESS, group_hold_end);
-			if (ret)
-			  return ret;
-
-			/*group hold lunch */
-			ret = ov7251_write_reg(client, OV7251_8BIT, OV7251_GROUP_ACCESS, group_hold_lunch);
-			if (ret)
-			  return ret;
-
-			printk("tal i2c set exposure OK\n");
-
-		} else {
-			return -1;
-		}
-
-
-	    return ret;
-
-}
-#endif
 }
 
 static int ov7251_set_exposure(struct v4l2_subdev *sd, int exposure,

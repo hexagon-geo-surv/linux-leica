@@ -106,6 +106,9 @@ void sdhci_get_of_property(struct platform_device *pdev)
 
 	if (of_find_property(np, "enable-sdio-wakeup", NULL))
 		host->mmc->pm_caps |= MMC_PM_WAKE_SDIO_IRQ;
+
+	if (of_find_property(np, "non-removable", NULL))
+		host->mmc->caps |= MMC_CAP_NONREMOVABLE;
 }
 #else
 void sdhci_get_of_property(struct platform_device *pdev) {}

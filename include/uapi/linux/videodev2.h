@@ -597,6 +597,17 @@ struct v4l2_pix_format {
 #define V4L2_PIX_FMT_VC1_ANNEX_L v4l2_fourcc('V', 'C', '1', 'L') /* SMPTE 421M Annex L compliant stream */
 #define V4L2_PIX_FMT_VP8      v4l2_fourcc('V', 'P', '8', '0') /* VP8 */
 
+/* Intel RealSense-specific non-upstream formats */
+#define V4L2_PIX_FMT_Y8   v4l2_fourcc('Y', '8', ' ', ' ') /* Greyscale 8-bit */
+#define V4L2_PIX_FMT_RAW8 v4l2_fourcc('R', 'A', 'W', '8') /* Raw data 8-bit */
+#define V4L2_PIX_FMT_RW10 v4l2_fourcc('R', 'W', '1', '0') /* Raw data 10-bit */
+#define V4L2_PIX_FMT_RW16 v4l2_fourcc('R', 'W', '1', '6') /* Raw data 16-bit */
+#define V4L2_PIX_FMT_INVZ v4l2_fourcc('I',  'N',  'V',  'Z') /* 16 Depth */
+#define V4L2_PIX_FMT_INVR v4l2_fourcc('I',  'N',  'V',  'R') /* 16 Depth */
+#define V4L2_PIX_FMT_INRI v4l2_fourcc('I',  'N',  'R',  'I') /* 24 Depth/IR 16:8 */
+#define V4L2_PIX_FMT_INVI v4l2_fourcc('I',  'N',  'V',  'I') /* 8 IR */
+#define V4L2_PIX_FMT_RELI v4l2_fourcc('R',  'E',  'L',  'I') /* 8 IR alternating on off illumination */
+
 /*  Vendor-specific formats   */
 #define V4L2_PIX_FMT_CPIA1    v4l2_fourcc('C', 'P', 'I', 'A') /* cpia1 YUV */
 #define V4L2_PIX_FMT_WNVA     v4l2_fourcc('W', 'N', 'V', 'A') /* Winnov hw compress */

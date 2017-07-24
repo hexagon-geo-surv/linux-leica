@@ -20,6 +20,19 @@
 
 				firmware-name = "colibri.rbf";
 
+				agpio0: gpio@ff210020 {
+					status = "okay";
+					compatible = "altr,pio-1.0";
+					reg = <0 0x00010020 0x20>;
+					interrupts = <0 44 1>;	/* edge triggered */
+					width=<32>;
+					#gpio-cells = <2>;
+					gpio-controller;
+					#interrupt-cells = <1>;
+					interrupt-controller;
+					altr,interrupt-type = <1>;	/* rising edge */
+				};
+
 				laser_safety@0 {
 					compatible = "generic-uio";
 					status = "okay";
@@ -149,6 +162,7 @@
 					non-removable;
 					cap-power-off-card;
 					keep-power-in-suspend;
+					wakeup-source;
 
 					#address-cells = <1>;
 					#size-cells = <0>;
@@ -175,14 +189,5 @@
 
 			}; /* area@0 */
 		}; /* __overlay__ */
-	};
-
-	fragment@1 {
-		target = <&agpio0>;
-		__overlay__ {
-			status = "okay";
-			interrupts = <0 44 1>;	/* edge triggered */
-			altr,interrupt_type = <1>;	/* edge rising */
-		};
 	};
 };

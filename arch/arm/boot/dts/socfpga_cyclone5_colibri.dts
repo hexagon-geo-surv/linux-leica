@@ -32,14 +32,6 @@
 		reg = <0x0 0x40000000>; /* 1GB */
 	};
 
-	aliases {
-		/* this allow the ethaddr uboot environmnet variable contents
-		 * to be added to the gmac1 device tree blob.
-		 */
-		ethernet0 = &gmac0;
-		ethernet1 = &gmac1;
-	};
-
 	regulator_3_3v: 3-3-v-regulator {
 		compatible = "regulator-fixed";
 		regulator-name = "3.3V";
@@ -50,19 +42,6 @@
 	sysid_qsys: sysid@0xff210000 {
 		compatible = "altr,sysid-1.0";
 		reg = < 0xff210000 0x00000008 >;
-	};
-
-	agpio0: gpio@ff210020 {
-		status = "disabled";
-		compatible = "altr,pio-1.0";
-		reg = <0xff210020 0x20>;
-		interrupts = <0 44 1>;	/* edge triggered */
-		width=<32>;
-		#gpio-cells = <2>;
-		gpio-controller;
-		#interrupt-cells = <1>;
-		interrupt-controller;
-		altr,interrupt_type = <1>;	/* rising edge */
 	};
 
 	gpio-keys {
@@ -163,47 +142,6 @@
 		#address-cells = <0x1>;
 		#size-cells = <0x1>;
 		ranges;
-	};
-};
-
-&gmac0 {
-	status = "okay";
-	phy-mode = "mii";
-	snps,phy-addr = <0x00>;
-	phy-handle = <&ethphy0>;
-};
-
-&gmac1 {
-	status = "okay";
-	phy-mode = "mii";
-	snps,phy-addr = <0x01>;
-
-	rxd0-skew-ps = <0>;
-	rxd1-skew-ps = <0>;
-	rxd2-skew-ps = <0>;
-	rxd3-skew-ps = <0>;
-	txen-skew-ps = <0>;
-	txc-skew-ps = <2600>;
-	rxdv-skew-ps = <0>;
-	rxc-skew-ps = <2000>;
-	snps,max-mtu = <3800>;
-
-	phy-handle = <&ethphy1>;
-
-	mdio {
-		compatible = "snps,dwmac-mdio";
-		#address-cells = <1>;
-		#size-cells = <0>;
-
-		ethphy0: ethernet-phy@0 {
-			reg = <0>;
-			reset-gpios = <&agpio0 0 0>;
-		};
-
-		ethphy1: ethernet-phy@1 {
-			reg = <1>;
-			reset-gpios = <&agpio0 1 0>;
-		};
 	};
 };
 

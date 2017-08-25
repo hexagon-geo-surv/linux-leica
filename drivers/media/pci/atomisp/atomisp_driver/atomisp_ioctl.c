@@ -239,6 +239,24 @@ static struct v4l2_queryctrl ci_v4l2_controls[] = {
 		.default_value = 0,
 	},
 	{
+		.id = V4L2_CID_EXPOSURE_ABSOLUTE,
+		.type = V4L2_CTRL_TYPE_INTEGER,
+		.name = "exposure absolute",
+		.minimum = -0xFFFF,
+		.maximum = 0xFFFF,
+		.step = 1,
+		.default_value = 0,
+	},
+	{
+		.id = V4L2_CID_GAIN,
+		.type = V4L2_CTRL_TYPE_INTEGER,
+		.name = "gain",
+		.minimum = -0xFFFF,
+		.maximum = 0xFFFF,
+		.step = 1,
+		.default_value = 0,
+	},
+	{
 		.id = V4L2_CID_EXPOSURE_ZONE_NUM,
 		.type = V4L2_CTRL_TYPE_INTEGER,
 		.name = "one-time exposure zone number",
@@ -2241,6 +2259,7 @@ static int atomisp_g_ctrl(struct file *file, void *fh,
 	case V4L2_CID_AUTO_N_PRESET_WHITE_BALANCE:
 	case V4L2_CID_EXPOSURE:
 	case V4L2_CID_EXPOSURE_AUTO:
+	case V4L2_CID_GAIN:
 	case V4L2_CID_SCENE_MODE:
 	case V4L2_CID_ISO_SENSITIVITY:
 	case V4L2_CID_ISO_SENSITIVITY_AUTO:
@@ -2314,10 +2333,12 @@ static int atomisp_s_ctrl(struct file *file, void *fh,
 	switch (control->id) {
 	case V4L2_CID_AUTO_N_PRESET_WHITE_BALANCE:
 	case V4L2_CID_EXPOSURE:
+	case V4L2_CID_EXPOSURE_ABSOLUTE:
 	case V4L2_CID_HFLIP:
 	case V4L2_CID_VFLIP:
 	case V4L2_CID_EXPOSURE_AUTO:
 	case V4L2_CID_EXPOSURE_AUTO_PRIORITY:
+	case V4L2_CID_GAIN:
 	case V4L2_CID_SCENE_MODE:
 	case V4L2_CID_ISO_SENSITIVITY:
 	case V4L2_CID_ISO_SENSITIVITY_AUTO:

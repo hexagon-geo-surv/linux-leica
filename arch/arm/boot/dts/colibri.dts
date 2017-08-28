@@ -112,10 +112,12 @@
 					compatible = "colibri-fb";
 					reg = <0 0x00050000 0x00000020>,
 					      <0 0x00050020 0x00000010>,
-					      <0 0x00050030 0x00000008>;
-					reg-names = "csr", "descriptor_slave", "response";
+					      <0 0x00050030 0x00000008>,
+					      <0 0x00050040 0x00000040>;
+					reg-names = "csr", "descriptor_slave", "response", "img_acq";
 					interrupt-parent = <&intc>;
-					interrupts = <0 46 4>;
+					interrupts = <0 46 4>, <0 75 4>;
+					interrupt-names = "msgdma","img_acq";
 				}; //end msgdma@0xff21c040 (msgdma_camera)
 
 				angle_estimation: unknown@0x70000 {

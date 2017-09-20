@@ -612,20 +612,20 @@ static int ov7251_q_exposure(struct v4l2_subdev *sd, s32 *value)
 
 	/* get exposure */
 	ret = ov7251_read_reg(client, OV7251_8BIT,
-					OV7251_AEC_PK_EXPO_L,
+					EC_EXPO_7_0_BITS_REG,
 					&reg_v);
 	if (ret)
 		goto err;
 
 	ret = ov7251_read_reg(client, OV7251_8BIT,
-					OV7251_AEC_PK_EXPO_M,
+					EC_EXPO_18_8_BITS_REG,
 					&reg_v2);
 	if (ret)
 		goto err;
 
 	reg_v += reg_v2 << 8;
 	ret = ov7251_read_reg(client, OV7251_8BIT,
-					OV7251_AEC_PK_EXPO_H,
+					EC_EXPO_19_16_BITS_REG,
 					&reg_v2);
 	if (ret)
 		goto err;
@@ -1136,8 +1136,8 @@ static int ov7251_detect(struct i2c_client *client)
 	ret = ov7251_read_reg(client, OV7251_8BIT,
 					OV7251_SC_CMMN_CHIP_ID_L, &low);
 	id = ((((u16) high) << 8) | (u16) low);
-	ret = ov7251_read_reg(client, OV7251_8BIT,
-					OV7251_SC_CMMN_SUB_ID, &high);
+
+	ret = ov7251_read_reg(client, OV7251_8BIT, SC_REG0C_REG, &high);
 	revision = (u8) high & 0x0f;
 
 	dev_info(&client->dev, "sensor_revision = 0x%x\n", revision);
@@ -1551,8 +1551,7 @@ static ssize_t value_show(struct device *dev,
 
 	id = ((((u16) high) << 8) | (u16) low);
 
-	ret = ov7251_read_reg(ov->ov_i2c_client, OV7251_8BIT,
-					OV7251_SC_CMMN_SUB_ID, &high);
+	ret = ov7251_read_reg(ov->ov_i2c_client, OV7251_8BIT, SC_REG0C_REG, &high);
 	revision = (u8) high & 0x0f;
 
 	return sprintf(buf, "%hd %c\r\n", id, revision);

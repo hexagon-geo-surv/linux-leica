@@ -72,14 +72,14 @@
 /*
  * OV7251 System control registers
  */
-#define OV7251_SW_SLEEP				0x0100
 #define OV7251_SW_RESET				0x0103
 #define OV7251_SW_STREAM			0x0100
+	#define OV7251_START_STREAMING			0x01
+	#define OV7251_STOP_STREAMING			0x00
 
 #define OV7251_SC_CMMN_CHIP_ID_H		0x300A
 #define OV7251_SC_CMMN_CHIP_ID_L		0x300B
-#define OV7251_SC_CMMN_SCCB_ID			0x300C
-#define OV7251_SC_CMMN_SUB_ID			0x302A /* process, version*/
+#define SC_REG0C_REG					0x300C /* Revision ID */
 
 #define OV7251_SC_CMMN_PAD_OEN0			0x3000
 #define OV7251_SC_CMMN_PAD_OEN1			0x3001
@@ -100,14 +100,10 @@
 #define OV7251_SC_CMMN_CLKRST2			0x301C
 #define OV7251_SC_CMMN_CLKRST3			0x301D
 #define OV7251_SC_CMMN_CLKRST4			0x301E
-#define OV7251_SC_CMMN_CLKRST5			0x3005
 #define OV7251_SC_CMMN_PCLK_DIV_CTRL		0x3007
 #define OV7251_SC_CMMN_CLOCK_SEL		0x3020
 #define OV7251_SC_SOC_CLKRST5			0x3040
 
-#define OV7251_SC_CMMN_PLL_CTRL0		0x3034
-#define OV7251_SC_CMMN_PLL_CTRL1		0x3035
-#define OV7251_SC_CMMN_PLL_CTRL2		0x3039
 #define OV7251_SC_CMMN_PLL_CTRL3		0x3037
 #define OV7251_SC_CMMN_PLL_MULTIPLIER		0x3036
 #define OV7251_SC_CMMN_PLL_DEBUG_OPT		0x3038
@@ -123,12 +119,6 @@
 #define OV7251_SC_CMMN_MIPI_SC_CTRL_21		0x3021
 #define OV7251_SC_CMMN_MIPI_SC_CTRL_22		0x3022
 
-#define OV7251_AEC_PK_EXPO_H			0x3500
-#define OV7251_AEC_PK_EXPO_M			0x3501
-#define OV7251_AEC_PK_EXPO_L			0x3502
-#define OV7251_AEC_MANUAL_CTRL			0x3503
-#define OV7251_AGC_ADJ_H			0x3508
-#define OV7251_AGC_ADJ_L			0x3509
 #define OV7251_VTS_DIFF_H			0x350c
 #define OV7251_VTS_DIFF_L			0x350d
 #define OV7251_GROUP_ACCESS			0x3208
@@ -157,13 +147,30 @@
 #define OV7251_V_OUTSIZE_H			0x380a
 #define OV7251_V_OUTSIZE_L			0x380b
 
-#define OV7251_START_STREAMING			0x01
-#define OV7251_STOP_STREAMING			0x00
+#define PLL1_PRE_DIVIDER_REG 0x30B4
+#define PLL1_MULTIPLIER_REG 0x30B3
+#define PLL1_DIVIDER_REG 0x30B1
+#define PLL1_PIX_DIVIDER_REG 0x30B0
+#define PLL1_MIPI_DIVIDER_REG 0x30B5
 
-struct regval_list {
-	u16 reg_num;
-	u8 value;
-};
+#define PLL2_PRE_DIVIDER_REG 0x3098
+#define PLL2_MULTIPLIER_REG 0x3099
+#define PLL2_DIVIDER_REG 0x309D
+#define PLL2_SYS_DIVIDER_REG 0x309A
+#define PLL2_ADC_DIVIDER_REG 0x309B
+
+#define SC_SOFTWARE_RESET_REG 0x103
+#define SC_REG5_REG 0x3005
+
+#define EC_EXPO_19_16_BITS_REG 0x3500
+#define EC_EXPO_18_8_BITS_REG 0x3501
+#define EC_EXPO_7_0_BITS_REG 0x3502
+#define AEC_MANUAL_REG 0x3503
+#define AEC_GAIN_CONVERT_REG 0x3509
+#define AEC_AGC_ADJ_10_8_REG 0x350A
+#define AEC_AGC_ADJ_7_0_REG 0x350B
+
+#define SB_SRB_CTRL_REG 0x3106
 
 struct ov7251_resolution {
 	u8 *desc;
@@ -256,10 +263,11 @@ static const struct i2c_device_id ov7251_id[] = {
 };
 
 static struct ov7251_reg const ov7251_480P_30fps[] = {
-/*	{OV7251_8BIT, 0x103, 0x1}, */
-	{OV7251_8BIT, 0x100, 0x0},
-	{OV7251_8BIT, 0x3005, 0x8},
+/*	{OV7251_8BIT, SC_SOFTWARE_RESET_REG, 0x1}, */
+	{OV7251_8BIT, 0x100, 0x0}, /* disable OTP memory access */
+	{OV7251_8BIT, SC_REG5_REG, 0x8}, /* Strobe output enabled, PWM output disabled, vsync output disabled, SIOD output disabled */
 
+	/* SC_MIPI_* registers */
 	{OV7251_8BIT, 0x3012, 0xc0},
 	{OV7251_8BIT, 0x3013, 0xd2},
 	{OV7251_8BIT, 0x3014, 0x04},
@@ -272,29 +280,30 @@ static struct ov7251_reg const ov7251_480P_30fps[] = {
 	{OV7251_8BIT, 0x3023, 0x5},
 	{OV7251_8BIT, 0x3037, 0xf0},
 
-	{OV7251_8BIT, 0x3098, 0x4},
-    {OV7251_8BIT, 0x3099, 0x32},
-	{OV7251_8BIT, 0x309a, 0x5},
-	{OV7251_8BIT, 0x309b, 0x4},
-	{OV7251_8BIT, 0x309d, 0x0},
+	{OV7251_8BIT, PLL2_PRE_DIVIDER_REG, 0x4},/* =/2 */
+	{OV7251_8BIT, PLL2_MULTIPLIER_REG, 0x32},/* =*50 */
+	{OV7251_8BIT, PLL2_DIVIDER_REG, 0x0},/* =/1 */
+	{OV7251_8BIT, PLL2_SYS_DIVIDER_REG, 0x5},/* =/10 | sys_clk = ((external_clk / 2) * 50) / 10 */
+	{OV7251_8BIT, PLL2_ADC_DIVIDER_REG, 0x4},/* =/2 | adc_clk = ((external_clk / 2) * 50) / 2 */
 
-	{OV7251_8BIT, 0x30b0, 0xa},
-	{OV7251_8BIT, 0x30b1, 0x1},
-	{OV7251_8BIT, 0x30b3, 0x64},
-	{OV7251_8BIT, 0x30b4, 0x3},
-	{OV7251_8BIT, 0x30b5, 0x5},
+	{OV7251_8BIT, PLL1_PRE_DIVIDER_REG, 0x3},/* =/3 */
+	{OV7251_8BIT, PLL1_MULTIPLIER_REG, 0x64},/* =*100 */
+	{OV7251_8BIT, PLL1_DIVIDER_REG, 0x1},/* =/1 */
+	{OV7251_8BIT, PLL1_PIX_DIVIDER_REG, 0xa},/* =/10 | pix_clk = ((external_clk / 3) * 100) / 10 */
+	{OV7251_8BIT, PLL1_MIPI_DIVIDER_REG, 0x5},/* 0x5 is not valid, only 2 bits are used to it should be 0x1. =/1 | mipi_clk = ((external_clk / 3) * 100) / 1 */
 
-/*tal check */
-	{OV7251_8BIT, 0x3106, 0xda},
+	/* tal check */
+	{OV7251_8BIT, SB_SRB_CTRL_REG, 0xda},
 
-	{OV7251_8BIT, 0x3500, 0x00},
-	{OV7251_8BIT, 0x3501, 0x35},
-	{OV7251_8BIT, 0x3502, 0x20},
-	{OV7251_8BIT, 0x3503, 0x07},
-	{OV7251_8BIT, 0x3509, 0x10},
-	{OV7251_8BIT, 0x350a, 0x0},
-	{OV7251_8BIT, 0x350b, 0x0},
+	{OV7251_8BIT, EC_EXPO_19_16_BITS_REG, 0x00},
+	{OV7251_8BIT, EC_EXPO_18_8_BITS_REG, 0x35},
+	{OV7251_8BIT, EC_EXPO_7_0_BITS_REG, 0x20},
+	{OV7251_8BIT, AEC_MANUAL_REG, 0x07},/* this chip don't have AEC or AGC modules, so changing to manual control  */
+	{OV7251_8BIT, AEC_GAIN_CONVERT_REG, 0x10},
+	{OV7251_8BIT, AEC_AGC_ADJ_10_8_REG, 0x0},
+	{OV7251_8BIT, AEC_AGC_ADJ_7_0_REG, 0x0},
 
+	/* analog control */
 	{OV7251_8BIT, 0x3600, 0x1c},
 	{OV7251_8BIT, 0x3602, 0x62},
 	{OV7251_8BIT, 0x3620, 0xb7},
@@ -315,6 +324,8 @@ static struct ov7251_reg const ov7251_480P_30fps[] = {
 	{OV7251_8BIT, 0x3673, 0x1},
 	{OV7251_8BIT, 0x3674, 0xff},
 	{OV7251_8BIT, 0x3675, 0x3},
+
+	/* sensor control */
 	{OV7251_8BIT, 0x3705, 0xc1},
 	{OV7251_8BIT, 0x3709, 0x40},
 	{OV7251_8BIT, 0x373c, 0x8},
@@ -322,10 +333,10 @@ static struct ov7251_reg const ov7251_480P_30fps[] = {
 	{OV7251_8BIT, 0x3757, 0xb3},
 	{OV7251_8BIT, 0x3788, 0x0},
 
-
 	{OV7251_8BIT, 0x37a8, 0x01},
 	{OV7251_8BIT, 0x37a9, 0xc0},
 
+	/* timing control */
 	{OV7251_8BIT, 0x3800, 0x00},
 	{OV7251_8BIT, 0x3801, 0x4}, /* H crop start: */
 	{OV7251_8BIT, 0x3802, 0x00},

@@ -54,6 +54,7 @@
  *
  */
 
+#include <linux/acpi.h>
 #include <linux/can/core.h>
 #include <linux/can/dev.h>
 #include <linux/can/led.h>
@@ -1023,6 +1024,12 @@ static const struct spi_device_id mcp251x_id_table[] = {
 };
 MODULE_DEVICE_TABLE(spi, mcp251x_id_table);
 
+static const struct acpi_device_id mcp251x_acpi_match[] = {
+	{ "MCHP2515", CAN_MCP251X_MCP2515},
+	{ },
+};
+MODULE_DEVICE_TABLE(acpi, mcp251x_acpi_match);
+
 static int mcp251x_can_probe(struct spi_device *spi)
 {
 	const struct of_device_id *of_id = of_match_device(mcp251x_of_match,
@@ -1032,6 +1039,16 @@ static int mcp251x_can_probe(struct spi_device *spi)
 	struct mcp251x_priv *priv;
 	struct clk *clk;
 	int freq, ret;
+	const struct acpi_device_id *id;
+
+	if (has_acpi_companion(&spi->dev)) {
+		id = acpi_match_device(mcp251x_acpi_match, &spi->dev);
+		if (!id)
+			return -EINVAL;
+		spi->irq = acpi_dev_gpio_irq_get(ACPI_COMPANION(&spi->dev), 0);
+		if (spi->irq < 0)
+			return -EINVAL;
+	}
 
 	clk = devm_clk_get(&spi->dev, NULL);
 	if (IS_ERR(clk)) {
@@ -1069,8 +1086,11 @@ static int mcp251x_can_probe(struct spi_device *spi)
 		CAN_CTRLMODE_LOOPBACK | CAN_CTRLMODE_LISTENONLY;
 	if (of_id)
 		priv->model = (enum mcp251x_model)of_id->data;
+	else if (has_acpi_companion(&spi->dev))
+		priv->model = id->driver_data;
 	else
 		priv->model = spi_get_device_id(spi)->driver_data;
+
 	priv->net = net;
 	priv->clk = clk;
 
@@ -1244,6 +1264,7 @@ static struct spi_driver mcp251x_can_driver = {
 	.driver = {
 		.name = DEVICE_NAME,
 		.of_match_table = mcp251x_of_match,
+		.acpi_match_table = ACPI_PTR(mcp251x_acpi_match),
 		.pm = &mcp251x_can_pm_ops,
 	},
 	.id_table = mcp251x_id_table,

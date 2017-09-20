@@ -300,7 +300,7 @@ static int ov7251_get_intg_factor(struct i2c_client *client,
 	if (info == NULL)
 		return -EINVAL;
 
-	/* pixel clock calculattion */
+	/* pixel clock calculation */
 	ret =  ov7251_read_reg(client, OV7251_8BIT,
 				OV7251_SC_CMMN_PLL_CTRL3, &pre_pll_clk_div);
 	if (ret)
@@ -317,7 +317,7 @@ static int ov7251_get_intg_factor(struct i2c_client *client,
 		return ret;
 
 	pre_pll_clk_div = (pre_pll_clk_div & 0x70) >> 4;
-	if (0 == pre_pll_clk_div)
+	if (pre_pll_clk_div == 0)
 		return -EINVAL;
 
 	pll_multiplier = pll_multiplier & 0x7f;
@@ -634,6 +634,7 @@ static int ov7251_q_exposure(struct v4l2_subdev *sd, s32 *value)
 err:
 	return ret;
 }
+
 struct ov7251_control ov7251_controls[] = {
 	{
 		.qc = {
@@ -789,13 +790,6 @@ static int ov7251_init(struct v4l2_subdev *sd)
 	return 0;
 }
 
-
-
-
-
-
-
-
 static int power_ctrl(struct v4l2_subdev *sd, bool flag)
 {
 	int ret = -1;
@@ -828,10 +822,6 @@ static int power_ctrl(struct v4l2_subdev *sd, bool flag)
 	return ret;
 }
 
-
-
-
-
 static int gpio_ctrl(struct v4l2_subdev *sd, bool flag)
 {
 	struct ov7251_device *dev = to_ov7251_sensor(sd);
@@ -856,48 +846,13 @@ static int gpio_ctrl(struct v4l2_subdev *sd, bool flag)
 	return ret;
 }
 
-#if 0
-
-static int reset_gpio = 0;
-
-#define UC_RESET 396 /*144//148 */
-
-
-static int tanstamp_gpio_ctrl(struct i2c_client *client, bool flag)
-{
-	int ret = -1;
-
-	if (!reset_gpio) {
-		reset_gpio = UC_RESET;
-		ret = gpio_request(reset_gpio, "uc_reset");
-		if (!ret)
-			ret = gpio_direction_output(reset_gpio, 0);
-		if (ret)
-			pr_err("uc_reset GPIO initialization failed\n");
-	}
-
-
-	if (flag) {
-		gpio_set_value(reset_gpio, flag);
-		usleep_range(5000, 6000);
-	} else {
-		gpio_set_value(reset_gpio, flag);
-		usleep_range(5000, 6000);
-	}
-
-	return 0;
-	/*return ret; */
-}
-
-#endif
-
 static int power_up(struct v4l2_subdev *sd)
 {
 	struct ov7251_device *dev = to_ov7251_sensor(sd);
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	int ret;
 
-	if (NULL == dev->platform_data) {
+	if (dev->platform_data == NULL) {
 		dev_err(&client->dev,
 			"no camera_sensor_platform_data");
 		return -ENODEV;
@@ -947,7 +902,7 @@ static int power_down(struct v4l2_subdev *sd)
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	int ret = 0;
 
-	if (NULL == dev->platform_data) {
+	if (dev->platform_data == NULL) {
 		dev_err(&client->dev,
 			"no camera_sensor_platform_data");
 		return -ENODEV;
@@ -973,6 +928,7 @@ static int power_down(struct v4l2_subdev *sd)
 static int ov7251_s_power(struct v4l2_subdev *sd, int on)
 {
 	int ret;
+
 	if (on == 0)
 		return power_down(sd);
 	else {
@@ -1180,12 +1136,6 @@ static int ov7251_detect(struct i2c_client *client)
 	ret = ov7251_read_reg(client, OV7251_8BIT,
 					OV7251_SC_CMMN_CHIP_ID_L, &low);
 	id = ((((u16) high) << 8) | (u16) low);
-#if 0
-	if ((id != OV7251_ID) && (id != OV2720_ID)) {
-		dev_err(&client->dev, "sensor ID error\n");
-		return -ENODEV;
-	}
-#endif
 	ret = ov7251_read_reg(client, OV7251_8BIT,
 					OV7251_SC_CMMN_SUB_ID, &high);
 	revision = (u8) high & 0x0f;
@@ -1195,100 +1145,13 @@ static int ov7251_detect(struct i2c_client *client)
 	return 0;
 }
 
-#if 0
-static struct workqueue_struct *my_wq;
-
-typedef struct {
-	struct work_struct my_work;
-	struct ov7251_device *dev;
-	struct i2c_client *client;
-	int enable;
-} stream_set_t;
-
-stream_set_t *work1, *work2;
-
-
-int sleep_time = 10000;
-
-static void stream_wq_function(struct work_struct *work)
-{
-	int ret;
-
-	stream_set_t *my_work = (stream_set_t *)work;
-
-	ret = 0;
-	printk("tal i2c my_work \n");
-	if (my_work->enable == 1) {
-		msleep(200);
-	}
-
-	printk("tal i2c my_work after sleep.x %d\n", my_work->enable);
-
-
-	mutex_lock(&my_work->dev->input_lock);
-
-/*	if (my_work->enable == 0)
-//	{
-//		return;
-//	} */
-
-	ret = ov7251_write_reg(my_work->client, OV7251_8BIT, OV7251_SW_STREAM,
-				my_work->enable ? OV7251_START_STREAMING :
-				OV7251_STOP_STREAMING);
-
-	/*todo: adding sleep after start due to potential issues with ae commands might be too early compared to stream-on */
-	msleep(200);
-
-
-/*	printk( "tal i2c my_work: sleeping between on/off for %d ms \n", sleep_time );
-//	usleep_range(sleep_time-500, sleep_time+500);
-//	printk( "tal i2c my_work: done sleeping between on/off for %d ms \n", sleep_time );
-//	sleep_time += 10000;
-
-//	ret = ov7251_write_reg(my_work->client, OV7251_8BIT, OV7251_SW_STREAM,
-//				OV7251_STOP_STREAMING); */
-
-
-	mutex_unlock(&my_work->dev->input_lock);
-
-	kfree((void *)work);
-
-	return;
-}
-bool wq_created = false;
-#endif
 static int ov7251_s_stream(struct v4l2_subdev *sd, int enable)
 {
 	struct ov7251_device *dev = to_ov7251_sensor(sd);
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	int ret = 0;
-/*	u16 high; */
 
 	printk(KERN_ERR "tal test stream called %d\n", enable);
-#if 0
-	if (!wq_created) {
-		my_wq = create_workqueue("stream_queue");
-		wq_created = true;
-	}
-
-	work1 = (stream_set_t *)kmalloc(sizeof(stream_set_t), GFP_KERNEL);
-
-	if (work1) {
-
-		INIT_WORK((struct work_struct *)work1, stream_wq_function);
-
-		work1->dev = dev;
-		work1->enable = enable;
-		work1->client = client;
-
-/*		ret = queue_work( my_wq, (struct work_struct *)work1 ); */
-
-	}
-
-	/*todo flush & close work-queue, probably requires moving to module-level init/close */
-#endif
-/*	ret = ov7251_read_reg(client, OV7251_8BIT,
-//					OV7251_SC_CMMN_CHIP_ID_H, &high); */
 	mutex_lock(&dev->input_lock);
 
 	ret = ov7251_write_reg(client, OV7251_8BIT, OV7251_SW_STREAM,
@@ -1444,6 +1307,7 @@ static int ov7251_s_parm(struct v4l2_subdev *sd,
 			struct v4l2_streamparm *param)
 {
 	struct ov7251_device *dev = to_ov7251_sensor(sd);
+
 	dev->run_mode = param->parm.capture.capturemode;
 
 	mutex_lock(&dev->input_lock);
@@ -1624,6 +1488,7 @@ static int ov7251_remove(struct i2c_client *client)
 {
 	struct v4l2_subdev *sd = i2c_get_clientdata(client);
 	struct ov7251_device *dev = to_ov7251_sensor(sd);
+
 	dev_dbg(&client->dev, "ov7251_remove...\n");
 
 	if (dev->platform_data->platform_deinit)
@@ -1709,7 +1574,7 @@ static ssize_t spower_store(struct device *dev,
 	return count;
 }
 
-static u16 tmp_reg = 0;
+static u16 tmp_reg;
 
 
 static ssize_t reg_show(struct device *dev,
@@ -1770,20 +1635,6 @@ static ssize_t init_store(struct device *dev,
 	return count;
 }
 
-
-#if 0
-static DEVICE_ATTR(value, S_IRUGO,
-		ov_value_show, NULL);
-
-static DEVICE_ATTR(spower, S_IWUSR|S_IWGRP|S_IWOTH,
-		NULL, ov_set_power);
-
-static DEVICE_ATTR(reg, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
-		ov_get_reg, ov_set_reg);
-
-static DEVICE_ATTR(init, S_IWUSR|S_IWGRP|S_IWOTH,
-		NULL, ov_set_default);
-#endif
 static DEVICE_ATTR_RO(value);
 
 static DEVICE_ATTR_WO(spower);
@@ -1931,7 +1782,6 @@ static int init_ov7251(void)
 
 static void exit_ov7251(void)
 {
-
 	i2c_del_driver(&ov7251_driver);
 }
 

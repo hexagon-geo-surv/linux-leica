@@ -220,6 +220,9 @@
 
 #define DEVICE_NAME "mcp251x"
 
+#define DEFAULT_OSC_CLK_FREQ	(25 * 1000 * 1000)
+#define CPU_IN_MCP2515_IRQ		157
+
 static int mcp251x_enable_dma; /* Enable SPI DMA. Default: 0 (Off) */
 module_param(mcp251x_enable_dma, int, S_IRUGO);
 MODULE_PARM_DESC(mcp251x_enable_dma, "Enable SPI DMA. Default: 0 (Off)");
@@ -1048,12 +1051,16 @@ static int mcp251x_can_probe(struct spi_device *spi)
 		spi->irq = acpi_dev_gpio_irq_get(ACPI_COMPANION(&spi->dev), 0);
 		if (spi->irq < 0)
 			return -EINVAL;
+		spi->mode = SPI_MODE_0;
+		spi->irq = CPU_IN_MCP2515_IRQ;
 	}
 
 	clk = devm_clk_get(&spi->dev, NULL);
 	if (IS_ERR(clk)) {
 		if (pdata)
 			freq = pdata->oscillator_frequency;
+		else if (has_acpi_companion(&spi->dev))
+			freq = DEFAULT_OSC_CLK_FREQ;
 		else
 			return PTR_ERR(clk);
 	} else {

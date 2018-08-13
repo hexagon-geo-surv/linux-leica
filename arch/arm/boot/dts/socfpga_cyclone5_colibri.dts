@@ -163,6 +163,15 @@
 	speed-mode = <0>;
 	clock-frequency = <100000>;
 
+	efi@65 {
+		compatible = "leica,efi";
+		reg = <0x65>;
+		interrupt-parent = <&porta>;
+		/* 1 - IRQ_TYPE_EDGE_RISING */
+		interrupts = <19 1>;
+		wakeup-source;
+	};
+
 	eeprom@51 {
 		compatible = "atmel,24c32";
 		reg = <0x51>;

@@ -1579,6 +1579,9 @@ config HW_PERF_EVENTS
 config CC_HAVE_SHADOW_CALL_STACK
 	def_bool $(cc-option, -fsanitize=shadow-call-stack -ffixed-x18)
 
+config ARCH_HAS_TIMESTAMP_CLOCK
+	def_bool y
+
 config PARAVIRT
 	bool "Enable paravirtualization code"
 	help

@@ -15,6 +15,7 @@
 #include <linux/initrd.h>
 #include <linux/console.h>
 #include <linux/cache.h>
+#include <linux/clocksource.h>
 #include <linux/screen_info.h>
 #include <linux/init.h>
 #include <linux/kexec.h>
@@ -29,11 +30,13 @@
 #include <linux/of_fdt.h>
 #include <linux/efi.h>
 #include <linux/psci.h>
+#include <linux/sched/clock.h>
 #include <linux/sched/task.h>
 #include <linux/scs.h>
 #include <linux/mm.h>
 
 #include <asm/acpi.h>
+#include <asm/arch_timer.h>
 #include <asm/fixmap.h>
 #include <asm/cpu.h>
 #include <asm/cputype.h>
@@ -273,6 +276,45 @@ arch_initcall(reserve_memblock_reserved_regions);
 
 u64 __cpu_logical_map[NR_CPUS] = { [0 ... NR_CPUS-1] = INVALID_HWID };
 
+static u64 notrace ts_counter_read_cc(const struct cyclecounter *cc)
+{
+	return __arch_counter_get_cntvct();
+}
+
+static struct cyclecounter ts_cc __ro_after_init = {
+	.read	= ts_counter_read_cc,
+	.mask	= CLOCKSOURCE_MASK(56),
+};
+
+static struct timecounter ts_tc;
+
+static bool ts_cc_valid __ro_after_init = false;
+
+static __init void timestamp_clock_init(void)
+{
+	u64 frq = arch_timer_get_cntfrq();
+
+	if (!frq)
+		return;
+
+	clocks_calc_mult_shift(&ts_cc.mult, &ts_cc.shift,
+			       frq, NSEC_PER_SEC, 3600);
+	/* timestamp starts at 0 (local_clock is a good enough approximation) */
+	timecounter_init(&ts_tc, &ts_cc, local_clock());
+	ts_cc_valid = true;
+	pr_info("Using timestamp clock @%lluMHz\n", frq / 1000 / 1000);
+}
+
+u64 timestamp_clock(void)
+{
+	u64 ns = local_clock();
+
+	if (likely(ns || !ts_cc_valid))
+		return ns;
+
+	return timecounter_read(&ts_tc);
+}
+
 u64 cpu_logical_map(unsigned int cpu)
 {
 	return __cpu_logical_map[cpu];
@@ -281,6 +323,7 @@ u64 cpu_logical_map(unsigned int cpu)
 void __init __no_sanitize_address setup_arch(char **cmdline_p)
 {
 	setup_initial_init_mm(_stext, _etext, _edata, _end);
+	timestamp_clock_init();
 
 	*cmdline_p = boot_command_line;
 

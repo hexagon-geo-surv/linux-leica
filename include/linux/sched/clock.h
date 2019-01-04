@@ -111,4 +111,17 @@ static inline void enable_sched_clock_irqtime(void) {}
 static inline void disable_sched_clock_irqtime(void) {}
 #endif
 
+#ifdef CONFIG_ARCH_HAS_TIMESTAMP_CLOCK
+/* Special need architectures can provide their timestamping function */
+extern u64 timestamp_clock(void);
+
+#else
+
+static inline u64 timestamp_clock(void)
+{
+	return local_clock();
+}
+
+#endif
+
 #endif /* _LINUX_SCHED_CLOCK_H */

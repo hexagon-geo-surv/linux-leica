@@ -2265,7 +2265,7 @@ int vprintk_store(int facility, int level,
 	 * close to the call of printk(). This provides a more deterministic
 	 * timestamp with respect to the caller.
 	 */
-	ts_nsec = local_clock();
+	ts_nsec = timestamp_clock();
 
 	caller_id = printk_caller_id();
 

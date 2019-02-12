@@ -154,6 +154,7 @@ struct console {
 	short	index;
 	int	cflag;
 	unsigned long printk_seq;
+	int	wrote_history;
 	uint	ispeed;
 	uint	ospeed;
 	void	*data;

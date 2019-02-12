@@ -153,6 +153,7 @@ struct console {
 	short	flags;
 	short	index;
 	int	cflag;
+	unsigned long printk_seq;
 	uint	ispeed;
 	uint	ospeed;
 	void	*data;

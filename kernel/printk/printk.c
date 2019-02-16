@@ -2300,6 +2300,7 @@ int is_console_locked(void)
 {
 	return console_locked;
 }
+EXPORT_SYMBOL(is_console_locked);
 
 /**
  * console_unlock - unlock the console system

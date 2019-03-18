@@ -851,6 +851,24 @@ static const struct flash_info spi_nor_ids[] = {
 	{ "cat25c09", CAT25_INFO( 128, 8, 32, 2, SPI_NOR_NO_ERASE | SPI_NOR_NO_FR) },
 	{ "cat25c17", CAT25_INFO( 256, 8, 32, 2, SPI_NOR_NO_ERASE | SPI_NOR_NO_FR) },
 	{ "cat25128", CAT25_INFO(2048, 8, 64, 2, SPI_NOR_NO_ERASE | SPI_NOR_NO_FR) },
+
+	/* Altera EPCQ/EPCS Flashes are non-JEDEC */
+	{ "epcs16",   INFO(0, 0, 0x10000, 32,   0) },
+	{ "epcs64",   INFO(0, 0, 0x10000, 128,  0) },
+	{ "epcs128",  INFO(0, 0, 0x40000, 256,  0) },
+
+	{ "epcq16",   INFO(0, 0, 0x10000, 32,   0) },
+	{ "epcq32",   INFO(0, 0, 0x10000, 64,   0) },
+	{ "epcq64",   INFO(0, 0, 0x10000, 128,  0) },
+	{ "epcq128",  INFO(0, 0, 0x10000, 256,  0) },
+	{ "epcq256",  INFO(0, 0, 0x10000, 512,  0) },
+	{ "epcq512",  INFO(0, 0, 0x10000, 1024, 0) },
+	{ "epcq1024", INFO(0, 0, 0x10000, 2048, 0) },
+
+	{ "epcql256",  INFO(0, 0, 0x10000, 512,  0) },
+	{ "epcql512",  INFO(0, 0, 0x10000, 1024, 0) },
+	{ "epcql1024", INFO(0, 0, 0x10000, 2048, 0) },
+
 	{ },
 };
 

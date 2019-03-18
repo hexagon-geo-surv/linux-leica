@@ -1271,6 +1271,90 @@ static int ion_sync_for_device(struct ion_client *client, int fd)
 	return 0;
 }
 
+static int ion_sync_for_cpu(struct ion_client *client, int fd)
+{
+	struct dma_buf *dmabuf;
+	struct ion_buffer *buffer;
+
+	dmabuf = dma_buf_get(fd);
+	if (IS_ERR(dmabuf))
+		return PTR_ERR(dmabuf);
+
+	/* if this memory came from ion */
+	if (dmabuf->ops != &dma_buf_ops) {
+		pr_err("%s: can not sync dmabuf from another exporter\n",
+		       __func__);
+		dma_buf_put(dmabuf);
+		return -EINVAL;
+	}
+	buffer = dmabuf->priv;
+
+	dma_sync_sg_for_cpu(NULL, buffer->sg_table->sgl,
+			       buffer->sg_table->nents, DMA_FROM_DEVICE);
+	dma_buf_put(dmabuf);
+	return 0;
+}
+
+static int ion_sync_custom(struct ion_client *client,
+			   const struct ion_sync_data *sync)
+{
+	struct dma_buf *dmabuf;
+	struct ion_buffer *buffer;
+	unsigned int buf_len;
+	unsigned long buf_sync_end;
+	dma_addr_t buf_addr;
+	int res = 0;
+
+	dmabuf = dma_buf_get(sync->fd);
+	if (IS_ERR(dmabuf))
+		return PTR_ERR(dmabuf);
+
+	/* if this memory came from ion */
+	if (dmabuf->ops != &dma_buf_ops) {
+		pr_err("%s: can not sync dmabuf from another exporter\n",
+		       __func__);
+		res = -EINVAL;
+		goto out;
+	}
+	buffer = dmabuf->priv;
+
+	/* we only support contiguous buffers at the moment */
+	if (!buffer || !buffer->sg_table || (buffer->sg_table->nents != 1)) {
+		pr_err("%s: Invalid buffer (fd %d)!\n", __func__, sync->fd);
+		res = -EINVAL;
+		goto out;
+	}
+
+	/* length and address of the original buffer */
+	buf_len = buffer->sg_table->sgl->length;
+	buf_addr = buffer->sg_table->sgl->dma_address;
+	/* end of requested area within the buffer */
+	buf_sync_end = sync->offset + sync->size;
+
+	if ((buf_len < buf_sync_end) || (buf_sync_end < sync->offset) ||
+	    (buf_sync_end < sync->size)) {
+		pr_err("%s: Invalid params! (ion_len: %u, off: %lu, s: %zu)\n",
+			__func__, buf_len, sync->offset, sync->size);
+		res = -EINVAL;
+		goto out;
+	}
+
+	if (sync->dir == ION_SYNC_TO_CPU) {
+		dma_sync_single_for_cpu(NULL, buf_addr + sync->offset,
+					sync->size, DMA_FROM_DEVICE);
+	} else if (sync->dir == ION_SYNC_TO_DEV) {
+		dma_sync_single_for_device(NULL, buf_addr + sync->offset,
+					   sync->size, DMA_TO_DEVICE);
+	} else {
+		pr_err("%s: Invalid direction!\n", __func__);
+		res = -EINVAL;
+	}
+
+out:
+	dma_buf_put(dmabuf);
+	return res;
+}
+
 /* fix up the cases where the ioctl direction bits are incorrect */
 static unsigned int ion_ioctl_dir(unsigned int cmd)
 {
@@ -1297,6 +1381,8 @@ static long ion_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		struct ion_allocation_data allocation;
 		struct ion_handle_data handle;
 		struct ion_custom_data custom;
+		struct ion_paddr_data paddr;
+		struct ion_sync_data sync;
 	} data;
 
 	dir = ion_ioctl_dir(cmd);
@@ -1372,6 +1458,29 @@ static long ion_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	case ION_IOC_SYNC:
 	{
 		ret = ion_sync_for_device(client, data.fd.fd);
+		break;
+	}
+	case ION_IOC_SYNC_TO_CPU:
+	{
+		ret = ion_sync_for_cpu(client, data.fd.fd);
+		break;
+	}
+	case ION_IOC_SYNC_CUSTOM:
+	{
+		ret = ion_sync_custom(client, &data.sync);
+		break;
+	}
+	case ION_IOC_GET_PADDR:
+	{
+		struct ion_handle *handle;
+		size_t len;
+
+		handle = ion_handle_get_by_id_nolock(client, data.paddr.handle);
+		if (IS_ERR(handle))
+			return PTR_ERR(handle);
+
+		ret = ion_phys(client, handle, &data.paddr.paddr, &len);
+		ion_handle_put(handle);
 		break;
 	}
 	case ION_IOC_CUSTOM:

@@ -72,6 +72,18 @@ enum ion_heap_type {
 					 */
 
 /**
+ * enum ion_sync_dir - possible cache synchronization directions
+ * @ION_SYNC_TO_CPU:	invalidates cache (device to cpu transfer)
+ * @ION_SYNC_TO_DEV:	flushes cache (cpu to device transfer)
+ *
+ */
+
+enum ion_sync_dir {
+	ION_SYNC_TO_CPU,
+	ION_SYNC_TO_DEV,
+};
+
+/**
  * DOC: Ion Userspace API
  *
  * create a client by opening /dev/ion
@@ -132,6 +144,32 @@ struct ion_handle_data {
 struct ion_custom_data {
 	unsigned int cmd;
 	unsigned long arg;
+};
+
+/**
+ * struct ion_paddr_data - metadata passed to/from userspace to get phys addr
+ * @handle:	a handle (in)
+ * @paddr: 	physical address (out)
+ *
+ */
+struct ion_paddr_data {
+	ion_user_handle_t handle;
+	unsigned long paddr;
+};
+
+/**
+ * struct ion_sync_data - metadata passed from userspace for custom sync
+ * @fd:		a file descriptor representing the buffer
+ * @dir:	direction of the synchronization
+ * @size:	size of the area to synchronize
+ * @offset:	offset of the area to synchronize within a buffer
+ *
+ */
+struct ion_sync_data {
+	int fd;
+	enum ion_sync_dir dir;
+	size_t size;
+	unsigned long offset;
 };
 
 #define ION_IOC_MAGIC		'I'
@@ -199,5 +237,25 @@ struct ion_custom_data {
  * passes appropriate userdata for that ioctl
  */
 #define ION_IOC_CUSTOM		_IOWR(ION_IOC_MAGIC, 6, struct ion_custom_data)
+
+/**
+ * DOC: ION_IOC_SYNC_TO_CPU - syncs a shared file descriptors from device to CPU
+ *
+ */
+#define ION_IOC_SYNC_TO_CPU	_IOWR(ION_IOC_MAGIC, 8, struct ion_fd_data)
+
+/**
+ * DOC: ION_IOC_GET_PADDR - returns a physical address of a buffer
+ *
+ */
+#define ION_IOC_GET_PADDR	_IOWR(ION_IOC_MAGIC, 9, struct ion_paddr_data)
+
+/**
+ * DOC: ION_IOC_SYNC_CUSTOM - syncs part of a buffer corresponding to a shared
+ * file descriptors in specified direction
+ *
+ */
+#define ION_IOC_SYNC_CUSTOM	_IOWR(ION_IOC_MAGIC, 10, struct ion_sync_data)
+
 
 #endif /* _UAPI_LINUX_ION_H */

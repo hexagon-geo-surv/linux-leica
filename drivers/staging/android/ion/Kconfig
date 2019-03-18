@@ -33,3 +33,9 @@ config ION_TEGRA
 	help
 	  Choose this option if you wish to use ion on an nVidia Tegra.
 
+config ION_LEICA
+	bool "Ion for LEICA"
+	depends on ION
+	help
+	  Choose this option if you wish to use ION Leica.
+

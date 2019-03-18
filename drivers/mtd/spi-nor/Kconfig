@@ -41,4 +41,12 @@ config SPI_NXP_SPIFI
 	  Flash. Enable this option if you have a device with a SPIFI
 	  controller and want to access the Flash as a mtd device.
 
+config SPI_ALTERA_QUADSPI
+   tristate "Altera Generic Quad SPI Controller"
+   depends on OF
+   help
+     This enables access to Altera EPCQ/EPCS flash chips,
+     used for data storage. See the driver source for the current list,
+     or to add other chips.
+
 endif # MTD_SPI_NOR

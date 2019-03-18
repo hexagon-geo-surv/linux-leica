@@ -78,7 +78,8 @@
 					     <0 87 IRQ_TYPE_LEVEL_HIGH>,
 					     <0 88 IRQ_TYPE_LEVEL_HIGH>,
 					     <0 89 IRQ_TYPE_LEVEL_HIGH>,
-					     <0 90 IRQ_TYPE_LEVEL_HIGH>;
+					     <0 90 IRQ_TYPE_LEVEL_HIGH>,
+					     <0 91 IRQ_TYPE_LEVEL_HIGH>;
 				#dma-cells = <1>;
 				#dma-channels = <8>;
 				#dma-requests = <32>;

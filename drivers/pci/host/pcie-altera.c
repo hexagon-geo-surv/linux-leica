@@ -128,6 +128,11 @@ static void tlp_write_tx(struct altera_pcie *pcie,
 	cra_writel(pcie, tlp_rp_regdata->ctrl, RP_TX_CNTRL);
 }
 
+static bool altera_pcie_link_is_up(struct altera_pcie *pcie)
+{
+	return !!((cra_readl(pcie, RP_LTSSM) & RP_LTSSM_MASK) == LTSSM_L0);
+}
+
 static bool altera_pcie_valid_config(struct altera_pcie *pcie,
 				     struct pci_bus *bus, int dev)
 {

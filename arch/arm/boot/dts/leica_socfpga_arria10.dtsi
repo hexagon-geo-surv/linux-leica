@@ -1,0 +1,231 @@
+/*
+ * Copyright (C) 2015 Altera Corporation <www.altera.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+#include "socfpga_arria10.dtsi"
+
+/ {
+	model = "Altera SOCFPGA Arria 10";
+	compatible = "altr,socfpga-arria10", "altr,socfpga";
+
+	chosen {
+		bootargs = "debug console=ttyAL0,115200";
+	};
+
+	soc {
+		clkmgr@ffd04000 {
+			clocks {
+				clk_0: clk_0 {
+					compatible = "fixed-clock";
+					#clock-cells = <0x0>;
+					clock-frequency = <100000000>;
+					clock-output-names = "clk_0-clk";
+				};
+				osc1 {
+					clock-frequency = <50000000>;	/* 50.00 MHz */
+				};
+				cb_intosc_hs_div2_clk {
+					clock-frequency = <0>;	/* 0.00 Hz */
+				};
+				cb_intosc_ls_clk {
+					clock-frequency = <60000000>;	/* 60.00 MHz */
+				};
+				f2s_free_clk {
+					clock-frequency = <200000000>;	/* 200.00 MHz */
+				};
+			};
+		};
+
+		spi0: spi@ffda4000 {
+			compatible = "snps,dw-apb-ssi";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0xffda4000 0x100>;
+			interrupts = <0 101 4>;
+			num-chipselect = <4>;
+			bus-num = <0>;
+			clocks = <&spi_m_clk>;
+			status = "disabled";
+		};
+
+		spi1: spi@ffda5000 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "snps,dw-apb-ssi";
+			reg = <0xffda5000 0x100>;
+			interrupts = <0 102 4>;
+			num-chipselect = <4>;
+			bus-num = <0>;
+			/* These properties were originally here, but they
+			 * don't seem to be used by any driver. Also, they do not
+			 * correspond to the documentation (channels 16 and 17 are for
+			 * SPI0, not SPI1) */
+			/* tx-dma-channel = <&pdma 16>;
+			rx-dma-channel = <&pdma 17>; */
+			clocks = <&spi_m_clk>;
+			status = "disabled";
+		};
+                qspi: spi@ff809000 {
+                        #address-cells = <1>;
+                        #size-cells = <0>;
+                        compatible = "cadence,qspi";
+                        reg = <0xff809000 0x100>, <0xffa00000 0x100000>;
+                        interrupts = <0 100 IRQ_TYPE_LEVEL_HIGH>;
+                        clocks = <&l4_main_clk>;
+                        ext-decoder = <0>;  /* external decoder */
+                        num-chipselect = <4>;
+                        fifo-depth = <128>;
+                        bus-num = <2>;
+                        status = "disabled";
+                };
+
+		/* ======================= FPGA Manager and Bridges ===================== */
+		hps_0_fpgamgr: fpgamgr@0xffcfe400 {
+			compatible = "altr,socfpga-a10-fpga-mgr";
+			transport = "mmio";
+			reg = <0xffd03000 0x1000 0xffcfe400 0x1000>;
+		};
+
+		bridge@0xc0000000 { 
+			#address-cells = <0x2>;
+			#size-cells = <0x1>;
+			compatible = "altr,bridge-15.1", "simple-bus";
+			reg = <0xc0000000 0x20000000 0xff200000 0x200000>;
+			reg-names = "axi_h2f", "axi_h2f_lw";
+			clocks = <&clk_0 &clk_0 &clk_0>;
+			clock-names = "h2f_axi_clock", "h2f_lw_axi_clock", "f2sdram2_clock";
+			ranges = <0x0 0x0 0xc0000000 0x40000 0x1 0x100 0xff200100 0x100 0x1 0x0 0xff200000 0x8 0x1 0x10 0xff200010 0x10 0x1 0x20 0xff200020 0x10 0x1 0x30 0xff200030 0x10>;
+			sysid@0x100000000 {
+				compatible = "altr,sysid-15.1", "altr,sysid-1.0";
+				reg = <0x1 0x0 0x8>;
+				clocks = <&clk_0>;
+				id = <0xb0071800>;
+				timestamp = <0x56969d5a>;
+			};
+		};
+
+		hps_fpgabridge0: fpgabridge@0 {
+			compatible = "altr,socfpga-hps2fpga-bridge";
+			label = "hps2fpga";
+			resets = <&rst HPS2FPGA_RESET>;
+			reset-names = "hps2fpga";
+			clocks = <&l4_main_clk>;
+		};
+
+		hps_fpgabridge1: fpgabridge@1 {
+			compatible = "altr,socfpga-lwhps2fpga-bridge";
+			label = "lwhps2fpga";
+			resets = <&rst LWHPS2FPGA_RESET>;
+			reset-names = "lwhps2fpga";
+			clocks = <&l4_main_clk>;
+		};
+
+		hps_fpgabridge2: fpgabridge@2 {
+			compatible = "altr,socfpga-fpga2hps-bridge";
+			label = "fpga2hps";
+			resets = <&rst FPGA2HPS_RESET>;
+			reset-names = "fpga2hps";
+			clocks = <&l4_main_clk>;
+		};
+		/* ====================================================================== */
+	};
+};
+
+&pdma {
+	clocks = <&l4_main_clk>;
+	clock-names = "apb_pclk";
+};
+
+&sdmmc_clk {
+	clk-phase = <0 135>;
+};
+
+&gmac0 {
+	phy-mode = "rgmii";
+	phy-addr = <0xffffffff>; /* probe for phy addr */
+
+	/*
+	 * These skews assume the user's FPGA design is adding 600ps of delay
+	 * for TX_CLK on Arria 10.
+	 *
+	 * All skews are offset since hardware skew values for the ksz9031
+	 * range from a negative skew to a positive skew.
+	 * See the micrel-ksz90x1.txt Documentation file for details.
+	 */
+	txd0-skew-ps = <0>; /* -420ps */
+	txd1-skew-ps = <0>; /* -420ps */
+	txd2-skew-ps = <0>; /* -420ps */
+	txd3-skew-ps = <0>; /* -420ps */
+	rxd0-skew-ps = <420>; /* 0ps */
+	rxd1-skew-ps = <420>; /* 0ps */
+	rxd2-skew-ps = <420>; /* 0ps */
+	rxd3-skew-ps = <420>; /* 0ps */
+	txen-skew-ps = <0>; /* -420ps */
+	txc-skew-ps = <1860>; /* 960ps */
+	rxdv-skew-ps = <420>; /* 0ps */
+	rxc-skew-ps = <1680>; /* 780ps */
+	max-frame-size = <3800>;
+	status = "okay";
+};
+
+&mmc {
+	interrupt-parent = <&intc>;
+	clocks = <&l4_mp_clk &sdmmc_clk>;
+	num-slots = <1>;
+	status = "okay";
+	bank-width = <2>;
+	device-width = <1>;
+	supports-highspeed;
+	broken-cd;
+	cap-sd-highspeed;
+	altr,dw-mshc-ciu-div = <3>;
+	altr,dw-mshc-sdr-timing = <0 3>;
+	pwr-en = <0>;
+	slot0: slot@0 {
+		reg = <0>;
+		bus-width = <4>;
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};
+
+&gpio0 {
+	status = "okay";
+};
+
+&gpio1 {
+	status = "okay";
+};
+
+&gpio2 {
+	status = "okay";
+};
+
+/* No USB */
+&usb0 {
+	status = "disabled";
+};
+&usbphy0 {
+    status = "disabled";
+};
+&usb1 {
+	status = "disabled";
+};

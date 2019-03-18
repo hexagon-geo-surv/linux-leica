@@ -1,0 +1,853 @@
+/*
+ * Copyright (C) 2014-2015 Altera Corporation <www.altera.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/dts-v1/;
+#include "leica_socfpga_arria10.dtsi"
+
+&mmc {
+	status = "okay";
+	num-slots = <1>;
+	broken-cd;
+	bus-width = <8>;
+};
+
+/ {
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		fpga_reserved_block {
+			compatible = "leica,ion";
+			size = <0x60000000>;
+		};
+	};
+
+	aliases {
+		krea_gpio = &gpio1;
+	};
+
+	/* i2c for KVIS 0 and 1 */
+	i2c5: leicaI2cKVIS@01 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		compatible = "opencores,i2c-ocores";
+		status = "okay";
+		reg = <0xFF210000 0x000001F>;
+
+		reg-shift = <2>;
+		reg-io-width = <1>;
+
+		interrupts = <0 19 1>;
+		interrupt-parent = <&intc>;
+
+		opencores,ip-clock-frequency = <100000000>;
+	};
+
+	/* i2c for KVIS 2, 3 and 4 */
+	i2c6: leicaI2cKVIS@234 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		compatible = "opencores,i2c-ocores";
+		status = "okay";
+		reg = <0xFF210020 0x000001F>;
+
+		reg-shift = <2>;
+		reg-io-width = <1>;
+
+		interrupts = <0 20 1>;
+		interrupt-parent = <&intc>;
+
+		opencores,ip-clock-frequency = <100000000>;
+	};
+
+	/* i2c for KELA and KAZA */
+	i2c7: leicaI2cKelaKaza@0 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		compatible = "opencores,i2c-ocores";
+		status = "okay";
+		reg = <0xFF210040 0x000001F>;
+
+		reg-shift = <2>;
+		reg-io-width = <1>;
+
+		interrupts = <0 21 1>;
+		interrupt-parent = <&intc>;
+
+		opencores,ip-clock-frequency = <100000000>;
+	};
+
+	/* UIO access: Leica Frame Camera - Base of FPGA SC_SUBSYS
+	*/
+	leicaUioSI: leicaUioKAFC_SC_BASE@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+	};
+
+	/* UIO access: Leica Frame Camera - CAM0 Framewriter 0
+	*/
+	leicaUioSIFramewriter0Camera0: leicaUioKAFC_FW00@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 57 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Leica Frame Camera - CAM1 Framewriter 0
+	*/
+	leicaUioSIFramewriter0Camera1: leicaUioKAFC_FW01@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 58 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Leica Frame Camera - CAM2 Framewriter 0
+	*/
+	leicaUioSIFramewriter0Camera2: leicaUioKAFC_FW02@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 59 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Leica Frame Camera - CAM0 Framewriter 1
+	*/
+	leicaUioSIFramewriter1Camera0: leicaUioKAFC_FW10@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 60 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Leica Frame Camera - CAM1 Framewriter 1
+	*/
+	leicaUioSIFramewriter1Camera1: leicaUioKAFC_FW11@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 61 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Leica Frame Camera - CAM2 Framewriter 1
+	*/
+	leicaUioSIFramewriter1Camera2: leicaUioKAFC_FW12@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 62 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Leica Frame Camera - HDR 0
+	*/
+	leicaUioSIHdr0: leicaUioKAFC_HDR0@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00200000 >;
+			interrupts = < 0 63 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Leica Frame Camera - HDR 1
+	*/
+	leicaUioSIHdr1: leicaUioKAFC_HDR1@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 64 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Leica Frame Camera - HDR 2
+	*/
+	leicaUioSIHdr2: leicaUioKAFC_HDR2@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 65 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Leica Frame Camera - JLS framewriter
+	*/
+	leicaUioSIFramewriterJLS0: leicaUioKAFC_JLS@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 66 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Leica Frame Camera - CAM0 Acquisition
+	*/
+	leicaUioSIAqcCamera0: leicaUioKAFC_ACQ0@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 51 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Leica Frame Camera - CAM1 Acquisition
+	*/
+	leicaUioSIAqcCamera1: leicaUioKAFC_ACQ1@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 52 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Leica Frame Camera - CAM2 Acquisition
+	*/
+	leicaUioSIAqcCamera2: leicaUioKAFC_ACQ2@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 53 1 >;
+			interrupt-parent = <&intc>;
+	};
+	
+	/* UIO access: Leica Frame Camera - CAM0 Mean Calculator
+	*/
+	leicaUioSIMeanCamera0: leicaUioKAFC_MEAN0@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 54 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+
+	/* UIO access: Leica Frame Camera - CAM1 Mean Calculator
+	*/
+	leicaUioSIMeanCamera1: leicaUioKAFC_MEAN1@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 55 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+
+	/* UIO access: Leica Frame Camera - CAM2 Mean Calculator
+	*/
+	leicaUioSIMeanCamera2: leicaUioKAFC_MEAN2@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 56 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+
+	/* UIO access: Leica Angle, +40 Offset FPGA -> Linux
+	*/
+	leicaUioAng: leicaUioKELA@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF340000 0x00020000 >;
+			interrupts = < 0 27 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Top Ctrl and WFD PLL
+	*/
+	leicaUioDiocles: leicaUioDiocles@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF200000 0x00013000 >;
+			interrupts = < 0 29 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: KIMU
+	*/
+	leicaUioKIMU: leicaUioKIMU@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF200000 0x00013000 >;
+			interrupts = < 0 30 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Base of SC Subsys
+	*/
+	leicaSIFpgaControl: leicaUioKAFC_SC_SUBSYS@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF200000 0x00001000 >;
+	};	
+	
+	/* UIO access: Leica VIS Camera - Base of FPGA VIS_SUBSYS
+	*/
+	leicaUioVis: leicaUioKVIS_VIS_BASE@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF380000 0x00200000 >;
+	};
+	
+	/* UIO access: Leica VIS Camera - CAM0 Acquisition
+	*/
+	leicaUioVisAqcCamera0: leicaUioKVIS_ACQ0@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF380000 0x00200000 >;
+			interrupts = < 0 67 1 >;
+			interrupt-parent = <&intc>;
+	};
+	
+	/* UIO access: Leica VIS Camera - CAM1 Acquisition
+	*/
+	leicaUioVisAqcCamera1: leicaUioKVIS_ACQ1@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF380000 0x00200000 >;
+			interrupts = < 0 68 1 >;
+			interrupt-parent = <&intc>;
+	};
+	
+	/* UIO access: Leica VIS Camera - CAM2 Acquisition
+	*/
+	leicaUioVisAqcCamera2: leicaUioKVIS_ACQ2@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF380000 0x00200000 >;
+			interrupts = < 0 69 1 >;
+			interrupt-parent = <&intc>;
+	};
+	
+	/* UIO access: Leica VIS Camera - CAM3 Acquisition
+	*/
+	leicaUioVisAqcCamera3: leicaUioKVIS_ACQ3@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF380000 0x00200000 >;
+			interrupts = < 0 70 1 >;
+			interrupt-parent = <&intc>;
+	};
+	
+	/* UIO access: Leica VIS Camera - CAM4 Acquisition
+	*/
+	leicaUioVisAqcCamera4: leicaUioKVIS_ACQ4@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF380000 0x00200000 >;
+			interrupts = < 0 71 1 >;
+			interrupt-parent = <&intc>;
+	};
+	
+	/* UIO access: Leica VIS Camera - CAM0 Framewriter 0
+	*/
+	leicaUioVisFramewriter0Camera0: leicaUioKVIS_FW00@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF380000 0x00200000 >;
+			interrupts = < 0 72 1 >;
+			interrupt-parent = <&intc>;
+	};
+	
+	/* UIO access: Leica VIS Camera - CAM1 Framewriter 0
+	*/
+	leicaUioVisFramewriter0Camera1: leicaUioKVIS_FW01@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF380000 0x00200000 >;
+			interrupts = < 0 73 1 >;
+			interrupt-parent = <&intc>;
+	};
+	
+	/* UIO access: Leica VIS Camera - CAM2 Framewriter 0
+	*/
+	leicaUioVisFramewriter0Camera2: leicaUioKVIS_FW02@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF380000 0x00200000 >;
+			interrupts = < 0 74 1 >;
+			interrupt-parent = <&intc>;
+	};
+	
+	/* UIO access: Leica VIS Camera - CAM3 Framewriter 0
+	*/
+	leicaUioVisFramewriter0Camera3: leicaUioKVIS_FW03@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF380000 0x00200000 >;
+			interrupts = < 0 75 1 >;
+			interrupt-parent = <&intc>;
+	};
+	
+	/* UIO access: Leica VIS Camera - CAM4 Framewriter 0
+	*/
+	leicaUioVisFramewriter0Camera4: leicaUioKVIS_FW04@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF380000 0x00200000 >;
+			interrupts = < 0 76 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Leica VIS Camera - CAM0 Framewriter 0
+	*/
+	leicaUioVisFramewriter1Camera0: leicaUioKVIS_FW10@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF380000 0x00200000 >;
+			interrupts = < 0 77 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Leica VIS Camera - CAM1 Framewriter 0
+	*/
+	leicaUioVisFramewriter1Camera1: leicaUioKVIS_FW11@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF380000 0x00200000 >;
+			interrupts = < 0 78 1 >;
+			interrupt-parent = <&intc>;
+	};
+	
+	/* UIO access: Leica VIS Camera - CAM2 Framewriter 0
+	*/
+	leicaUioVisFramewriter1Camera2: leicaUioKVIS_FW12@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF380000 0x00200000 >;
+			interrupts = < 0 79 1 >;
+			interrupt-parent = <&intc>;
+	};
+	
+	/* UIO access: Leica VIS Camera - CAM3 Framewriter 0
+	*/
+	leicaUioVisFramewriter1Camera3: leicaUioKVIS_FW13@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF380000 0x00200000 >;
+			interrupts = < 0 80 1 >;
+			interrupt-parent = <&intc>;
+	};
+	
+	/* UIO access: Leica VIS Camera - CAM4 Framewriter 0
+	*/
+	leicaUioVisFramewriter1Camera4: leicaUioKVIS_FW14@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF380000 0x00200000 >;
+			interrupts = < 0 81 1 >;
+			interrupt-parent = <&intc>;
+	};
+	
+	/* UIO access: Leica Mot
+	*/
+	leicaUioMot: leicaUioKADR@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF2C0000 0x00001000 >;
+			interrupts = < 0 43 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	leicaUioEdm: leicaUioKEDM@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF300000 0x00020000 >;
+			interrupts = < 0 36 1 >;
+			interrupt-parent = <&intc>;
+	};
+	
+	/* UIO access: Timer
+	*/
+	leicaUioTimer: leicaUioTimer@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF200000 0x00001000 >;
+			interrupts = < 0 26 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* FPGA Signal Tap Debugger
+	*/
+	sldhub_link: debugger@ff210300 {
+			compatible = "altr,mm-debug-link-1.0";
+			reg = <0xFF210300 0x80>;
+			#address-cells = < 1 >;
+			#size-cells = < 1 >;
+	};
+
+
+	leicaWfdUART: leicaUartWFD@ff210060 {
+			compatible = "ALTR,uart-11.1", "altr,uart-1.0";
+			reg = < 0xFF210060 0x00000020 >;
+			interrupt-parent = < &intc >;
+			interrupts = < 0 22 IRQ_TYPE_LEVEL_HIGH >;
+			current-speed = < 9600 >;		/* 9600 baud */
+			clock-frequency = < 100000000 >;	/* 100Mhz */
+	};
+
+	leicaKelaSPI: leicaSpiKELA@ff210200 {
+			compatible = "ALTR,spi-11.1", "altr,spi-1.0";
+			reg = < 0xFF210200 0x00000020 >;
+			interrupt-parent = < &intc >;
+			interrupts = < 0 25 1 >;
+			#address-cells = < 1 >;
+			#size-cells = < 0 >;
+
+			spiADCKELA: spiADCKELA@0 {
+					compatible = "leica,spidev";
+					spi-max-frequency = < 625000 >;
+					reg = < 0x00000000 >;
+			};
+	};
+
+	leicaGNSSUART: leicaUartGNSS@0 {
+			compatible = "ALTR,uart-11.1", "altr,uart-1.0";
+			reg = < 0xFF210080 0x00000020 >;
+			interrupt-parent = < &intc >;
+			interrupts = < 0 23 IRQ_TYPE_LEVEL_HIGH >;
+			current-speed = < 9600 >;		/* 9600 baud */
+			clock-frequency = < 100000000 >;	/* 100Mhz */
+	};
+
+	leicaTmpFPGA: leicaTempKREA_FPGA_IN@0 {
+			compatible = "leica,temp_fpga";
+			reg = < 0xFF200114 0x4 >;
+	};
+
+	QspiCtrl0: quadspi@0xc0040000 {
+		compatible = "altr,quadspi-1.0";
+		reg = <0xc0040000 0x20>, <0xc4000000 0x04000000>;
+		reg-names = "avl_csr", "avl_mem";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		flash0: epcq512@0 {
+			compatible = "altr,epcq512";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			/* QSPI on KREA has 512MB, but only 64MB are mapped
+			   in FPGA */
+			partition@0 {
+				label = "FPGA image";
+				reg = <0x0 0x04000000>;
+			};
+		};
+	};
+
+};
+
+&i2c0 {
+	status = "okay";
+	speed-mode = <0>;
+
+	/****************************************************************/
+	/*                      KREA board modules                      */
+	/*             (attached before the Level translator)           */
+	/****************************************************************/
+	/* Temperature sensor close to the FPGA */
+	 leicaTempKREA_FPGA0: leicaTempKREA_FPGA@0 {
+		compatible = "tmp102";
+		reg = <0x48>;
+	};
+
+	/* Temperature away from the FPGA  */
+	 leicaTempKREA_ENV0: leicaTempKREA_ENV@0 {
+		compatible = "tmp102";
+		reg = <0x4A>;
+	};
+
+	/* 64kbyte EEPROM at KREA */
+	leicaMemKREA0: leicaMemKREA@0 {
+		compatible = "at24,24c512";
+		reg = <0x50>;
+		pagesize = <128>;
+	};
+	/****************************************************************/
+
+	/****************************************************************/
+	/*               Kazaar Wiring Board (KAWI)                     */
+	/*          (attached after the Level translator)               */
+	/****************************************************************/
+	/* Temperature Sensor attached to KAWI board */
+	leicaTempKAWI0: leicaTempKAWI@0 {
+		compatible = "lm75,tmp75";
+		reg = <0x4B>;
+	};
+
+	/* External Temperature module (KTMP) */
+	 leicaTempKAWI_KTMP0: leicaTempKAWI_KTMP@0 {
+		compatible = "tmp112";
+		reg = <0x49>;
+	};
+
+	/* Nadir Lights */
+	leicaLedsKAWI_KNAL: leicaLedsKAWI_KNAL@40 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "ti,tlc59108";
+		reg = <0x40>;
+
+		/* Note: LED 5 and 7 are not connected */
+		fs_red@0	{ label = "fs_red";	reg = <0x0>; };
+		fs_green@1  { label = "fs_green";  reg = <0x1>; };
+		bs_red@2	{ label = "bs_red";	reg = <0x2>; };
+		bs_green@3  { label = "bs_green";  reg = <0x3>; };
+		fs_yellow@4 { label = "fs_yellow"; reg = <0x4>; };
+		bs_yellow@6 { label = "bs_yellow"; reg = <0x6>; };
+	};
+	/****************************************************************/
+};
+
+&i2c1  {
+
+	speed-mode = <0>;
+	status = "okay";
+	
+	/****************************************************************/
+	/*        Kazaar Frame Camera Board 0 (KAFC0)                   */
+	/****************************************************************/
+	/* 64kbyte EEPROM at KAFC0 (Kazaar Frame Camera Board 0) */
+	leicaMemKAFC0: leicaMemKAFC@0 {
+		compatible = "at24,24c512";
+		reg = <0x50>;
+		pagesize = <128>;
+	};
+
+	/* Temperature sensor at KAFC0 */
+	 leicaTempKAFC0: leicaTempKAFC@0 {
+		compatible = "lm75,tmp75";
+		reg = <0x48>;
+	};
+	/****************************************************************/
+
+	/****************************************************************/
+	/*        Kazaar Frame Camera Board 1 (KAFC1)                   */
+	/****************************************************************/
+	/* 64kbyte EEPROM at KAFC1 */
+	leicaMemKAFC1: leicaMemKAFC@1 {
+		compatible = "at24,24c512";
+		reg = <0x52>;
+		pagesize = <128>;
+	};
+
+	/* Temperature sensor at KAFC1 */
+	leicaTempKAFC1: leicaTempKAFC@1 {
+		compatible = "lm75,tmp75";
+		reg = <0x4a>;
+	};
+	/****************************************************************/
+
+	/****************************************************************/
+	/*        Kazaar Frame Camera Board 2 (KAFC2)                   */
+	/****************************************************************/
+	/* 64kbyte EEPROM at KAFC2 */
+	leicaMemKAFC2: leicaMemKAFC@2 {
+		compatible = "at24,24c512";
+		reg = <0x54>;
+		pagesize = <128>;
+	};
+
+	/* Temperature sensor at KAFC2 */
+	leicaTempKAFC2: leicaTempKAFC@2 {
+		compatible = "lm75,tmp75";
+		reg = <0x4c>;
+	};
+	/****************************************************************/
+
+	/****************************************************************/
+	/*                Kazaar EDM Board (KEDM)                       */
+	/****************************************************************/
+	/* 64kbyte EEPROM at KEDM */
+	leicaMemKEDM0: leicaMemKEDM@0 {
+		compatible = "at24,24c512";
+		reg = <0x57>;
+		pagesize = <128>;
+	};
+
+	/* Temperature sensor at KEDM */
+	 leicaTempKEDM0: leicaTempKEDM@0 {
+		compatible = "lm75,tmp75";
+		reg = <0x4f>;
+	};
+	
+	/* External Temperature module (KTMP) */
+	 leicaTempKEDM_KTMP0: leicaTempKEDM_KTMP@0 {
+		compatible = "tmp112";
+		reg = <0x49>;
+	};
+	/****************************************************************/
+};
+
+/* node for SPI0 bus. SPI0 is defined in socfpga
+ * here you add HW that is connected to SPI0
+*/
+
+&spi0 {
+	status = "okay";
+	/* This is a kind of template how to add spi devices
+	 * that can be accessed from userspace
+	*/
+	stepperSPI: spiStepperKADR@0 {
+		compatible = "leica,spidev";
+		reg = <0>; /*chip select 0 */
+		spi-max-frequency = <2000000>;
+		enable-dma = <1>;
+	};
+
+	bldcSPI: spiBLDCKADR@0 {
+		compatible = "leica,spidev";
+		reg = <1>; /*chip select 1 */
+		spi-max-frequency = <10000000>;
+		enable-dma = <1>;
+	};
+};
+
+/* node for SPI1 bus. SPI1 is defined in socfpga
+ * here you add HW that is connected to SPI1
+*/
+&spi1 {
+	status = "okay";
+	kedmADCSPI: spiADCKEDM@0 {
+		compatible = "leica,spidev";
+		reg = <0>; /*chip select 0 */
+		spi-max-frequency = <10000000>;
+		enable-dma = <1>;
+	};
+	kedmMonitorSPI: spiMonitorKEDM@0 {
+		compatible = "leica,spidev";
+		reg = <1>; /*chip select 1 */
+		spi-max-frequency = <10000000>;
+		enable-dma = <1>;
+	};
+};
+
+/* EEPROMs at KVIS0 and KVIS1 */
+&i2c5 {
+	leicaTempKVIS0: leicaTempKVIS@0 {
+		compatible = "temp_ar0134";
+		reg = <0x11>;
+	};
+
+	leicaMemKVIS0: leicaMemKVIS@0 {
+		compatible = "at24,24c256";
+		reg = <0x50>;
+		pagesize = <64>;
+	};
+
+	leicaTempKVIS1: leicaTempKVIS@1 {
+		compatible = "temp_ar0134";
+		reg = <0x12>;
+	};
+
+	leicaMemKVIS1: leicaMemKVIS@1 {
+		compatible = "at24,24c256";
+		reg = <0x51>;
+		pagesize = <64>;
+	};
+};
+
+/* EEPROMs at KVIS2, KVIS3 and KVIS4 */
+&i2c6 {
+	leicaTempKVIS2: leicaTempKVIS@2 {
+		compatible = "temp_ar0134";
+		reg = <0x13>;
+	};
+
+	leicaMemKVIS2: leicaMemKVIS@2 {
+		compatible = "at24,24c256";
+		reg = <0x52>;
+		pagesize = <64>;
+	};
+
+	leicaTempKVIS3: leicaTempKVIS@3 {
+		compatible = "temp_ar0134";
+		reg = <0x14>;
+	};
+
+	leicaMemKVIS3: leicaMemKVIS@3 {
+		compatible = "at24,24c256";
+		reg = <0x53>;
+		pagesize = <64>;
+	};
+
+	leicaTempKVIS4: leicaTempKVIS@4 {
+		compatible = "temp_ar0134";
+		reg = <0x15>;
+	};
+
+	leicaMemKVIS4: leicaMemKVIS@4 {
+		compatible = "at24,24c256";
+		reg = <0x54>;
+		pagesize = <64>;
+	};
+
+	leicaPressKABC0: leicaPressKABC@0 {
+		compatible = "bosch,bmp280";
+		reg = <0x76>;
+	};
+};
+
+&i2c7 {
+	/* Temperature sensor at KAZA */
+	 leicaTempKAZA0: leicaTempKAZA@0 {
+		compatible = "jc42";
+		reg = <0x19>;
+	};
+
+	/* 256byte EEPROM at KAZA */
+	leicaMemKAZA0: leicaMemKAZA@0 {
+		compatible = "at24,24c02";
+		reg = <0x51>;
+	};
+
+	/* Temperature sensor at KELA */
+	 leicaTempKELA0: leicaTempKELA@0 {
+		compatible = "jc42";
+		reg = <0x18>;
+	};
+
+	/* 256byte EEPROM at KAZA */
+	leicaMemKELA0: leicaMemKELA@0 {
+		compatible = "at24,24c02";
+		reg = <0x50>;
+	};
+	
+	/* Temperature sensor at KADR */
+	 leicaTempKADR0: leicaTempKADR@0 {
+		compatible = "lm75,tmp75";
+		reg = <0x4D>;
+	};
+
+	/* 512byte EEPROM at KADR */
+	leicaMemKADR0: leicaMemKADR@0 {
+		compatible = "at24,24c512";
+		reg = <0x55>;
+		pagesize = <128>;
+	};
+	
+};
+
+

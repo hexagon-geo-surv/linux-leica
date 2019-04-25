@@ -78,6 +78,7 @@ config USB_OTG_BLACKLIST_HUB
 config USB_OTG_FSM
 	tristate "USB 2.0 OTG FSM implementation"
 	depends on USB && USB_OTG
+	default y
 	select USB_PHY
 	help
 	  Implements OTG Finite State Machine as specified in On-The-Go

@@ -1716,6 +1716,14 @@ static int dwc3_gadget_stop(struct usb_gadget *g)
 
 	spin_unlock_irqrestore(&dwc->lock, flags);
 
+	if (dwc->usb2_phy) {
+		ret = otg_set_peripheral(dwc->usb2_phy->otg, &dwc->gadget);
+		if (ret == -ENOTSUPP)
+			dev_info(dwc->dev, "no OTG driver registered\n");
+		else if (ret)
+			goto err0;
+	}
+
 	irq = platform_get_irq(to_platform_device(dwc->dev), 0);
 	free_irq(irq, dwc);
 

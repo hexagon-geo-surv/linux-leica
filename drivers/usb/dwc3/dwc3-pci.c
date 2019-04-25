@@ -138,6 +138,7 @@ static int dwc3_pci_probe(struct pci_dev *pci,
 	struct platform_device	*dwc3;
 	int			ret;
 	struct device		*dev = &pci->dev;
+	struct platform_device  *pdev;
 
 	ret = pcim_enable_device(pci);
 	if (ret) {
@@ -146,6 +147,12 @@ static int dwc3_pci_probe(struct pci_dev *pci,
 	}
 
 	pci_set_master(pci);
+
+	pdev = platform_device_alloc("intel-cht-otg", 0);
+	if (!pdev)
+		return -ENOMEM;
+	pdev->dev.parent = &pci->dev;
+	platform_device_add(pdev);
 
 	dwc3 = platform_device_alloc("dwc3", PLATFORM_DEVID_AUTO);
 	if (!dwc3) {

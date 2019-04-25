@@ -27,6 +27,7 @@
 
 #include "xhci.h"
 #include "xhci-trace.h"
+#include "xhci-intel-cap.h"
 
 #define SSIC_PORT_NUM		2
 #define SSIC_PORT_CFG2		0x880c
@@ -73,6 +74,12 @@ static int xhci_pci_reinit(struct xhci_hcd *xhci, struct pci_dev *pdev)
 	 * TODO: see if there are any quirks that need to be added to handle
 	 * new extended capabilities.
 	 */
+
+	/* Init Intel vendor defined extended capability */
+	if (pdev->vendor == PCI_VENDOR_ID_INTEL) {
+		if (!xhci_intel_vendor_cap_init(xhci))
+			xhci_dbg(xhci, "Intel Vendor Capability init done\n");
+	}
 
 	/* PCI Memory-Write-Invalidate cycle support is optional (uncommon) */
 	if (!pci_set_mwi(pdev))

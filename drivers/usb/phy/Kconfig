@@ -214,4 +214,11 @@ config USB_ULPI_VIEWPORT
 	  Provides read/write operations to the ULPI phy register set for
 	  controllers with a viewport register (e.g. Chipidea/ARC controllers).
 
+config INTEL_CHT_PHY
+	bool "Intel Cherrytrail OTG Transceiver Driver"
+	depends on USB_OTG_FSM
+	default y
+	help
+	  Enable this to support Intel USB OTG transceiver for Cherrytrail platform
+
 endmenu

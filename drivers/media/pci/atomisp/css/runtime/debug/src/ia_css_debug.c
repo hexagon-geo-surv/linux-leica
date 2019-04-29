@@ -2919,13 +2919,7 @@ ia_css_debug_pipe_graph_dump_stage(
 			if (l && enable_info[l-1] == ',')
 				enable_info[--l] = '\0';
 
-			if (l <= ENABLE_LINE_MAX_LENGTH) {
-				/* It fits on one line, copy string and init */
-				/* other helper strings with empty string */
-				strcpy_s(enable_info,
-					sizeof(enable_info),
-					ei);
-			} else {
+			if (l > ENABLE_LINE_MAX_LENGTH) {
 				/* Too big for one line, find last comma */
 				p = ENABLE_LINE_MAX_LENGTH;
 				while (ei[p] != ',')
@@ -2963,19 +2957,7 @@ ia_css_debug_pipe_graph_dump_stage(
 					ei += p+1;
 					l = strlen(ei);
 
-					if (l <= ENABLE_LINE_MAX_LENGTH) {
-						/* The 3rd line fits */
-						/* we cannot use ei as argument because
-						* it is not guarenteed dword aligned
-						*/
-						strcpy_s(enable_info3,
-							sizeof(enable_info3), ei);
-						enable_info3[l] = '\0';
-						snprintf(enable_info, sizeof(enable_info),
-							"%s\\n%s\\n%s",
-							enable_info1, enable_info2,
-							enable_info3);
-					} else {
+					if (l > ENABLE_LINE_MAX_LENGTH) {
 						/* 3rd line is still too long */
 						p = ENABLE_LINE_MAX_LENGTH;
 						while (ei[p] != ',')

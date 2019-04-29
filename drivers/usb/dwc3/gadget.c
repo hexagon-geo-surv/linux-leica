@@ -1705,6 +1705,7 @@ static int dwc3_gadget_stop(struct usb_gadget *g)
 	struct dwc3		*dwc = gadget_to_dwc(g);
 	unsigned long		flags;
 	int			irq;
+	int                     ret = 0;
 
 	spin_lock_irqsave(&dwc->lock, flags);
 
@@ -1728,6 +1729,8 @@ static int dwc3_gadget_stop(struct usb_gadget *g)
 	free_irq(irq, dwc);
 
 	return 0;
+err0:
+	return ret;
 }
 
 static const struct usb_gadget_ops dwc3_gadget_ops = {

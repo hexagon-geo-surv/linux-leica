@@ -199,10 +199,9 @@ int atomisp_register_i2c_module(struct v4l2_subdev *subdev,
 	int i;
 	struct i2c_board_info *bi;
 	struct gmin_subdev *gs;
-    struct i2c_client *client = v4l2_get_subdevdata(subdev);
+	struct i2c_client *client = v4l2_get_subdevdata(subdev);
+#ifdef CONFIG_ACPI
 	struct acpi_device *adev;
-
-	dev_info(&client->dev, "register atomisp i2c module type %d\n", type);
 
 	/* The windows driver model (and thus most BIOSes by default)
 	 * uses ACPI runtime power management for camera devices, but
@@ -212,6 +211,8 @@ int atomisp_register_i2c_module(struct v4l2_subdev *subdev,
 	adev = ACPI_COMPANION(&client->dev);
 	if (adev)
 		adev->power.flags.power_resources = 0;
+#endif
+	dev_info(&client->dev, "register atomisp i2c module type %d\n", type);
 
 	for (i = 0; i < MAX_SUBDEVS; i++)
 		if (!pdata.subdevs[i].type)
@@ -767,8 +768,10 @@ int gmin_get_config_var(struct device *dev, const char *var, char *out, size_t *
 	int i, j, ret;
 	unsigned long efilen;
 
+#ifdef CONFIG_ACPI
 	if (dev && ACPI_COMPANION(dev))
 		dev = &ACPI_COMPANION(dev)->dev;
+#endif
 
 	if (dev)
 		ret = snprintf(var8, sizeof(var8), "%s_%s", dev_name(dev), var);
@@ -838,6 +841,7 @@ int gmin_get_config_var(struct device *dev, const char *var, char *out, size_t *
 }
 EXPORT_SYMBOL_GPL(gmin_get_config_var);
 
+#ifdef CONFIG_ACPI
 static int gmin_acpi_get_config_var(struct device *dev, const char *var,
 		int *result)
 {
@@ -887,12 +891,12 @@ static int gmin_acpi_get_config_var(struct device *dev, const char *var,
 	}
 
 	ACPI_FREE(obj);
-
 exit:
 	if (!ret)
 		*result = (int)res;
 	return ret;
 }
+#endif
 
 int gmin_get_var_int(struct device *dev, const char *var, int def)
 {
@@ -907,8 +911,10 @@ int gmin_get_var_int(struct device *dev, const char *var, int def)
 		ret = kstrtol(val, 0, &result_long);
 		result = result_long;
 	} else {
+#ifdef CONFIG_ACPI
 		/* Try ACPI Scan */
 		ret = gmin_acpi_get_config_var(dev, var, &result);
+#endif
 	}
 
 	return ret ? def : result;

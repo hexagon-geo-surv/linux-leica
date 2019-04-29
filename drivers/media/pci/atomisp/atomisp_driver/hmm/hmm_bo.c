@@ -1115,7 +1115,7 @@ static int alloc_user_pages(struct hmm_buffer_object *bo,
 		down_read(&current->mm->mmap_sem);
 		page_nr = get_user_pages(current, current->mm,
 					 (unsigned long)userptr,
-					 (int)(bo->pgnr), 1, 0, pages,
+					 (int)(bo->pgnr), FOLL_WRITE, pages,
 					 NULL);
 		up_read(&current->mm->mmap_sem);
 		mutex_lock(&bo->mutex);

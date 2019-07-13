@@ -205,6 +205,16 @@ sched_clock_register(u64 (*read)(void), int bits, unsigned long rate)
 	new_epoch = read();
 	cyc = cd.actual_read_sched_clock();
 	ns = rd.epoch_ns + cyc_to_ns((cyc - rd.epoch_cyc) & rd.sched_clock_mask, rd.mult, rd.shift);
+
+	/*
+	 * If the architecture has a timestamp clock, and this is the
+	 * first time we register a new sched_clock, use the timestamp
+	 * clock as the epoch.
+	 */
+	if (IS_ENABLED(CONFIG_ARCH_HAS_TIMESTAMP_CLOCK) &&
+	    unlikely(cd.actual_read_sched_clock == jiffy_sched_clock_read))
+		ns = timestamp_clock();
+
 	cd.actual_read_sched_clock = read;
 
 	rd.read_sched_clock	= read;

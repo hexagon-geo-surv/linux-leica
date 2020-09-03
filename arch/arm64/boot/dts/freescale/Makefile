@@ -57,6 +57,7 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mm-evk-ak4497.dtb imx8mm-evk-ak5558.dtb imx8mm-evk
 dtb-$(CONFIG_ARCH_MXC) += imx8mm-evk-8mic-revE.dtb imx8mm-evk-8mic-swpdm.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mm-ab2.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mm-var-dart.dtb imx8mm-var-som.dtb imx8mm-var-som-rev10.dtb
+dtb-$(CONFIG_ARCH_MXC) += imx8mm-var-dart-m4.dtb imx8mm-var-som-m4.dtb imx8mm-var-som-rev10-m4.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mn-evk.dtb imx8mn-evk-rm67191.dtb imx8mn-ddr4-evk.dtb imx8mn-ddr4-evk-ak5558.dtb \
 			  imx8mn-ddr4-evk-rm67191.dtb imx8mn-ddr4-evk-rpmsg.dtb imx8mn-ddr4-evk-usd-wifi.dtb \
 			  imx8mn-evk-ak5558.dtb imx8mn-evk-rpmsg.dtb

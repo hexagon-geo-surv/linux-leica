@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
  * Copyright 2019 NXP
+ * Copyright (C) 2020 Leica Geosystems AG
  */
 
 /dts-v1/;
@@ -9,7 +10,7 @@
 #include "imx8mm.dtsi"
 
 / {
-	model = "FSL i.MX8MM EVK board";
+	model = "Crocodile";
 	compatible = "fsl,imx8mm-evk", "fsl,imx8mm";
 
 	reserved-memory {
@@ -320,6 +321,18 @@
 	status = "okay";
 };
 
+&ecspi2 {
+	fsl,spi-num-chipselects = <1>;
+	cs-gpios = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_ecspi2>;
+	status = "okay";
+	spidev@0x00 {
+	compatible = "spidev";
+	spi-max-frequency = <10000000>;
+	reg = <0>;
+	};
+};
 &uart1 { /* BT */
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart1>;
@@ -1013,6 +1026,15 @@
 	pinctrl_wdog: wdoggrp {
 		fsl,pins = <
 			MX8MM_IOMUXC_GPIO1_IO02_WDOG1_WDOG_B	0xc6
+		>;
+	};
+
+	pinctrl_ecspi2: ecspi2grp {
+		fsl,pins = <
+			MX8MM_IOMUXC_ECSPI2_MISO_ECSPI2_MISO 0x116
+			MX8MM_IOMUXC_ECSPI2_MOSI_ECSPI2_MOSI 0x116
+			MX8MM_IOMUXC_ECSPI2_SCLK_ECSPI2_SCLK 0x16
+			MX8MM_IOMUXC_ECSPI2_SS0_ECSPI2_SS0   0x116
 		>;
 	};
 };

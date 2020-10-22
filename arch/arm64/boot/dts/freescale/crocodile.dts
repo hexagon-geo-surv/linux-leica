@@ -314,7 +314,7 @@
 	assigned-clocks = <&clk IMX8MM_CLK_PDM>;
 	assigned-clock-parents = <&clk IMX8MM_AUDIO_PLL1_OUT>;
 	assigned-clock-rates = <196608000>;
-	status = "okay";
+	status = "disabled";
 };
 
 &snvs_pwrkey {
@@ -328,7 +328,7 @@
 	pinctrl-0 = <&pinctrl_ecspi2>;
 	status = "okay";
 	spidev@0x00 {
-	compatible = "spidev";
+	compatible = "lgs-crocodile,spi";
 	spi-max-frequency = <10000000>;
 	reg = <0>;
 	};

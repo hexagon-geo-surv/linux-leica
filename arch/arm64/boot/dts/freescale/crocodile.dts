@@ -328,7 +328,7 @@
 	pinctrl-0 = <&pinctrl_ecspi2>;
 	status = "okay";
 	spidev@0x00 {
-	compatible = "spidev";
+	compatible = "lgs-crocodile,spi";
 	spi-max-frequency = <10000000>;
 	reg = <0>;
 	};

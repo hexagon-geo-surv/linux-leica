@@ -129,7 +129,7 @@ static void ptn5150_irq_work(struct work_struct *work)
 				extcon_set_state_sync(info->edev,
 						EXTCON_USB_HOST, false);
 				if (!IS_ERR(info->vbus_gpiod))
-					gpiod_set_value(info->vbus_gpiod, 0);
+					gpiod_set_value_cansleep(info->vbus_gpiod, 0);
 				extcon_set_state_sync(info->edev, EXTCON_USB,
 						true);
 				break;
@@ -138,15 +138,15 @@ static void ptn5150_irq_work(struct work_struct *work)
 				extcon_set_state_sync(info->edev, EXTCON_USB,
 						false);
 				if (!IS_ERR(info->vbus_gpiod)) {
-
 					vbus = ((reg_data &
 						PTN5150_REG_CC_VBUS_DETECTION_MASK) >>
 						PTN5150_REG_CC_VBUS_DETECTION_SHIFT);
 					if (vbus)
-						gpiod_set_value(info->vbus_gpiod, 0);
+						gpiod_set_value_cansleep(info->vbus_gpiod, 0);
 					else
-						gpiod_set_value(info->vbus_gpiod, 1);
+						gpiod_set_value_cansleep(info->vbus_gpiod, 1);
 				}
+
 				extcon_set_state_sync(info->edev,
 						EXTCON_USB_HOST, true);
 				break;
@@ -163,7 +163,7 @@ static void ptn5150_irq_work(struct work_struct *work)
 			extcon_set_state_sync(info->edev,
 					EXTCON_USB, false);
 			if (!IS_ERR(info->vbus_gpiod))
-				gpiod_set_value(info->vbus_gpiod, 0);
+				gpiod_set_value_cansleep(info->vbus_gpiod, 0);
 		}
 	}
 

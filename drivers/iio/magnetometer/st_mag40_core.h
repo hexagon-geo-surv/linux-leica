@@ -114,11 +114,7 @@ struct st_mag40_data {
 
 static inline s64 st_mag40_get_timestamp(void)
 {
-	struct timespec ts;
-
-	get_monotonic_boottime(&ts);
-
-	return timespec_to_ns(&ts);
+	return ktime_get_boottime_ns();
 }
 
 int st_mag40_common_probe(struct iio_dev *iio_dev);

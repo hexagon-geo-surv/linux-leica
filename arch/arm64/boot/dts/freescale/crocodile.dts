@@ -605,6 +605,12 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c3>;
 	status = "okay";
+	iis2mdc@1e {
+  		compatible = "st,iis2mdc_magn";
+  		reg = <0x1e>;
+  		interrupt-parent = <&gpio3>;
+  		interrupts = <23 GPIO_ACTIVE_HIGH>;
+  	};
 
 	pca6416: gpio@20 {
 		compatible = "ti,tca6416";

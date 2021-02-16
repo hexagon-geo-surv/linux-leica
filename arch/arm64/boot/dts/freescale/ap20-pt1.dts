@@ -28,6 +28,24 @@
 				MX8MM_IOMUXC_I2C3_SDA_GPIO5_IO19		0x16
 			>;
 		};
+
+		/*
+		 * Route only ECSPI1_SCLK and ECSPI1_MOSI pins to UART due to
+		 * interchanged RTS/CTS lines
+		 */
+		pinctrl_uart3: uart3grp {
+			fsl,pins = <
+				MX8MM_IOMUXC_ECSPI1_SCLK_UART3_DCE_RX		0x140
+				MX8MM_IOMUXC_ECSPI1_MOSI_UART3_DCE_TX		0x140
+			>;
+		};
+
+		/* Route ECSPI1_SS0 pin to GPIO due to interchanged RTS/CTS lines */
+		pinctrl_uart3fix: uart3fixgrp {
+			fsl,pins = <
+				MX8MM_IOMUXC_ECSPI1_SS0_GPIO5_IO9		0x16
+			>;
+		};
 	};
 };
 
@@ -40,6 +58,18 @@
 };
 
 &gpio5 {
+	/*
+	 * As BLE_CPU_UART3_RTS and BLE_CPU_UART3_CTS lines are interchanged
+	 * BLE_CPU_UART3_CTS respectively GPIO5_IO09 needs to be hogged low in
+	 * order to signal that i.MX ready to receive data.
+	 */
+	ble_cpu_uart3_cts {
+		gpio-hog;
+		gpios = <9 GPIO_ACTIVE_HIGH>;
+		output-low;
+		line-name = "BLE_CPU_UART3_CTS";
+	};
+
 	/*
 	 * As I2C3 lines are interchanged, no communication with USB2514B is
 	 * possible. CPU_USBH_I2C_SDA (instead of CPU_USBH_I2C_SCL) is
@@ -57,4 +87,9 @@
 		output-low;
 		line-name = "CPU_USBH_I2C_SCL";
 	};
+};
+
+&uart3 {
+	/* delete "uart-has-rtscts" property due to interchanged RTS/CTS lines */
+	/delete-property/ uart-has-rtscts;
 };

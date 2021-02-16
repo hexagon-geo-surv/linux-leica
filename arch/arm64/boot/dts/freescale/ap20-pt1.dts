@@ -19,3 +19,11 @@
 / {
 	model = "AP20 PT1";
 };
+
+&fec1 {
+	/*
+	 * disable reset gpio since PHY is not detected anymore after a reset.
+	 */
+	/delete-property/ phy-reset-gpios;
+	/delete-property/ phy-reset-duration;
+};

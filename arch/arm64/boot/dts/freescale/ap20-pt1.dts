@@ -20,10 +20,41 @@
 	model = "AP20 PT1";
 };
 
+&iomuxc {
+	imx8mm-var-dart {
+		/* Route I2C3_SDA pin to GPIO due to interchanged I2C lines */
+		pinctrl_i2c3: i2c3grp {
+			fsl,pins = <
+				MX8MM_IOMUXC_I2C3_SDA_GPIO5_IO19		0x16
+			>;
+		};
+	};
+};
+
 &fec1 {
 	/*
 	 * disable reset gpio since PHY is not detected anymore after a reset.
 	 */
 	/delete-property/ phy-reset-gpios;
 	/delete-property/ phy-reset-duration;
+};
+
+&gpio5 {
+	/*
+	 * As I2C3 lines are interchanged, no communication with USB2514B is
+	 * possible. CPU_USBH_I2C_SDA (instead of CPU_USBH_I2C_SCL) is
+	 * connected to pin "SCL/CFG_SEL0" of USB2514B and set to HIGH by a
+	 * pullup resistor on SOM. Therefore the initial interface
+	 * configuration of USB2514B is set to SMBus and a configuration over
+	 * I2C3 is expected.
+	 * In order to load the default configuration of USB2514B the
+	 * CFG_SEL[0] needs to be set to 0 i.e. hog GPIO5_IO19 to low before
+	 * releasing reset.
+	 */
+	cpu_usbh_i2c_scl {
+		gpio-hog;
+		gpios = <19 GPIO_ACTIVE_HIGH>;
+		output-low;
+		line-name = "CPU_USBH_I2C_SCL";
+	};
 };

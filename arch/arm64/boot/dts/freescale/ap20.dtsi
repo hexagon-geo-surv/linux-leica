@@ -35,6 +35,18 @@
 			reg = <0 0x40000000 0 0x400000>;
 		};
 	};
+
+	reg_usbhub_rst: regulator-usbhub {
+		compatible = "regulator-fixed";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_usbhub>;
+		regulator-name = "usbhub_rst_n";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&gpio1 1 GPIO_ACTIVE_HIGH>;
+		regulator-always-on;
+		enable-active-high;
+	};
 };
 
 &iomuxc {
@@ -169,7 +181,7 @@
 			>;
 		};
 
-		pinctrl_usbhub: usbhubgrp {
+		pinctrl_usbhub: regulator-usbhub {
 			fsl,pins = <
 				MX8MM_IOMUXC_GPIO1_IO01_GPIO1_IO1		0x16
 			>;
@@ -460,9 +472,7 @@
 
 &gpio1 {
 	gpio-line-names =
-		"",
-		"CPU_USBH_RESET_N",
-		"",
+		"", "", "",
 		"CPU_BLE_RST_N",
 		"",
 		"CPU_IMU_DATA_EN",

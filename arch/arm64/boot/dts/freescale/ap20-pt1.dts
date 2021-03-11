@@ -17,7 +17,7 @@
 #include "ap20.dtsi"
 
 / {
-	model = "AP20 PT1";
+	model = "AP20-PT1";
 };
 
 &iomuxc {

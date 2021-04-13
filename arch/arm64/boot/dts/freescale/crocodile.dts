@@ -181,6 +181,17 @@
 		model = "imx-audio-micfil";
 		cpu-dai = <&micfil>;
 	};
+	bat: internal-battery {
+		compatible = "simple-battery";
+		energy-full-design-microwatt-hours = <24840000>;
+		charge-full-design-microamp-hours = <14450000>;
+		voltage-min-design-microvolt = <2500000>;
+		voltage-max-design-microvolt = <4200000>;
+		charge-term-current-microamp = <150000>;
+		constant-charge-current-max-microamp = <3400000>;
+		constant-charge-voltage-max-microvolt = <4200000>;
+		factory-internal-resistance-micro-ohms = <35>;
+	};
 };
 
 &A53_0 {
@@ -605,7 +616,19 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c3>;
 	status = "okay";
-
+	bq78z100: fuel-gauge@55{
+		compatible = "ti,bq78z100";
+		reg = <0x55>;
+		battery-name = "battery";
+		monitored-battery = <&bat>;
+	};
+	iis2mdc@1e {
+		compatible = "st,iis2mdc";
+		reg = <0x1e>;
+		interrupt-parent = <&gpio3>;
+		interrupts = <22 IRQ_TYPE_EDGE_RISING>;
+		st,drdy-int-pin = <1>;
+	};
 	pca6416: gpio@20 {
 		compatible = "ti,tca6416";
 		reg = <0x20>;

@@ -51,6 +51,7 @@
 
 &iomuxc {
 	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_gpios>;
 
 	imx8mm-var-dart {
 		pinctrl_fec1: fec1grp {
@@ -187,35 +188,15 @@
 			>;
 		};
 
-		pinctrl_imu: imugrp {
+		pinctrl_gpios: gpiosgrp {
 			fsl,pins = <
+				MX8MM_IOMUXC_GPIO1_IO03_GPIO1_IO3		0x16
 				MX8MM_IOMUXC_GPIO1_IO05_GPIO1_IO5		0x16
 				MX8MM_IOMUXC_GPIO1_IO06_GPIO1_IO6		0x16
 				MX8MM_IOMUXC_GPIO1_IO08_GPIO1_IO8		0x16
-			>;
-		};
-
-		pinctrl_blemod: blemodgrp {
-			fsl,pins = <
-				MX8MM_IOMUXC_GPIO1_IO03_GPIO1_IO3		0x16
-			>;
-		};
-
-		pinctrl_gnss: gnssgrp {
-			fsl,pins = <
+				MX8MM_IOMUXC_GPIO1_IO10_GPIO1_IO10		0x16
+				MX8MM_IOMUXC_GPIO1_IO11_GPIO1_IO11		0x16
 				MX8MM_IOMUXC_GPIO1_IO15_GPIO1_IO15		0x16
-			>;
-		};
-
-		pinctl_enet: enetgrp {
-			fsl,pins = <
-				MX8MM_IOMUXC_GPIO1_IO10_GPIO1_IO10		0x1C6
-				MX8MM_IOMUXC_GPIO1_IO11_GPIO1_IO11		0x1C6
-			>;
-		};
-
-		pinctl_debug: debuggrp {
-			fsl,pins = <
 				MX8MM_IOMUXC_SPDIF_TX_GPIO5_IO3			0x16
 				MX8MM_IOMUXC_SPDIF_RX_GPIO5_IO4			0x16
 				MX8MM_IOMUXC_SPDIF_EXT_CLK_GPIO5_IO5		0x16

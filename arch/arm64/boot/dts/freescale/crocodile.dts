@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
  * Copyright 2019-2020 NXP
+ * Copyright (C) 2021 Leica Geosystems AG
  */
 
 /dts-v1/;
@@ -9,7 +10,7 @@
 #include "imx8mm-evk.dtsi"
 
 / {
-	model = "FSL i.MX8MM EVK board";
+	model = "Crocodile";
 	compatible = "fsl,imx8mm-evk", "fsl,imx8mm";
 
 	aliases {

@@ -100,6 +100,14 @@
 		battery-name = "battery";
 		monitored-battery = <&bat>;
 	};
+
+	iis2mdc@1e {
+		compatible = "st,iis2mdc";
+		reg = <0x1e>;
+		interrupt-parent = <&gpio3>;
+		interrupts = <22 IRQ_TYPE_EDGE_RISING>;
+		st,drdy-int-pin = <1>;
+	};
 };
 
 &iomuxc {

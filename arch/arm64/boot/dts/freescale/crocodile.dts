@@ -16,6 +16,19 @@
 	aliases {
 		spi0 = &flexspi;
 	};
+
+	bat: internal-battery {
+		compatible = "simple-battery";
+		energy-full-design-microwatt-hours = <24840000>;
+		charge-full-design-microamp-hours = <14450000>;
+		voltage-min-design-microvolt = <2500000>;
+		voltage-max-design-microvolt = <4200000>;
+		charge-term-current-microamp = <150000>;
+		constant-charge-current-max-microamp = <3400000>;
+		constant-charge-voltage-max-microvolt = <4200000>;
+		factory-internal-resistance-micro-ohms = <35>;
+	};
+
 };
 
 &ddrc {
@@ -76,6 +89,16 @@
 		compatible = "lgs-crocodile,spi";
 		spi-max-frequency = <10000000>;
 		reg = <0>;
+	};
+};
+
+&i2c3 {
+	status = "okay";
+	bq78z100: fuel-gauge@55{
+		compatible = "ti,bq78z100";
+		reg = <0x55>;
+		battery-name = "battery";
+		monitored-battery = <&bat>;
 	};
 };
 

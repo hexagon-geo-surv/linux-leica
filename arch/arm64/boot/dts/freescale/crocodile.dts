@@ -66,6 +66,19 @@
 	status = "okay";
 };
 
+&ecspi2 {
+	fsl,spi-num-chipselects = <1>;
+	cs-gpios = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_ecspi2>;
+	status = "okay";
+	spidev@0x00 {
+		compatible = "lgs-crocodile,spi";
+		spi-max-frequency = <10000000>;
+		reg = <0>;
+	};
+};
+
 &iomuxc {
 	pinctrl_flexspi: flexspigrp {
 		fsl,pins = <
@@ -124,6 +137,15 @@
 			MX8MM_IOMUXC_NAND_CE3_B_USDHC3_DATA6            0x1d6
 			MX8MM_IOMUXC_NAND_CLE_USDHC3_DATA7              0x1d6
 			MX8MM_IOMUXC_NAND_CE1_B_USDHC3_STROBE           0x196
+		>;
+	};
+
+	pinctrl_ecspi2: ecspi2grp {
+		fsl,pins = <
+			MX8MM_IOMUXC_ECSPI2_MISO_ECSPI2_MISO            0x116
+			MX8MM_IOMUXC_ECSPI2_MOSI_ECSPI2_MOSI            0x116
+			MX8MM_IOMUXC_ECSPI2_SCLK_ECSPI2_SCLK            0x16
+			MX8MM_IOMUXC_ECSPI2_SS0_ECSPI2_SS0              0x116
 		>;
 	};
 };

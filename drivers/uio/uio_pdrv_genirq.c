@@ -114,6 +114,7 @@ static int uio_pdrv_genirq_probe(struct platform_device *pdev)
 	struct uio_pdrv_genirq_platdata *priv;
 	struct uio_mem *uiomem;
 	int ret = -EINVAL;
+	int no_threaded_irq = 0;
 	int i;
 
 	if (node) {
@@ -135,6 +136,14 @@ static int uio_pdrv_genirq_probe(struct platform_device *pdev)
 
 		uioinfo->version = "devicetree";
 		/* Multiple IRQs are not supported */
+
+		/* read additional property (if exists) and decide whether
+		 * to have IRQ bottom half to be executed in a separate
+		 * thread, or to have it executed in the irq_handler
+		 * context
+		 */
+		if (of_property_read_bool(pdev->dev.of_node, "no-threaded-irq"))
+			no_threaded_irq = 1;
 	}
 
 	if (!uioinfo || !uioinfo->name || !uioinfo->version) {
@@ -146,6 +155,12 @@ static int uio_pdrv_genirq_probe(struct platform_device *pdev)
 	    uioinfo->irq_flags & IRQF_SHARED) {
 		dev_err(&pdev->dev, "interrupt configuration error\n");
 		return ret;
+	}
+
+	/* execute BH in irq_handler if property set in FDT */
+	if ((no_threaded_irq > 0) && !(uioinfo->irq_flags & IRQF_NO_THREAD)) {
+		dev_info(&pdev->dev, "promoting INT with IRQF_NO_THREAD\n");
+		uioinfo->irq_flags |= IRQF_NO_THREAD;
 	}
 
 	priv = devm_kzalloc(&pdev->dev, sizeof(*priv), GFP_KERNEL);

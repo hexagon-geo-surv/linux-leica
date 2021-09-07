@@ -1,0 +1,81 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright Leica Geosystems AG (C) 2021. All rights reserved.
+ */
+
+#include "socfpga_arria10.dtsi"
+
+/ {
+	model = "Leica KREA Module (Arria 10)";
+	compatible = "altr,socfpga-arria10", "altr,socfpga";
+
+	chosen {
+		bootargs = "debug console=ttyAL0,115200";
+	};
+
+	soc {
+		clkmgr@ffd04000 {
+			clocks {
+				osc1 {
+					clock-frequency = <50000000>;	/* 50.00 MHz */
+				};
+				cb_intosc_hs_div2_clk {
+					clock-frequency = <0>;	/* 0.00 Hz */
+				};
+				cb_intosc_ls_clk {
+					clock-frequency = <60000000>;	/* 60.00 MHz */
+				};
+				f2s_free_clk {
+					clock-frequency = <200000000>;	/* 200.00 MHz */
+				};
+			};
+		};
+	};
+};
+
+&gmac0 {
+	phy-mode = "rgmii";
+	phy-addr = <0xffffffff>; /* probe for phy addr */
+
+	/*
+	 * These skews assume the user's FPGA design is adding 600ps of delay
+	 * for TX_CLK on Arria 10.
+	 *
+	 * All skews are offset since hardware skew values for the ksz9031
+	 * range from a negative skew to a positive skew.
+	 * See the micrel-ksz90x1.txt Documentation file for details.
+	 */
+	txd0-skew-ps = <0>; /* -420ps */
+	txd1-skew-ps = <0>; /* -420ps */
+	txd2-skew-ps = <0>; /* -420ps */
+	txd3-skew-ps = <0>; /* -420ps */
+	rxd0-skew-ps = <420>; /* 0ps */
+	rxd1-skew-ps = <420>; /* 0ps */
+	rxd2-skew-ps = <420>; /* 0ps */
+	rxd3-skew-ps = <420>; /* 0ps */
+	txen-skew-ps = <0>; /* -420ps */
+	txc-skew-ps = <1860>; /* 960ps */
+	rxdv-skew-ps = <420>; /* 0ps */
+	rxc-skew-ps = <1680>; /* 780ps */
+	max-frame-size = <3800>;
+	status = "okay";
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};
+
+/* No USB */
+&usb0 {
+	status = "disabled";
+};
+&usbphy0 {
+    status = "disabled";
+};
+&usb1 {
+	status = "disabled";
+};

@@ -1,4 +1,14 @@
 # SPDX-License-Identifier: GPL-2.0-only
+config SPI_ALTERA_QSPI
+	tristate "Altera QSPI Flash Controller (QSPI)"
+	depends on HAS_IOMEM && OF
+	help
+	  This enables support for Altera QSPI Controller, which can be
+	  instantiated in FPGA fabric. It is used to read and program
+	  Configuration Devices, and is not JEDEC-compliant.
+	  Implementation supports only limited number of devices from
+	  Altera.
+
 config SPI_ASPEED_SMC
 	tristate "Aspeed flash controllers in SPI mode"
 	depends on ARCH_ASPEED || COMPILE_TEST

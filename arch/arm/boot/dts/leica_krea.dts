@@ -483,10 +483,11 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 		flash0: epcq512@0 {
-			compatible = "altr,epcq512";
+			compatible = "epcq512";
 			#address-cells = <1>;
 			#size-cells = <1>;
 			/* QSPI on KREA has 512MB, but only 64MB are mapped in FPGA */
+			reg = < 0x0 >;
 			partition@0 {
 				label = "FPGA image";
 				reg = <0x0 0x04000000>;

@@ -1,0 +1,63 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id:  http://devicetree.org/schemas/mtd/altera,quadspi.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Intel FPGA Generic QUAD SPI Controller (Version 1) Device Tree Bindings
+
+allOf:
+  - $ref: "nand-controller.yaml"
+
+maintainers:
+  - Andrey Zhizhikin <andrey.z@gmail.com>
+
+description: |
+  This SPI Controller covers only Version 1 of the SoftIP, which can be
+  instantiated in FPGA fabric. It is used to read and program
+  Configuration Devices, and is not JEDEC-compliant. Individual flash
+  devices should be present as tree subnode.
+
+properties:
+  "#address-cells": true
+  "#size-cells": true
+
+  compatible:
+    items:
+      - const: altr,quadspi-1.0
+
+  reg:
+    items:
+      - description: register configuration base address
+      - description: data base address
+
+  reg-names:
+    items:
+      - const: avl_csr
+      - const: avl_mem
+
+required:
+  - compatible
+  - reg
+
+unevaluatedProperties: false
+
+examples:
+  - |
+    QspiCtrl0: quadspi@0xc0040000 {
+      compatible = "altr,quadspi-1.0";
+      reg = <0xc0040000 0x20>, <0xc4000000 0x04000000>;
+      reg-names = "avl_csr", "avl_mem";
+      #address-cells = <1>;
+      #size-cells = <0>;
+      flash0: epcq512@0 {
+        compatible = "epcq512";
+        reg = < 0x0 >;
+        #address-cells = <1>;
+        #size-cells = <1>;
+        partition@0 {
+          label = "FPGA image";
+          reg = <0x0 0x04000000>;
+        };
+      };
+    };

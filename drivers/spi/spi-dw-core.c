@@ -136,8 +136,17 @@ static inline u32 rx_max(struct dw_spi *dws)
 
 static void dw_writer(struct dw_spi *dws)
 {
+	unsigned long flags = 0;
 	u32 max = tx_max(dws);
 	u16 txw = 0;
+
+	/* Send SPI messages in an atomic context. Some of the slaves (e.g. EDM
+	 * Monitor) connected to this controller misbehave when messages are not
+	 * sent in a contiguous sequence (i.e. when slave select signal is
+	 * de-asserted during tranmission, resulting in a message being
+	 * transmitted in two or more parts).
+	 */
+	local_irq_save(flags);
 
 	while (max--) {
 		if (dws->tx) {
@@ -151,6 +160,7 @@ static void dw_writer(struct dw_spi *dws)
 		dw_write_io_reg(dws, DW_SPI_DR, txw);
 		--dws->tx_len;
 	}
+	local_irq_restore(flags);
 }
 
 static void dw_reader(struct dw_spi *dws)

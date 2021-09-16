@@ -15,6 +15,9 @@
 #define SOCFPGA_A10_RSTMGR_CTRL		0xC
 #define SOCFPGA_A10_RSTMGR_MODMPURST	0x20
 
+#define SOCFPGA_A10_GPIO_DR			0x0
+#define SOCFPGA_A10_GPIO_DDR		0x4
+
 /* System Manager bits */
 #define RSTMGR_CTRL_SWCOLDRSTREQ	0x1	/* Cold Reset */
 #define RSTMGR_CTRL_SWWARMRSTREQ	0x2	/* Warm Reset */

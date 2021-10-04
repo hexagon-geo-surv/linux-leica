@@ -73,7 +73,7 @@
 #include <linux/slab.h>
 #include <linux/string.h>
 
-#define CAAM_CRA_PRIORITY		3000
+#define CAAM_CRA_PRIORITY		150
 
 /* max hash key is max split key size */
 #define CAAM_MAX_HASH_KEY_SIZE		(SHA512_DIGEST_SIZE * 2)

@@ -1,0 +1,32 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (C) 2021 Leica Geosystems AG
+ */
+
+/dts-v1/;
+
+#include "crocodile.dtsi"
+
+/ {
+	model = "Crocodile-PT1";
+};
+
+&usbotg2 {
+	/*
+	 * FIXME: having USB2 enabled hangs the boot just after:
+	 *[    1.655941] ci_hdrc ci_hdrc.1: EHCI Host Controller
+	 *[    1.660880] ci_hdrc ci_hdrc.1: new USB bus registered, assigned bus number 2
+	 *[    1.681505] ci_hdrc ci_hdrc.1: USB 2.0 started, EHCI 1.00
+	 *[    1.687730] hub 2-0:1.0: USB hub found
+	 *[    1.691528] hub 2-0:1.0: 1 port detected
+	 */
+	status = "disabled";
+};
+
+&fec1 {
+	/*
+	 * disable reset gpio since PHY is not detected anymore after a reset.
+	 */
+	/delete-property/ phy-reset-gpios;
+	/delete-property/ phy-reset-duration;
+};

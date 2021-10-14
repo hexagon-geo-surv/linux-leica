@@ -271,6 +271,19 @@
 	};
 };
 
+&ecspi2 {
+	fsl,spi-num-chipselects = <1>;
+	cs-gpios = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_ecspi2>;
+	status = "okay";
+
+	uhf@0 {
+		compatible = "spidev";
+		reg = <0>;
+	};
+};
+
 /* GNSS module */
 &uart1 {
 	pinctrl-names = "default";
@@ -416,6 +429,15 @@
 			MX8MM_IOMUXC_ECSPI1_MOSI_ECSPI1_MOSI	0x16
 			MX8MM_IOMUXC_ECSPI1_SCLK_ECSPI1_SCLK	0x16
 			MX8MM_IOMUXC_ECSPI1_SS0_ECSPI1_SS0	0x0
+		>;
+	};
+
+	pinctrl_ecspi2: ecspi2grp {
+		fsl,pins = <
+			MX8MM_IOMUXC_ECSPI2_MISO_ECSPI2_MISO	0x16
+			MX8MM_IOMUXC_ECSPI2_MOSI_ECSPI2_MOSI	0x16
+			MX8MM_IOMUXC_ECSPI2_SCLK_ECSPI2_SCLK	0x1816
+			MX8MM_IOMUXC_ECSPI2_SS0_ECSPI2_SS0	0x0
 		>;
 	};
 

@@ -11,7 +11,7 @@
 
 / {
 	compatible = "fsl,imx8mm-evk", "fsl,imx8mm";
-	
+
 	chosen {
 		stdout-path = &uart3;
 	};
@@ -20,7 +20,7 @@
 		device_type = "memory";
 		reg = <0x0 0x40000000 0 0x80000000>;
 	};
-	
+
 	reg_usdhc2_vmmc: regulator-usdhc2 {
 		compatible = "regulator-fixed";
 		pinctrl-names = "default";
@@ -258,6 +258,75 @@
 	};
 };
 
+&ecspi1 {
+	fsl,spi-num-chipselects = <1>;
+	cs-gpios = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_ecspi1>;
+	status = "okay";
+
+	inclinometer@0 {
+		compatible = "spidev";
+		reg = <0>;
+	};
+};
+
+&ecspi2 {
+	fsl,spi-num-chipselects = <1>;
+	cs-gpios = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_ecspi2>;
+	status = "okay";
+
+	uhf@0 {
+		compatible = "spidev";
+		reg = <0>;
+	};
+};
+
+&ecspi3 {
+	fsl,spi-num-chipselects = <6>;
+	cs-gpios = <0>,
+		   <&gpio5 1 0>,
+		   <&gpio4 25 0>,
+		   <&gpio4 26 0>,
+		   <&gpio4 23 0>,
+		   <&gpio5 3 0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_ecspi3>;
+	status = "okay";
+
+	imu1_accel@0 {
+		compatible = "spidev";
+		reg = <0>;
+	};
+
+	imu1_gyro@1 {
+		compatible = "spidev";
+		reg = <1>;
+	};
+
+	imu2_accel@2 {
+		compatible = "spidev";
+		reg = <2>;
+	};
+
+	imu2_gyro@3 {
+		compatible = "spidev";
+		reg = <3>;
+	};
+
+	imu3_accel@4 {
+		compatible = "spidev";
+		reg = <4>;
+	};
+
+	imu3_gyro@5 {
+		compatible = "spidev";
+		reg = <5>;
+	};
+};
+
 /* GNSS module */
 &uart1 {
 	pinctrl-names = "default";
@@ -368,7 +437,7 @@
 			MX8MM_IOMUXC_SAI1_TXFS_GPIO4_IO10		0x36
 		>;
 	};
-	
+
 	pinctrl_i2c1: i2c1grp {
 		fsl,pins = <
 			MX8MM_IOMUXC_I2C1_SCL_I2C1_SCL		0x400001c3
@@ -389,26 +458,64 @@
 			MX8MM_IOMUXC_I2C3_SDA_I2C3_SDA		0x400001c3
 		>;
 	};
-	
+
 	pinctrl_i2c4: i2c4grp {
 		fsl,pins = <
 			MX8MM_IOMUXC_I2C4_SCL_I2C4_SCL		0x400001c3
 			MX8MM_IOMUXC_I2C4_SDA_I2C4_SDA		0x400001c3
 		>;
 	};
-	
+
+	pinctrl_ecspi1: ecspi1grp {
+		fsl,pins = <
+			MX8MM_IOMUXC_ECSPI1_MISO_ECSPI1_MISO	0x16
+			MX8MM_IOMUXC_ECSPI1_MOSI_ECSPI1_MOSI	0x16
+			MX8MM_IOMUXC_ECSPI1_SCLK_ECSPI1_SCLK	0x16
+			MX8MM_IOMUXC_ECSPI1_SS0_ECSPI1_SS0	0x0
+		>;
+	};
+
+	pinctrl_ecspi2: ecspi2grp {
+		fsl,pins = <
+			MX8MM_IOMUXC_ECSPI2_MISO_ECSPI2_MISO	0x16
+			MX8MM_IOMUXC_ECSPI2_MOSI_ECSPI2_MOSI	0x16
+			MX8MM_IOMUXC_ECSPI2_SCLK_ECSPI2_SCLK	0x1816
+			MX8MM_IOMUXC_ECSPI2_SS0_ECSPI2_SS0	0x0
+		>;
+	};
+
+	pinctrl_ecspi3: ecspi3grp {
+		fsl,pins = <
+			MX8MM_IOMUXC_UART1_TXD_ECSPI3_MOSI	0x16
+			MX8MM_IOMUXC_UART2_RXD_ECSPI3_MISO	0x16
+			MX8MM_IOMUXC_UART1_RXD_ECSPI3_SCLK	0x16
+			/* IMU_1_CS_ACC  */
+			MX8MM_IOMUXC_UART2_TXD_ECSPI3_SS0	0x0
+			/* IMU_1_CS_GYRO */
+			MX8MM_IOMUXC_SAI3_TXD_GPIO5_IO1	0x0
+			/* IMU_2_CS_ACC  */
+			MX8MM_IOMUXC_SAI2_TXC_GPIO4_IO25	0x0
+			/* IMU_2_CS_GYRO */
+			MX8MM_IOMUXC_SAI2_TXD0_GPIO4_IO26	0x0
+			/* IMU_3_CS_ACC  */
+			MX8MM_IOMUXC_SAI2_RXD0_GPIO4_IO23	0x0
+			/* IMU_3_CS_GYRO */
+			MX8MM_IOMUXC_SPDIF_TX_GPIO5_IO3	0x0
+		>;
+	};
+
 	pinctrl_pmic: pmicirqgrp {
 		fsl,pins = <
 			MX8MM_IOMUXC_GPIO1_IO03_GPIO1_IO3	0x141
 		>;
 	};
-	
+
 	pinctrl_reg_usdhc2_vmmc: regusdhc2vmmcgrp {
 		fsl,pins = <
 			MX8MM_IOMUXC_SD2_RESET_B_GPIO2_IO19	0x41
 		>;
 	};
-	
+
 	pinctrl_usdhc2_gpio: usdhc2grpgpiogrp {
 		fsl,pins = <
 			MX8MM_IOMUXC_SD2_CD_B_USDHC2_CD_B	0x41
@@ -522,7 +629,7 @@
 			MX8MM_IOMUXC_UART3_TXD_UART3_DCE_TX	0x140
 		>;
 	};
-	
+
 	pinctrl_uart4: uart4grp {
 		fsl,pins = <
 			MX8MM_IOMUXC_UART4_RXD_UART4_DCE_RX	0x140

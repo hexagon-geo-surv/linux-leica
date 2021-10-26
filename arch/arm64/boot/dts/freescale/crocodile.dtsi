@@ -136,7 +136,7 @@
 				regulator-boot-on;
 				regulator-always-on;
 				regulator-ramp-delay = <3125>;
-				nxp,dvs-run-voltage = <850000>;
+				nxp,dvs-run-voltage = <820000>;
 				nxp,dvs-standby-voltage = <800000>;
 			};
 

@@ -246,6 +246,12 @@
 		compatible = "ti,tmp112";
 		reg = <0x48>;
 	};
+
+	rtc@32 {
+		compatible = "epson,rx8130";
+		reg = <0x32>;
+		aux-voltage-chargeable = <0>;
+	};
 };
 
 &i2c4 {

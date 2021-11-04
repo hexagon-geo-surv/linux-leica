@@ -719,7 +719,7 @@
 		>;
 	};
 
-	pinctrl_usbhub: regulator-usbhub {
+	pinctrl_usbhub: usbhubgrp {
 		fsl,pins = <
 			MX8MM_IOMUXC_SAI5_RXD3_GPIO3_IO24	0x36
 		>;

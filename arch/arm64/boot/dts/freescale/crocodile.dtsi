@@ -281,6 +281,7 @@
 
 	inclinometer@0 {
 		compatible = "spidev";
+		spi-max-frequency = <2000000>;
 		reg = <0>;
 	};
 };
@@ -294,6 +295,7 @@
 
 	uhf@0 {
 		compatible = "spidev";
+		spi-max-frequency = <8000000>;
 		reg = <0>;
 	};
 };
@@ -312,31 +314,37 @@
 
 	imu1_accel@0 {
 		compatible = "spidev";
+		spi-max-frequency = <10000000>;
 		reg = <0>;
 	};
 
 	imu1_gyro@1 {
 		compatible = "spidev";
+		spi-max-frequency = <10000000>;
 		reg = <1>;
 	};
 
 	imu2_accel@2 {
 		compatible = "spidev";
+		spi-max-frequency = <10000000>;
 		reg = <2>;
 	};
 
 	imu2_gyro@3 {
 		compatible = "spidev";
+		spi-max-frequency = <10000000>;
 		reg = <3>;
 	};
 
 	imu3_accel@4 {
 		compatible = "spidev";
+		spi-max-frequency = <10000000>;
 		reg = <4>;
 	};
 
 	imu3_gyro@5 {
 		compatible = "spidev";
+		spi-max-frequency = <10000000>;
 		reg = <5>;
 	};
 };

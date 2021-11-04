@@ -513,6 +513,14 @@
 		>;
 	};
 
+	/*
+	 * Reserved bit 30 in value for Pad Control Register is used to set
+	 * SION (bit 4) in Pad Mux Register.
+	 * Setting SION to "1" forces the input path to be active regardless
+	 * of the value driven by the corresponding module and is required for
+	 * I2C.
+	 */
+
 	pinctrl_i2c1: i2c1grp {
 		fsl,pins = <
 			MX8MM_IOMUXC_I2C1_SCL_I2C1_SCL		0x400001c3

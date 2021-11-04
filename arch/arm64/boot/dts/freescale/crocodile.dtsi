@@ -241,7 +241,7 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c3>;
 	status = "okay";
-	
+
 	temperature: tmp112-sensor@48{
 		compatible = "ti,tmp112";
 		reg = <0x48>;
@@ -264,8 +264,10 @@
 	iis2mdc@1e {
 		compatible = "st,iis2mdc";
 		reg = <0x1e>;
-		interrupt-parent = <&gpio5>;
-		interrupts = <22 IRQ_TYPE_EDGE_RISING>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_iis2mdc>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <5 IRQ_TYPE_EDGE_RISING>;
 		st,drdy-int-pin = <1>;
 	};
 };
@@ -663,6 +665,12 @@
 			MX8MM_IOMUXC_NAND_DATA01_QSPI_A_DATA1	0x82
 			MX8MM_IOMUXC_NAND_DATA02_QSPI_A_DATA2	0x82
 			MX8MM_IOMUXC_NAND_DATA03_QSPI_A_DATA3	0x82
+		>;
+	};
+
+	pinctrl_iis2mdc: iis2mdcgrp {
+		fsl,pins = <
+			MX8MM_IOMUXC_GPIO1_IO05_GPIO1_IO5	0x140
 		>;
 	};
 

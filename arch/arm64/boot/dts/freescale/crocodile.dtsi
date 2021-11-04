@@ -439,6 +439,56 @@
 	status = "okay";
 };
 
+&gpio1 {
+	gpio-line-names =
+		"",
+		"WIFIBT_PWR_DOWN",
+		"", "", "", "", "",
+		"", "", "", "",
+		"IMU_LT_OUT",
+		"IMU1_INT",
+		"IMX8_USB1_OC_SOURCEx",
+		"IMU2_INT",
+		"IMX8_USB1_OC_SINKx";
+};
+
+&gpio3 {
+	gpio-line-names =
+		"", "", "", "", "",
+		"", "", "", "", "",
+		"", "", "", "", "",
+		"", "", "", "",
+		"GNSS_RSTx",
+		"GNSS_SAVEBOOTx",
+		"GNSS_EXTINT",
+		"UHF_SDN",
+		"UHF_GPIO_0",
+		"",
+		"GNSS_PPS";
+};
+
+&gpio4 {
+	gpio-line-names =
+		"DBG_ENET_WOL",
+		"DBG_ENET_INT",
+		"", "", "", "", "",
+		"", "", "", "",
+		"DBG_GPIO1",
+		"", "", "", "", "",
+		"", "", "", "", "",
+		"", "",
+		"LTE_EMERG_RST",
+		"", "",
+		"LTE_ONx",
+		"IMU3_INT";
+};
+
+&gpio5 {
+	gpio-line-names =
+		"", "",
+		"LTE_FST_SHDN";
+};
+
 &iomuxc {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_gpio>;

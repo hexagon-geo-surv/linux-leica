@@ -303,48 +303,49 @@
 
 &ecspi3 {
 	fsl,spi-num-chipselects = <6>;
-	cs-gpios = <0>,
-		   <&gpio5 1 0>,
-		   <&gpio4 25 0>,
-		   <&gpio4 26 0>,
-		   <&gpio4 23 0>,
-		   <&gpio5 3 0>;
+	cs-gpios =
+		   <&gpio5 25 GPIO_ACTIVE_LOW>,
+		   <&gpio5 1 GPIO_ACTIVE_LOW>,
+		   <&gpio4 25 GPIO_ACTIVE_LOW>,
+		   <&gpio4 26 GPIO_ACTIVE_LOW>,
+		   <&gpio4 23 GPIO_ACTIVE_LOW>,
+		   <&gpio5 3 GPIO_ACTIVE_LOW>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_ecspi3>;
 	status = "okay";
 
-	imu1_accel@0 {
-		compatible = "spidev";
+	imu1_accel:bmg088@0 {
+		compatible = "bosch,bmi088-accel";
 		spi-max-frequency = <10000000>;
 		reg = <0>;
 	};
 
-	imu1_gyro@1 {
-		compatible = "spidev";
+	imu1_gyro:bmg088@1 {
+		compatible = "bosch,bmi088_gyro";
 		spi-max-frequency = <10000000>;
 		reg = <1>;
 	};
 
-	imu2_accel@2 {
-		compatible = "spidev";
+	imu2_accel:bmg088@2 {
+		compatible = "bosch,bmi088-accel";
 		spi-max-frequency = <10000000>;
 		reg = <2>;
 	};
 
-	imu2_gyro@3 {
-		compatible = "spidev";
+	imu2_gyro:bmg088@3 {
+		compatible = "bosch,bmi088_gyro";
 		spi-max-frequency = <10000000>;
 		reg = <3>;
 	};
 
-	imu3_accel@4 {
-		compatible = "spidev";
+	imu3_accel:bmg088@4 {
+		compatible = "bosch,bmi088-accel";
 		spi-max-frequency = <10000000>;
 		reg = <4>;
 	};
 
-	imu3_gyro@5 {
-		compatible = "spidev";
+	imu3_gyro:bmg088@5 {
+		compatible = "bosch,bmi088_gyro";
 		spi-max-frequency = <10000000>;
 		reg = <5>;
 	};

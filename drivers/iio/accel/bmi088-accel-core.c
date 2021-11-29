@@ -433,6 +433,18 @@ static const struct bmi088_accel_chip_info bmi088_accel_chip_info_tbl[] = {
 		.channels = bmi088_accel_channels,
 		.num_channels = ARRAY_SIZE(bmi088_accel_channels),
 	},
+	[1] = {
+		.name = "bmi085",
+		.chip_id = 0x1F,
+		.channels = bmi088_accel_channels,
+		.num_channels = ARRAY_SIZE(bmi088_accel_channels),
+	},
+	[2] = {
+		.name = "bmi090l",
+		.chip_id = 0x1a,
+		.channels = bmi088_accel_channels,
+		.num_channels = ARRAY_SIZE(bmi088_accel_channels),
+	},
 };
 
 static const struct iio_info bmi088_accel_info = {

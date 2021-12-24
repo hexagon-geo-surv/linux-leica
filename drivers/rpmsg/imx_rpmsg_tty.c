@@ -114,7 +114,7 @@ static int rpmsgtty_write(struct tty_struct *tty, const unsigned char *buf,
 	return total;
 }
 
-static int rpmsgtty_write_room(struct tty_struct *tty)
+static unsigned int rpmsgtty_write_room(struct tty_struct *tty)
 {
 	/* report the space in the rpmsg buffer */
 	return RPMSG_MAX_SIZE;
@@ -159,7 +159,6 @@ static int rpmsg_tty_probe(struct rpmsg_device *rpdev)
 	tty_port_init(&cport->port);
 	cport->port.ops = &rpmsgtty_port_ops;
 	spin_lock_init(&cport->rx_lock);
-	cport->port.low_latency = cport->port.flags | ASYNC_LOW_LATENCY;
 	cport->rpdev = rpdev;
 	dev_set_drvdata(&rpdev->dev, cport);
 	rpmsgtty_driver->driver_state = cport;

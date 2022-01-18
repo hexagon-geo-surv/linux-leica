@@ -286,7 +286,7 @@
 	status = "okay";
 
 	inclinometer@0 {
-		compatible = "spidev";
+		compatible = "murata,scl3300";
 		spi-max-frequency = <2000000>;
 		reg = <0>;
 	};

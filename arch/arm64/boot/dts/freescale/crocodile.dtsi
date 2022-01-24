@@ -362,6 +362,8 @@
 &uart2 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart2>;
+	dmas = <&sdma1 24 4 0>, <&sdma1 25 4 0>;
+	dma-names = "rx", "tx";
 	uart-has-rtscts;
 	status = "okay";
 };
@@ -370,6 +372,8 @@
 &uart3 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart3>;
+	/delete-property/ dmas;
+	/delete-property/ dma-names;
 	status = "okay";
 };
 

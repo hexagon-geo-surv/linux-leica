@@ -47,6 +47,18 @@
 		regulator-always-on;
 		enable-active-high;
 	};
+
+	gpio-keys {
+		compatible = "gpio-keys";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_gpio_keys>;
+
+		power {
+			label = "Power-Off-Signal";
+			gpios = <&gpio4 28 GPIO_ACTIVE_HIGH>;
+			linux,code = <KEY_POWER>;
+		};
+	};
 };
 
 &iomuxc {
@@ -185,6 +197,12 @@
 		pinctrl_usbhub: regulator-usbhub {
 			fsl,pins = <
 				MX8MM_IOMUXC_GPIO1_IO01_GPIO1_IO1		0x16
+			>;
+		};
+		
+		pinctrl_gpio_keys: gpio-keysgrp {
+			fsl,pins = <
+				MX8MM_IOMUXC_SAI3_RXFS_GPIO4_IO28		0x00
 			>;
 		};
 

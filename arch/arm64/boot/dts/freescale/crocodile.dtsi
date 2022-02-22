@@ -450,7 +450,8 @@
 		"",
 		"WIFIBT_PWR_DOWN",
 		"", "", "", "", "",
-		"", "", "", "",
+		"", "", "",
+		"IMX8_CPU_RDY",
 		"IMU_LT_OUT",
 		"IMU1_INT",
 		"IMX8_USB1_OC_SOURCEx",
@@ -769,6 +770,7 @@
 			CROCODILE_WIFIBT_PWR_DOWN	0x00
 			CROCODILE_IMX8_USB1_OC_SOURCEx	0x00
 			CROCODILE_IMX8_USB1_OC_SINKx	0x00
+			CROCODILE_IMX8_CPU_RDY		0x100
 		>;
 	};
 };

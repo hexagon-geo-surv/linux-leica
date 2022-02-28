@@ -767,6 +767,11 @@
 		reg = <0x51>;
 		pagesize = <64>;
 	};
+
+	leicaPressKABC0: leicaPressKABC@0 {
+		compatible = "bosch,bmp280";
+		reg = <0x76>;
+	};
 };
 
 /* EEPROMs at KVIS2, KVIS3 and KVIS4 */
@@ -802,11 +807,6 @@
 		compatible = "at24,24c256";
 		reg = <0x54>;
 		pagesize = <64>;
-	};
-
-	leicaPressKABC0: leicaPressKABC@0 {
-		compatible = "bosch,bmp280";
-		reg = <0x76>;
 	};
 };
 

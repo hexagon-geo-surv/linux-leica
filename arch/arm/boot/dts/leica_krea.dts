@@ -92,7 +92,11 @@
 		interrupts = <0 21 1>;
 		interrupt-parent = <&intc>;
 
+		/* i2c-controller clock */
 		opencores,ip-clock-frequency = <100000000>;
+
+		/* i2c-bus clock*/
+		clock-frequency = <100000>;
 	};
 
 	/* UIO access: Leica Frame Camera - Base of FPGA SC_SUBSYS

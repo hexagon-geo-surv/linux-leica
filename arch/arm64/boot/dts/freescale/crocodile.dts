@@ -8,6 +8,7 @@
 
 #include <dt-bindings/usb/pd.h>
 #include "imx8mm-evk.dtsi"
+#include "crocodile-rpmsg.dtsi"
 
 / {
 	model = "Crocodile";
@@ -28,7 +29,6 @@
 		constant-charge-voltage-max-microvolt = <4200000>;
 		factory-internal-resistance-micro-ohms = <35>;
 	};
-
 };
 
 &ddrc {

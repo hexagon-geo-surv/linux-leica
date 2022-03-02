@@ -6,6 +6,7 @@
 /dts-v1/;
 
 #include "crocodile.dtsi"
+#include "crocodile-rpmsg.dtsi"
 
 / {
 	model = "Crocodile-PT1";

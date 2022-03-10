@@ -85,9 +85,10 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_ecspi2>;
 	status = "okay";
-	spidev@0x00 {
+
+	uhf@0 {
 		compatible = "lgs-crocodile,spi";
-		spi-max-frequency = <10000000>;
+		spi-max-frequency = <8000000>;
 		reg = <0>;
 	};
 };

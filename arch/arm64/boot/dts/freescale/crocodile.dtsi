@@ -300,7 +300,7 @@
 	status = "okay";
 
 	uhf@0 {
-		compatible = "spidev";
+		compatible = "lgs-crocodile,spi";
 		spi-max-frequency = <8000000>;
 		reg = <0>;
 	};

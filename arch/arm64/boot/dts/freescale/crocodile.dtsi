@@ -447,11 +447,11 @@
 	pinctrl-0 = <&pinctrl_flexspi0>;
 	status = "okay";
 
-	flash0: mt25qu256aba@0 {
+	flash0: gigadevice@0 {
 		reg = <0>;
 		#address-cells = <1>;
 		#size-cells = <1>;
-		compatible = "jedec,spi-nor";
+		compatible = "gd25lq256","jedec,spi-nor";
 		spi-max-frequency = <80000000>;
 		spi-tx-bus-width = <4>;
 		spi-rx-bus-width = <4>;

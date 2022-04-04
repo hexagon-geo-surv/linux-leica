@@ -58,4 +58,11 @@ config DRM_IMX8MP_DW_HDMI_BRIDGE
 	  Choose this to enable support for the internal HDMI encoder found
 	  on the i.MX8MP SoC.
 
+config DRM_IMX8MP_HDMI_PVI
+	tristate "i.MX8MP HDMI PVI bridge support"
+	depends on OF
+	help
+	  Choose this to enable support for the internal HDMI TX Parallel
+	  Video Interface found on the i.MX8MP SoC.
+
 endif # ARCH_MXC || COMPILE_TEST

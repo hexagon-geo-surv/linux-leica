@@ -92,15 +92,80 @@
 		interrupts = <0 21 1>;
 		interrupt-parent = <&intc>;
 
+		/* i2c-controller clock */
 		opencores,ip-clock-frequency = <100000000>;
+
+		/* i2c-bus clock*/
+		clock-frequency = <100000>;
 	};
 
+	/*=================================================*/
 	/* UIO access: Leica Frame Camera - Base of FPGA SC_SUBSYS
 	*/
 	leicaUioSI: leicaUioKAFC_SC_BASE@0 {
 			compatible = "leica-uio";
 			status = "okay";
 			reg = < 0xFF280000 0x00040000 >;
+	};
+
+	/* UIO access: Leica Frame Camera - CAM0 Acquisition
+	*/
+	leicaUioSIAqcCamera0: leicaUioKAFC_ACQ0@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 51 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Leica Frame Camera - CAM1 Acquisition
+	*/
+	leicaUioSIAqcCamera1: leicaUioKAFC_ACQ1@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 52 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Leica Frame Camera - CAM2 Acquisition
+	*/
+	leicaUioSIAqcCamera2: leicaUioKAFC_ACQ2@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 53 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Leica Frame Camera - CAM0 Mean Calculator
+	*/
+	leicaUioSIMeanCamera0: leicaUioKAFC_MEAN0@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 54 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Leica Frame Camera - CAM1 Mean Calculator
+	*/
+	leicaUioSIMeanCamera1: leicaUioKAFC_MEAN1@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 55 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Leica Frame Camera - CAM2 Mean Calculator
+	*/
+	leicaUioSIMeanCamera2: leicaUioKAFC_MEAN2@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 56 1 >;
+			interrupt-parent = <&intc>;
 	};
 
 	/* UIO access: Leica Frame Camera - CAM0 Framewriter 0
@@ -133,9 +198,9 @@
 			interrupt-parent = <&intc>;
 	};
 
-	/* UIO access: Leica Frame Camera - CAM0 Framewriter 1
+	/* UIO access: Leica Frame Camera - CAM0 Histogram
 	*/
-	leicaUioSIFramewriter1Camera0: leicaUioKAFC_FW10@0 {
+	leicaUioSIHistogramCamera0: leicaUioKAFC_HIST0@0 {
 			compatible = "leica-uio";
 			status = "okay";
 			reg = < 0xFF280000 0x00040000 >;
@@ -143,9 +208,9 @@
 			interrupt-parent = <&intc>;
 	};
 
-	/* UIO access: Leica Frame Camera - CAM1 Framewriter 1
+	/* UIO access: Leica Frame Camera - CAM1 Histogram
 	*/
-	leicaUioSIFramewriter1Camera1: leicaUioKAFC_FW11@0 {
+	leicaUioSIHistogramCamera1: leicaUioKAFC_HIST1@0 {
 			compatible = "leica-uio";
 			status = "okay";
 			reg = < 0xFF280000 0x00040000 >;
@@ -153,13 +218,23 @@
 			interrupt-parent = <&intc>;
 	};
 
-	/* UIO access: Leica Frame Camera - CAM2 Framewriter 1
+	/* UIO access: Leica Frame Camera - CAM2 Histogram
 	*/
-	leicaUioSIFramewriter1Camera2: leicaUioKAFC_FW12@0 {
+	leicaUioSIHistogramCamera2: leicaUioKAFC_HIST2@0 {
 			compatible = "leica-uio";
 			status = "okay";
 			reg = < 0xFF280000 0x00040000 >;
 			interrupts = < 0 62 1 >;
+			interrupt-parent = <&intc>;
+	};
+
+	/* UIO access: Leica Frame Camera - CAM0 Framewriter 1
+	*/
+	leicaUioSIFramewriter1Camera0: leicaUioKAFC_FW10@0 {
+			compatible = "leica-uio";
+			status = "okay";
+			reg = < 0xFF280000 0x00040000 >;
+			interrupts = < 0 63 1 >;
 			interrupt-parent = <&intc>;
 	};
 
@@ -169,27 +244,7 @@
 			compatible = "leica-uio";
 			status = "okay";
 			reg = < 0xFF280000 0x00200000 >;
-			interrupts = < 0 63 1 >;
-			interrupt-parent = <&intc>;
-	};
-
-	/* UIO access: Leica Frame Camera - HDR 1
-	*/
-	leicaUioSIHdr1: leicaUioKAFC_HDR1@0 {
-			compatible = "leica-uio";
-			status = "okay";
-			reg = < 0xFF280000 0x00040000 >;
 			interrupts = < 0 64 1 >;
-			interrupt-parent = <&intc>;
-	};
-
-	/* UIO access: Leica Frame Camera - HDR 2
-	*/
-	leicaUioSIHdr2: leicaUioKAFC_HDR2@0 {
-			compatible = "leica-uio";
-			status = "okay";
-			reg = < 0xFF280000 0x00040000 >;
-			interrupts = < 0 65 1 >;
 			interrupt-parent = <&intc>;
 	};
 
@@ -202,69 +257,7 @@
 			interrupts = < 0 66 1 >;
 			interrupt-parent = <&intc>;
 	};
-
-	/* UIO access: Leica Frame Camera - CAM0 Acquisition
-	*/
-	leicaUioSIAqcCamera0: leicaUioKAFC_ACQ0@0 {
-			compatible = "leica-uio";
-			status = "okay";
-			reg = < 0xFF280000 0x00040000 >;
-			interrupts = < 0 51 1 >;
-			interrupt-parent = <&intc>;
-	};
-
-	/* UIO access: Leica Frame Camera - CAM1 Acquisition
-	*/
-	leicaUioSIAqcCamera1: leicaUioKAFC_ACQ1@0 {
-			compatible = "leica-uio";
-			status = "okay";
-			reg = < 0xFF280000 0x00040000 >;
-			interrupts = < 0 52 1 >;
-			interrupt-parent = <&intc>;
-	};
-
-	/* UIO access: Leica Frame Camera - CAM2 Acquisition
-	*/
-	leicaUioSIAqcCamera2: leicaUioKAFC_ACQ2@0 {
-			compatible = "leica-uio";
-			status = "okay";
-			reg = < 0xFF280000 0x00040000 >;
-			interrupts = < 0 53 1 >;
-			interrupt-parent = <&intc>;
-	};
-	
-	/* UIO access: Leica Frame Camera - CAM0 Mean Calculator
-	*/
-	leicaUioSIMeanCamera0: leicaUioKAFC_MEAN0@0 {
-			compatible = "leica-uio";
-			status = "okay";
-			reg = < 0xFF280000 0x00040000 >;
-			interrupts = < 0 54 1 >;
-			interrupt-parent = <&intc>;
-	};
-
-
-	/* UIO access: Leica Frame Camera - CAM1 Mean Calculator
-	*/
-	leicaUioSIMeanCamera1: leicaUioKAFC_MEAN1@0 {
-			compatible = "leica-uio";
-			status = "okay";
-			reg = < 0xFF280000 0x00040000 >;
-			interrupts = < 0 55 1 >;
-			interrupt-parent = <&intc>;
-	};
-
-
-	/* UIO access: Leica Frame Camera - CAM2 Mean Calculator
-	*/
-	leicaUioSIMeanCamera2: leicaUioKAFC_MEAN2@0 {
-			compatible = "leica-uio";
-			status = "okay";
-			reg = < 0xFF280000 0x00040000 >;
-			interrupts = < 0 56 1 >;
-			interrupt-parent = <&intc>;
-	};
-
+	/*=================================================*/
 
 	/* UIO access: Leica Angle, +40 Offset FPGA -> Linux
 	*/
@@ -767,6 +760,11 @@
 		reg = <0x51>;
 		pagesize = <64>;
 	};
+
+	leicaPressKABC0: leicaPressKABC@0 {
+		compatible = "bosch,bmp280";
+		reg = <0x76>;
+	};
 };
 
 /* EEPROMs at KVIS2, KVIS3 and KVIS4 */
@@ -802,11 +800,6 @@
 		compatible = "at24,24c256";
 		reg = <0x54>;
 		pagesize = <64>;
-	};
-
-	leicaPressKABC0: leicaPressKABC@0 {
-		compatible = "bosch,bmp280";
-		reg = <0x76>;
 	};
 };
 

@@ -431,8 +431,8 @@
 &usbotg1 {
 	dr_mode = "otg";
 	disable-over-current;
-	picophy,pre-emp-curr-control = <3>;
-	picophy,dc-vol-level-adjust = <7>;
+	samsung,picophy-pre-emp-curr-control = <3>;
+	samsung,picophy-dc-vol-level-adjust = <7>;
 	ci-disable-lpm;
 	status = "okay";
 };

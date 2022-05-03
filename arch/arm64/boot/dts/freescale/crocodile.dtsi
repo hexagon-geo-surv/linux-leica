@@ -433,6 +433,7 @@
 	disable-over-current;
 	picophy,pre-emp-curr-control = <3>;
 	picophy,dc-vol-level-adjust = <7>;
+	ci-disable-lpm;
 	status = "okay";
 };
 

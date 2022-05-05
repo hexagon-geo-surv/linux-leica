@@ -306,56 +306,6 @@
 	};
 };
 
-&ecspi3 {
-	fsl,spi-num-chipselects = <6>;
-	cs-gpios =
-		   <&gpio5 25 GPIO_ACTIVE_LOW>,
-		   <&gpio5 1 GPIO_ACTIVE_LOW>,
-		   <&gpio4 25 GPIO_ACTIVE_LOW>,
-		   <&gpio4 26 GPIO_ACTIVE_LOW>,
-		   <&gpio4 23 GPIO_ACTIVE_LOW>,
-		   <&gpio5 3 GPIO_ACTIVE_LOW>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_ecspi3>;
-	status = "okay";
-
-	imu1_accel:bmg088@0 {
-		compatible = "bosch,bmi088-accel";
-		spi-max-frequency = <10000000>;
-		reg = <0>;
-	};
-
-	imu1_gyro:bmg088@1 {
-		compatible = "bosch,bmi088_gyro";
-		spi-max-frequency = <10000000>;
-		reg = <1>;
-	};
-
-	imu2_accel:bmg088@2 {
-		compatible = "bosch,bmi088-accel";
-		spi-max-frequency = <10000000>;
-		reg = <2>;
-	};
-
-	imu2_gyro:bmg088@3 {
-		compatible = "bosch,bmi088_gyro";
-		spi-max-frequency = <10000000>;
-		reg = <3>;
-	};
-
-	imu3_accel:bmg088@4 {
-		compatible = "bosch,bmi088-accel";
-		spi-max-frequency = <10000000>;
-		reg = <4>;
-	};
-
-	imu3_gyro:bmg088@5 {
-		compatible = "bosch,bmi088_gyro";
-		spi-max-frequency = <10000000>;
-		reg = <5>;
-	};
-};
-
 /* GNSS module */
 &uart1 {
 	pinctrl-names = "default";
@@ -592,20 +542,6 @@
 			CROCODILE_IMX8_ECSPI2_MOSI	0x0
 			CROCODILE_IMX8_ECSPI2_SCLK	0x0
 			CROCODILE_IMX8_ECSPI2_SS0	0x0
-		>;
-	};
-
-	pinctrl_ecspi3: ecspi3grp {
-		fsl,pins = <
-			CROCODILE_IMX8_ECSPI3_MOSI	0x0
-			CROCODILE_IMX8_ECSPI3_MISO	0x0
-			CROCODILE_IMX8_ECSPI3_SCLK	0x0
-			CROCODILE_IMU_1_CS_ACC		0x0
-			CROCODILE_IMU_1_CS_GYRO		0x0
-			CROCODILE_IMU_2_CS_ACC		0x0
-			CROCODILE_IMU_2_CS_GYRO		0x0
-			CROCODILE_IMU_3_CS_ACC		0x0
-			CROCODILE_IMU_3_CS_GYRO		0x0
 		>;
 	};
 

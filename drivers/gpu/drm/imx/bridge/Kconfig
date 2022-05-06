@@ -8,3 +8,11 @@ config DRM_IMX_DW_HDMI_BRIDGE
 	help
 	  Enable support for the internal HDMI encoder on i.MX8MP SoC
 
+config DRM_IMX_HDMI_PVI
+	tristate "i.MX8MP HDMI PVI bridge support"
+	depends on (ARCH_MXC && ARM64) || COMPILE_TEST
+	depends on DRM && OF
+	help
+	  Enable support for the internal HDMI TX Parallel Video Interface
+	  found on the i.MX8MP SoC.
+

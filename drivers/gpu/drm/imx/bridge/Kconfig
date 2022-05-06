@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-2.0
+
+config DRM_IMX_DW_HDMI_BRIDGE
+	tristate "i.MX8MP HDMI bridge support"
+	depends on (ARCH_MXC && ARM64) || COMPILE_TEST
+	depends on DRM && OF
+	select DRM_DW_HDMI
+	help
+	  Enable support for the internal HDMI encoder on i.MX8MP SoC
+

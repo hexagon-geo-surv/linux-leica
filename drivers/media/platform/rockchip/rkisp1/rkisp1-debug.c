@@ -115,9 +115,21 @@ static int rkisp1_debug_dump_rsz_regs_show(struct seq_file *m, void *p)
 		RKISP1_DEBUG_SHD_REG(RSZ_PHASE_VC),
 		{ /* Sentinel */ },
 	};
+	static const struct rkisp1_debug_register crop_registers[] = {
+		RKISP1_DEBUG_SHD_REG(RSZ_CROP_X_DIR),
+		RKISP1_DEBUG_SHD_REG(RSZ_CROP_Y_DIR),
+		RKISP1_DEBUG_REG(RSZ_FRAME_RATE),
+		RKISP1_DEBUG_REG(RSZ_FORMAT_CONV_CTRL),
+		{ /* Sentinel */ },
+	};
 	struct rkisp1_resizer *rsz = m->private;
 
-	return rkisp1_debug_dump_regs(rsz->rkisp1, m, rsz->regs_base, registers);
+	rkisp1_debug_dump_regs(rsz->rkisp1, m, rsz->regs_base, registers);
+	if (rkisp1_has_feature(rsz->rkisp1, RSZ_CROP))
+		rkisp1_debug_dump_regs(rsz->rkisp1, m, rsz->regs_base,
+				       crop_registers);
+
+	return 0;
 }
 DEFINE_SHOW_ATTRIBUTE(rkisp1_debug_dump_rsz_regs);
 

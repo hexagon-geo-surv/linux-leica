@@ -729,7 +729,7 @@
 
 	pinctrl_iis2mdc: iis2mdcgrp {
 		fsl,pins = <
-			CROCODILE_MAG_DRDY		0x140
+			CROCODILE_MAG_DRDY		0x40
 		>;
 	};
 

@@ -1047,6 +1047,13 @@ struct clk *clk_register_mux_table(struct device *dev, const char *name,
 	__devm_clk_hw_register_mux((dev), NULL, (name), (num_parents), NULL,  \
 			      NULL, (parent_data), (flags), (reg), (shift),   \
 			      BIT((width)) - 1, (clk_mux_flags), table, (lock))
+#define devm_clk_hw_register_mux_parent_data(dev, name, parent_data,	      \
+					     num_parents, flags, reg, shift,  \
+					     width, clk_mux_flags, lock)      \
+	__devm_clk_hw_register_mux((dev), NULL, (name), (num_parents),	      \
+			      NULL, NULL, (parent_data), (flags), (reg),      \
+			      (shift), BIT((width)) - 1, (clk_mux_flags),     \
+			      NULL, (lock))
 
 int clk_mux_val_to_index(struct clk_hw *hw, const u32 *table, unsigned int flags,
 			 unsigned int val);

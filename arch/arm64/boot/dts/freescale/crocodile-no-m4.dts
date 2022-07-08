@@ -4,10 +4,28 @@
  */
 
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
 #include "crocodile-pinmap.h"
 
 /dts-v1/;
 /plugin/;
+
+&i2c4 {
+	clock-frequency = <384000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c4>;
+	status = "okay";
+
+	iis2mdc@1e {
+		compatible = "st,iis2mdc";
+		reg = <0x1e>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_iis2mdc>;
+		interrupt-parent = <&gpio5>;
+		interrupts = <2 IRQ_TYPE_EDGE_RISING>;
+		st,drdy-int-pin = <1>;
+	};
+};
 
 &ecspi3 {
 	fsl,spi-num-chipselects = <6>;
@@ -16,7 +34,7 @@
 		   <&gpio5 1 GPIO_ACTIVE_LOW>,
 		   <&gpio4 25 GPIO_ACTIVE_LOW>,
 		   <&gpio4 26 GPIO_ACTIVE_LOW>,
-		   <&gpio4 23 GPIO_ACTIVE_LOW>,
+		   <&gpio5 4 GPIO_ACTIVE_LOW>,
 		   <&gpio5 3 GPIO_ACTIVE_LOW>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_ecspi3>;
@@ -59,7 +77,51 @@
 	};
 };
 
+&gpio4 {
+	status = "okay";
+	gpio-line-names =
+		"DBG_ENET_WOL",
+		"DBG_ENET_INT",
+		"", "", "", "", "",
+		"", "", "", "",
+		"DBG_GPIO1",
+		"", "", "", "", "",
+		"", "", "", "", "",
+		"", "", "", "", "",
+		"GNSS_PPS",
+		"IMU_3_INT";
+};
+
+&gpio5 {
+	status = "okay";
+	gpio-line-names =
+		"", "",
+		"MAG_DRDY",
+		"", "",
+		"IMU_LT_OUT",
+		"", "", "", "", "",
+		"", "", "", "", "",
+		"", "",
+		"IMU_1_INT",
+		"IMU_2_INT";
+};
+
 &iomuxc {
+	pinctrl-0 = <&pinctrl_gpio>, <&pinctrl_gpio_m4>;
+	
+	pinctrl_i2c4: i2c4grp {
+		fsl,pins = <
+			CROCODILE_IMX8_I2C_4_SCL	0x400001c3
+			CROCODILE_IMX8_I2C_4_SDA	0x400001c3
+		>;
+	};
+
+	pinctrl_iis2mdc: iis2mdcgrp {
+		fsl,pins = <
+			CROCODILE_MAG_DRDY		0x40
+		>;
+	};
+
 	pinctrl_ecspi3: ecspi3grp {
 		fsl,pins = <
 			CROCODILE_IMX8_ECSPI3_MOSI	0x0
@@ -71,6 +133,19 @@
 			CROCODILE_IMU_2_CS_GYRO		0x0
 			CROCODILE_IMU_3_CS_ACC		0x0
 			CROCODILE_IMU_3_CS_GYRO		0x0
+		>;
+	};
+	
+	pinctrl_gpio_m4: gpio_m4grp {
+		fsl,pins = <
+			CROCODILE_IMU_LT_OUT		0x00
+			CROCODILE_IMU_1_INT		0x140
+			CROCODILE_IMU_2_INT		0x140
+			CROCODILE_IMU_3_INT		0x140
+			CROCODILE_GNSS_PPS		0x100
+			CROCODILE_DBG_GPIO1		0x00
+			CROCODILE_DBG_ENET_INT		0x00
+			CROCODILE_DBG_ENET_WOL		0x00
 		>;
 	};
 };

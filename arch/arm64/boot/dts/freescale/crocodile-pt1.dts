@@ -5,6 +5,7 @@
 
 /dts-v1/;
 
+#include "crocodile-pinmap-pt1.h"
 #include "crocodile.dtsi"
 #include "crocodile-rpmsg.dtsi"
 
@@ -18,4 +19,209 @@
 	 */
 	/delete-property/ phy-reset-gpios;
 	/delete-property/ phy-reset-duration;
+};
+
+&i2c1 {
+	/delete-node/ tmp112-sensor@48;
+	/delete-node/ rtc@32;
+};
+
+&i2c3 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c3>;
+	status = "okay";
+
+	temperature: tmp112-sensor@48{
+		compatible = "ti,tmp112";
+		reg = <0x48>;
+	};
+
+	rtc@32 {
+		compatible = "epson,rx8130";
+		reg = <0x32>;
+		aux-voltage-chargeable = <0>;
+		wakeup-source;
+	};
+};
+
+&i2c4 {
+	clock-frequency = <384000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c4>;
+	status = "okay";
+
+	iis2mdc@1e {
+		compatible = "st,iis2mdc";
+		reg = <0x1e>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_iis2mdc>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <5 IRQ_TYPE_EDGE_RISING>;
+		st,drdy-int-pin = <1>;
+	};
+};
+
+&ecspi3 {
+	fsl,spi-num-chipselects = <6>;
+	cs-gpios =
+		   <&gpio5 25 GPIO_ACTIVE_LOW>,
+		   <&gpio5 1 GPIO_ACTIVE_LOW>,
+		   <&gpio4 25 GPIO_ACTIVE_LOW>,
+		   <&gpio4 26 GPIO_ACTIVE_LOW>,
+		   <&gpio4 23 GPIO_ACTIVE_LOW>,
+		   <&gpio5 3 GPIO_ACTIVE_LOW>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_ecspi3>;
+	status = "okay";
+
+	imu1_accel:bmg088@0 {
+		compatible = "bosch,bmi088-accel";
+		spi-max-frequency = <10000000>;
+		reg = <0>;
+	};
+
+	imu1_gyro:bmg088@1 {
+		compatible = "bosch,bmi088_gyro";
+		spi-max-frequency = <10000000>;
+		reg = <1>;
+	};
+
+	imu2_accel:bmg088@2 {
+		compatible = "bosch,bmi088-accel";
+		spi-max-frequency = <10000000>;
+		reg = <2>;
+	};
+
+	imu2_gyro:bmg088@3 {
+		compatible = "bosch,bmi088_gyro";
+		spi-max-frequency = <10000000>;
+		reg = <3>;
+	};
+
+	imu3_accel:bmg088@4 {
+		compatible = "bosch,bmi088-accel";
+		spi-max-frequency = <10000000>;
+		reg = <4>;
+	};
+
+	imu3_gyro:bmg088@5 {
+		compatible = "bosch,bmi088_gyro";
+		spi-max-frequency = <10000000>;
+		reg = <5>;
+	};
+};
+
+&gpio1 {
+	gpio-line-names =
+		"",
+		"WIFIBT_PWR_DOWN",
+		"", "", "", "", "",
+		"", "", "",
+		"IMX8_CPU_RDY",
+		"IMU_LT_OUT",
+		"IMU1_INT",
+		"IMX8_USB1_OC_SOURCEx",
+		"IMU2_INT",
+		"IMX8_USB1_OC_SINKx";
+};
+
+&gpio3 {
+	gpio-line-names =
+		"", "", "", "", "",
+		"", "", "", "", "",
+		"", "", "", "", "",
+		"", "", "", "",
+		"GNSS_RSTx",
+		"GNSS_SAVEBOOTx",
+		"GNSS_EXTINT",
+		"UHF_SDN",
+		"UHF_GPIO_0",
+		"",
+		"GNSS_PPS";
+};
+
+&gpio4 {
+	gpio-line-names =
+		"DBG_ENET_WOL",
+		"DBG_ENET_INT",
+		"", "", "", "", "",
+		"", "", "", "",
+		"DBG_GPIO1",
+		"", "", "", "", "",
+		"", "", "", "", "",
+		"", "",
+		"LTE_EMERG_RST",
+		"", "",
+		"LTE_ONx",
+		"IMU3_INT";
+};
+
+&gpio5 {
+	gpio-line-names =
+		"", "",
+		"LTE_FST_SHDN";
+};
+
+&iomuxc {
+	pinctrl-0 = <&pinctrl_gpio>;
+	
+	pinctrl_i2c3: i2c3grp {
+		fsl,pins = <
+			CROCODILE_IMX8_I2C_3_SCL	0x400001c3
+			CROCODILE_IMX8_I2C_3_SDA	0x400001c3
+		>;
+	};
+	
+	pinctrl_i2c4: i2c4grp {
+		fsl,pins = <
+			CROCODILE_IMX8_I2C_4_SCL	0x400001c3
+			CROCODILE_IMX8_I2C_4_SDA	0x400001c3
+		>;
+	};
+
+	pinctrl_ecspi3: ecspi3grp {
+		fsl,pins = <
+			CROCODILE_IMX8_ECSPI3_MOSI	0x0
+			CROCODILE_IMX8_ECSPI3_MISO	0x0
+			CROCODILE_IMX8_ECSPI3_SCLK	0x0
+			CROCODILE_IMU_1_CS_ACC		0x0
+			CROCODILE_IMU_1_CS_GYRO		0x0
+			CROCODILE_IMU_2_CS_ACC		0x0
+			CROCODILE_IMU_2_CS_GYRO		0x0
+			CROCODILE_IMU_3_CS_ACC		0x0
+			CROCODILE_IMU_3_CS_GYRO		0x0
+		>;
+	};
+	
+	pinctrl_iis2mdc: iis2mdcgrp {
+		fsl,pins = <
+			CROCODILE_MAG_DRDY		0x40
+		>;
+	};
+	
+	pinctrl_gpio: gpiogrp {
+		fsl,pins = <
+			CROCODILE_LTE_ONX		0x00
+			CROCODILE_LTE_EMERG_RST		0x00
+			CROCODILE_LTE_FST_SHDN		0x20
+			CROCODILE_IMU_3_INT		0x140
+			CROCODILE_IMU_LT_OUT		0x00
+			CROCODILE_IMU_1_INT		0x140
+			CROCODILE_IMU_2_INT		0x140
+			CROCODILE_GNSS_PPS		0x100
+			CROCODILE_GNSS_RSTX		0x00
+			CROCODILE_GNSS_SAFEBOOTX	0x00
+			CROCODILE_GNSS_EXTINT		0x00
+			CROCODILE_UHF_SDN		0x00
+			CROCODILE_UHF_GPIO_0		0x100
+			CROCODILE_DBG_GPIO1		0x00
+			CROCODILE_DBG_ENET_INT		0x00
+			CROCODILE_DBG_ENET_WOL		0x00
+			CROCODILE_WIFIBT_PWR_DOWN	0x00
+			CROCODILE_IMX8_USB1_OC_SOURCEx	0x00
+			CROCODILE_IMX8_USB1_OC_SINKx	0x00
+			CROCODILE_IMX8_CPU_RDY		0x100
+		>;
+	};
 };

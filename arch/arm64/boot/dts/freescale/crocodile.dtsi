@@ -8,7 +8,6 @@
 
 #include <dt-bindings/usb/pd.h>
 #include "imx8mm.dtsi"
-#include "crocodile-pinmap.h"
 
 / {
 	compatible = "fsl,imx8mm";
@@ -29,7 +28,10 @@
 		regulator-name = "VSD_3V3";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
+
+		/* CROCODILE_IMX8_SD2_RSTX */
 		gpio = <&gpio2 19 GPIO_ACTIVE_HIGH>;
+
 		enable-active-high;
 	};
 
@@ -40,6 +42,8 @@
 		regulator-name = "USBHUB_RST_N";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
+		
+		/* CROCODILE_MX8_USBHUB_RESETN */
 		gpio = <&gpio3 24 GPIO_ACTIVE_HIGH>;
 		regulator-always-on;
 		enable-active-high;
@@ -47,6 +51,8 @@
 
 	usdhc1_pwrseq: usdhc1_pwrseq {
 		compatible = "mmc-pwrseq-simple";
+
+		/* CROCODILE_WIFIBT_PWR_DOWN */
 		reset-gpios = <&gpio1 1 GPIO_ACTIVE_LOW>;
 	};
 
@@ -104,8 +110,6 @@
 	pinctrl-0 = <&pinctrl_fec1>;
 	phy-mode = "rgmii-id";
 	phy-handle = <&ethphy0>;
-	phy-reset-gpios = <&gpio4 10 GPIO_ACTIVE_LOW>;
-	phy-reset-duration = <10>;
 	fsl,magic-packet;
 	status = "okay";
 
@@ -121,7 +125,7 @@
 };
 
 &i2c1 {
-	clock-frequency = <400000>;
+	clock-frequency = <384000>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c1>;
 	status = "okay";
@@ -226,28 +230,7 @@
 			};
 		};
 	};
-};
-
-&i2c2 {
-	clock-frequency = <100000>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_i2c2>;
-	status = "okay";
-
-	bq78z100: fuel-gauge@55{
-		compatible = "ti,bq78z100";
-		reg = <0x55>;
-		battery-name = "battery";
-		monitored-battery = <&bat>;
-	};
-};
-
-&i2c3 {
-	clock-frequency = <100000>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_i2c3>;
-	status = "okay";
-
+	
 	temperature: tmp112-sensor@48{
 		compatible = "ti,tmp112";
 		reg = <0x48>;
@@ -261,20 +244,17 @@
 	};
 };
 
-&i2c4 {
-	clock-frequency = <384000>;
+&i2c2 {
+	clock-frequency = <100000>;
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_i2c4>;
+	pinctrl-0 = <&pinctrl_i2c2>;
 	status = "okay";
 
-	iis2mdc@1e {
-		compatible = "st,iis2mdc";
-		reg = <0x1e>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_iis2mdc>;
-		interrupt-parent = <&gpio1>;
-		interrupts = <5 IRQ_TYPE_EDGE_RISING>;
-		st,drdy-int-pin = <1>;
+	bq78z100: fuel-gauge@55{
+		compatible = "ti,bq78z100";
+		reg = <0x55>;
+		battery-name = "battery";
+		monitored-battery = <&bat>;
 	};
 };
 
@@ -332,7 +312,7 @@
 	status = "okay";
 };
 
-/* LTE module */
+/* PP4 */
 &uart4 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart4>;
@@ -423,11 +403,19 @@
 		"", "", "", "", "",
 		"", "", "",
 		"IMX8_CPU_RDY",
-		"IMU_LT_OUT",
-		"IMU1_INT",
+		"", "",
 		"IMX8_USB1_OC_SOURCEx",
-		"IMU2_INT",
+		"",
 		"IMX8_USB1_OC_SINKx";
+};
+
+&gpio2 {
+	gpio-line-names =
+		"", "", "", "", "",
+		"", "", "", "", "",
+		"", "", "", "", "",
+		"", "", "", "", "",
+		"LTE_EMERG_RST";
 };
 
 &gpio3 {
@@ -437,34 +425,22 @@
 		"", "", "", "", "",
 		"", "", "", "",
 		"GNSS_RSTx",
-		"GNSS_SAVEBOOTx",
+		"LTE_ONx",
 		"GNSS_EXTINT",
 		"UHF_SDN",
 		"UHF_GPIO_0",
 		"",
-		"GNSS_PPS";
-};
-
-&gpio4 {
-	gpio-line-names =
-		"DBG_ENET_WOL",
-		"DBG_ENET_INT",
-		"", "", "", "", "",
-		"", "", "", "",
-		"DBG_GPIO1",
-		"", "", "", "", "",
-		"", "", "", "", "",
-		"", "",
-		"LTE_EMERG_RST",
-		"", "",
-		"LTE_ONx",
-		"IMU3_INT";
-};
-
-&gpio5 {
-	gpio-line-names =
-		"", "",
 		"LTE_FST_SHDN";
+};
+
+/* Used in M4 */
+&gpio4 {
+	status = "disabled";
+};
+
+/* Used in M4 */
+&gpio5 {
+	status = "disabled";
 };
 
 &iomuxc {
@@ -510,20 +486,6 @@
 		fsl,pins = <
 			CROCODILE_IMX8_I2C_2_SCL	0x400001c0
 			CROCODILE_IMX8_I2C_2_SDA	0x400001c0
-		>;
-	};
-
-	pinctrl_i2c3: i2c3grp {
-		fsl,pins = <
-			CROCODILE_IMX8_I2C_3_SCL	0x400001c3
-			CROCODILE_IMX8_I2C_3_SDA	0x400001c3
-		>;
-	};
-
-	pinctrl_i2c4: i2c4grp {
-		fsl,pins = <
-			CROCODILE_IMX8_I2C_4_SCL	0x400001c3
-			CROCODILE_IMX8_I2C_4_SDA	0x400001c3
 		>;
 	};
 
@@ -727,12 +689,6 @@
 		>;
 	};
 
-	pinctrl_iis2mdc: iis2mdcgrp {
-		fsl,pins = <
-			CROCODILE_MAG_DRDY		0x40
-		>;
-	};
-
 	pinctrl_wdog: wdoggrp {
 		fsl,pins = <
 			CROCODILE_WDOG_B		0x166
@@ -744,23 +700,21 @@
 			CROCODILE_LTE_ONX		0x00
 			CROCODILE_LTE_EMERG_RST		0x00
 			CROCODILE_LTE_FST_SHDN		0x20
-			CROCODILE_IMU_3_INT		0x140
-			CROCODILE_IMU_LT_OUT		0x00
-			CROCODILE_IMU_1_INT		0x140
-			CROCODILE_IMU_2_INT		0x140
-			CROCODILE_GNSS_PPS		0x100
 			CROCODILE_GNSS_RSTX		0x00
-			CROCODILE_GNSS_SAFEBOOTX	0x00
 			CROCODILE_GNSS_EXTINT		0x00
 			CROCODILE_UHF_SDN		0x00
 			CROCODILE_UHF_GPIO_0		0x100
-			CROCODILE_DBG_GPIO1		0x00
-			CROCODILE_DBG_ENET_INT		0x00
-			CROCODILE_DBG_ENET_WOL		0x00
 			CROCODILE_WIFIBT_PWR_DOWN	0x00
 			CROCODILE_IMX8_USB1_OC_SOURCEx	0x00
 			CROCODILE_IMX8_USB1_OC_SINKx	0x00
 			CROCODILE_IMX8_CPU_RDY		0x100
+			
+			/* Set reworked pads to opendrain */
+			MX8MM_IOMUXC_GPIO1_IO05_GPIO1_IO5	0x20
+			MX8MM_IOMUXC_GPIO1_IO11_GPIO1_IO11	0x20
+			MX8MM_IOMUXC_GPIO1_IO12_GPIO1_IO12	0x20
+			MX8MM_IOMUXC_GPIO1_IO14_GPIO1_IO14	0x20
+			MX8MM_IOMUXC_SAI2_TXFS_GPIO4_IO24	0x20
 		>;
 	};
 };

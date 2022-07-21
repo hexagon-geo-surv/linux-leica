@@ -5884,6 +5884,14 @@ static void apex_pci_fixup_class(struct pci_dev *pdev)
 DECLARE_PCI_FIXUP_CLASS_HEADER(0x1ac1, 0x089a,
 			       PCI_CLASS_NOT_DEFINED, 8, apex_pci_fixup_class);
 
+static void mpf_pci_fixup_class(struct pci_dev *pdev)
+{
+	pci_info(pdev, "FIXUP MPF class\n");
+	pdev->class = (PCI_CLASS_SYSTEM_OTHER << 8) | pdev->class;
+}
+DECLARE_PCI_FIXUP_CLASS_HEADER(0x11aa, 0x1556,
+				PCI_CLASS_NOT_DEFINED, 8, mpf_pci_fixup_class);
+
 /*
  * Pericom PI7C9X2G404/PI7C9X2G304/PI7C9X2G303 switch erratum E5 -
  * ACS P2P Request Redirect is not functional

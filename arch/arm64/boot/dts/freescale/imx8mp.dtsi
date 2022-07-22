@@ -1505,6 +1505,10 @@
 				power-domain-names = "bus", "irqsteer", "lcdif",
 						     "pai", "pvi", "trng",
 						     "hdmi-tx", "hdmi-tx-phy";
+				interconnects = <&noc IMX8MP_ICM_LCDIF_HDMI &noc IMX8MP_ICN_HDMI>,
+						<&noc IMX8MP_ICM_HRV &noc IMX8MP_ICN_HDMI>,
+						<&noc IMX8MP_ICM_HDCP &noc IMX8MP_ICN_HDMI>;
+				interconnect-names = "lcdif-hdmi", "hrv", "hdcp";
 				#power-domain-cells = <1>;
 			};
 

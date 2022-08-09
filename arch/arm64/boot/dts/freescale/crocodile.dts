@@ -87,7 +87,7 @@
 	status = "okay";
 
 	uhf@0 {
-		compatible = "lgs-crocodile,spi";
+		compatible = "leica,spidev";
 		spi-max-frequency = <8000000>;
 		reg = <0>;
 	};

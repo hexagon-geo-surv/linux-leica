@@ -319,6 +319,8 @@
 	pinctrl-0 = <&pinctrl_uart2>;
 	dmas = <&sdma1 24 4 0>, <&sdma1 25 4 0>;
 	dma-names = "rx", "tx";
+	assigned-clocks = <&clk IMX8MM_CLK_UART2>;
+	assigned-clock-parents = <&clk IMX8MM_SYS_PLL1_80M>;
 	uart-has-rtscts;
 	status = "okay";
 };

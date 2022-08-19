@@ -49,6 +49,7 @@
 #include <linux/moduleparam.h>
 #include <linux/kthread.h>
 #include <linux/tick.h>
+#include <linux/rcuwait.h>
 
 #define CREATE_TRACE_POINTS
 
@@ -371,6 +372,13 @@ void __wait_rcu_gp(bool checktiny, int n, call_rcu_func_t *crcu_array,
 	}
 }
 EXPORT_SYMBOL_GPL(__wait_rcu_gp);
+
+void finish_rcuwait(struct rcuwait *w)
+{
+	rcu_assign_pointer(w->task, NULL);
+	__set_current_state(TASK_RUNNING);
+}
+EXPORT_SYMBOL_GPL(finish_rcuwait);
 
 #ifdef CONFIG_DEBUG_OBJECTS_RCU_HEAD
 void init_rcu_head(struct rcu_head *head)

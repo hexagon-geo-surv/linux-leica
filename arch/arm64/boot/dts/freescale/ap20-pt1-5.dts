@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (C) 2021 Leica Geosystems AG
+ */
+
+/dts-v1/;
+
+#include "ap20.dtsi"
+
+/ {
+       model = "AP20-PT1.5";
+};
+
+&fec1 {
+       /*
+        * disable reset gpio since PHY is not detected anymore after a reset.
+        */
+       /delete-property/ phy-reset-gpios;
+       /delete-property/ phy-reset-duration;
+};

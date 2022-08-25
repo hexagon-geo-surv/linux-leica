@@ -1,0 +1,97 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright 2022 Ideas on Board Oy
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/clock/imx8mp-clock.h>
+#include <dt-bindings/gpio/gpio.h>
+#include "imx8mp-pinfunc.h"
+
+/ {
+	fragment@0 {
+		target = <&iomuxc>;
+		__overlay__ {
+			pinctrl_csi0_pwn: csi0_pwn_grp {
+				fsl,pins = <
+					MX8MP_IOMUXC_GPIO1_IO15__GPIO1_IO15	0x19
+				>;
+			};
+
+			pinctrl_csi0_rst: csi0_rst_grp {
+				fsl,pins = <
+					MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06	0x19
+				>;
+			};
+
+			pinctrl_i2c2: i2c2grp {
+				fsl,pins = <
+					MX8MP_IOMUXC_I2C2_SCL__I2C2_SCL		0x400001c2
+					MX8MP_IOMUXC_I2C2_SDA__I2C2_SDA		0x400001c2
+				>;
+			};
+
+		};
+	};
+
+	fragment@1 {
+		target = <&i2c2>;
+		__overlay__ {
+			clock-frequency = <100000>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_i2c2>;
+			status = "okay";
+
+			camera: imx219@10 {
+				compatible = "sony,imx219";
+				reg = <0x10>;
+
+				pinctrl-names = "default";
+				pinctrl-0 = <&pinctrl_csi0_pwn>, <&pinctrl_csi0_rst>;
+
+				clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+				clock-names = "xclk";
+				assigned-clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+				assigned-clock-parents = <&clk IMX8MP_CLK_24M>;
+				assigned-clock-rates = <24000000>;
+
+				reset-gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
+				pwdn-gpios = <&gpio1 15 GPIO_ACTIVE_HIGH>;
+
+				rotation = <0>;
+				orientation = <2>; /* External camera */
+
+				status = "okay";
+
+				port {
+					imx219_out: endpoint {
+						remote-endpoint = <&mipi_csi_0_in>;
+						data-lanes = <1 2>;
+						clock-noncontinuous;
+						link-frequencies = /bits/ 64 <456000000>;
+					};
+				};
+			};
+		};
+	};
+
+	fragment@2 {
+		target = <&mipi_csi_0>;
+		__overlay__ {
+			status = "okay";
+
+			ports {
+				port@0 {
+					mipi_csi_0_in: endpoint {
+						remote-endpoint = <&imx219_out>;
+						clock-lanes = <0>;
+						data-lanes = <1 2>;
+					};
+				};
+			};
+		};
+	};
+
+};

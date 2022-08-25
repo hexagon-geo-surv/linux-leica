@@ -1,0 +1,45 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright 2022 Ideas on Board Oy
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/media/video-interfaces.h>
+
+/ {
+	fragment@0 {
+		target = <&isp_1>;
+		__overlay__ {
+			status = "okay";
+
+			ports {
+				port@1 {
+					isp1_in: endpoint {
+						bus-type = <MEDIA_BUS_TYPE_PARALLEL>;
+						remote-endpoint = <&mipi_csi_1_out>;
+					};
+				};
+			};
+		};
+	};
+
+	fragment@1 {
+		target = <&mipi_csi_1_out>;
+		__overlay__ {
+			remote-endpoint = <&isp1_in>;
+		};
+	};
+
+	fragment@2 {
+		target = <&isi_0>;
+		__overlay__ {
+			ports {
+				port@1 {
+					/delete-node/ endpoint;
+				};
+			};
+		};
+	};
+};

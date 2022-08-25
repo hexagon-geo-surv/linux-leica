@@ -688,7 +688,7 @@
 
 	pinctrl_uart1: uart1grp {
 		fsl,pins = <
-			CROCODILE_IMX8_UART1_RXD	0x20
+			CROCODILE_IMX8_UART1_RXD	0x00
 			CROCODILE_IMX8_UART1_TXD	0x20
 		>;
 	};

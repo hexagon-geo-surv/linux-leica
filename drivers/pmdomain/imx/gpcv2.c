@@ -1463,7 +1463,7 @@ static int imx_gpcv2_probe(struct platform_device *pdev)
 		of_get_child_by_name(dev->of_node, "pgc");
 	struct regmap *regmap;
 	void __iomem *base;
-	int ret;
+	int ret, pass = 0;
 
 	if (!pgc_np) {
 		dev_err(dev, "No power domains specified in DT\n");
@@ -1481,12 +1481,24 @@ static int imx_gpcv2_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	/*
+	 * Run two passes for the registration of the PGC domain platform
+	 * devices: first all devices that are not part of a power-domain
+	 * themselves, then all the others. This avoids -EPROBE_DEFER being
+	 * returned for nested domains, that need their parent PGC domains
+	 * to be present on probe.
+	 */
+again:
 	for_each_child_of_node_scoped(pgc_np, np) {
+		bool child_domain = of_property_present(np, "power-domains");
 		struct platform_device *pd_pdev;
 		struct imx_pgc_domain *domain;
 		u32 domain_index;
 
 		if (!of_device_is_available(np))
+			continue;
+
+		if ((pass == 0 && child_domain) || (pass == 1 && !child_domain))
 			continue;
 
 		ret = of_property_read_u32(np, "reg", &domain_index);
@@ -1532,6 +1544,11 @@ static int imx_gpcv2_probe(struct platform_device *pdev)
 			platform_device_put(pd_pdev);
 			return ret;
 		}
+	}
+
+	if (pass == 0) {
+		pass++;
+		goto again;
 	}
 
 	return 0;

@@ -5,11 +5,12 @@
 
 /dts-v1/;
 
+#include "crocodile-pinmap.h"
 #include "crocodile.dtsi"
 #include "crocodile-rpmsg.dtsi"
 
 / {
-	model = "Crocodile-PT1";
+	model = "Crocodile-Rev-C";
 };
 
 &fec1 {

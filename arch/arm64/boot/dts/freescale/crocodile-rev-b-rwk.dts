@@ -1,0 +1,47 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (C) 2021 Leica Geosystems AG
+ */
+
+/dts-v1/;
+
+#include "crocodile-pinmap.h"
+#include "crocodile.dtsi"
+#include "crocodile-rpmsg.dtsi"
+
+/ {
+	model = "Crocodile-Rev-B-rwk";
+};
+
+&fec1 {
+	/*
+	 * disable reset gpio since PHY is not detected anymore after a reset.
+	 */
+	/delete-property/ phy-reset-gpios;
+	/delete-property/ phy-reset-duration;
+};
+
+&iomuxc {
+	pinctrl_gpio: gpiogrp {
+		fsl,pins = <
+			CROCODILE_LTE_ONX		0x00
+			CROCODILE_LTE_EMERG_RST		0x00
+			CROCODILE_LTE_FST_SHDN		0x20
+			CROCODILE_GNSS_RSTX		0x00
+			CROCODILE_GNSS_EXTINT		0x00
+			CROCODILE_UHF_SDN		0x00
+			CROCODILE_UHF_GPIO_0		0x100
+			CROCODILE_WIFIBT_PWR_DOWN	0x00
+			CROCODILE_IMX8_USB1_OC_SOURCEx	0x00
+			CROCODILE_IMX8_USB1_OC_SINKx	0x00
+			CROCODILE_IMX8_CPU_RDY		0x100
+			
+			/* Set reworked pads */
+			MX8MM_IOMUXC_GPIO1_IO05_GPIO1_IO5	0x20
+			MX8MM_IOMUXC_GPIO1_IO11_GPIO1_IO11	0x20
+			MX8MM_IOMUXC_GPIO1_IO12_GPIO1_IO12	0x00
+			MX8MM_IOMUXC_GPIO1_IO14_GPIO1_IO14	0x00
+			MX8MM_IOMUXC_SAI2_TXFS_GPIO4_IO24	0x20
+		>;
+	};
+};

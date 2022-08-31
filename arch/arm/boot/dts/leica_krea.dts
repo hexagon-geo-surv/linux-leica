@@ -198,9 +198,9 @@
 			interrupt-parent = <&intc>;
 	};
 
-	/* UIO access: Leica Frame Camera - CAM0 Histogram
+	/* UIO access: Leica Frame Camera - CAM0 Framewriter 1
 	*/
-	leicaUioSIHistogramCamera0: leicaUioKAFC_HIST0@0 {
+	leicaUioSIFramewriter1Camera0: leicaUioKAFC_FW10@0 {
 			compatible = "leica-uio";
 			status = "okay";
 			reg = < 0xFF280000 0x00040000 >;
@@ -208,47 +208,17 @@
 			interrupt-parent = <&intc>;
 	};
 
-	/* UIO access: Leica Frame Camera - CAM1 Histogram
-	*/
-	leicaUioSIHistogramCamera1: leicaUioKAFC_HIST1@0 {
-			compatible = "leica-uio";
-			status = "okay";
-			reg = < 0xFF280000 0x00040000 >;
-			interrupts = < 0 61 1 >;
-			interrupt-parent = <&intc>;
-	};
-
-	/* UIO access: Leica Frame Camera - CAM2 Histogram
-	*/
-	leicaUioSIHistogramCamera2: leicaUioKAFC_HIST2@0 {
-			compatible = "leica-uio";
-			status = "okay";
-			reg = < 0xFF280000 0x00040000 >;
-			interrupts = < 0 62 1 >;
-			interrupt-parent = <&intc>;
-	};
-
-	/* UIO access: Leica Frame Camera - CAM0 Framewriter 1
-	*/
-	leicaUioSIFramewriter1Camera0: leicaUioKAFC_FW10@0 {
-			compatible = "leica-uio";
-			status = "okay";
-			reg = < 0xFF280000 0x00040000 >;
-			interrupts = < 0 63 1 >;
-			interrupt-parent = <&intc>;
-	};
-
-	/* UIO access: Leica Frame Camera - HDR 0
+	/* UIO access: Leica Frame Camera - HDR Merge 0
 	*/
 	leicaUioSIHdr0: leicaUioKAFC_HDR0@0 {
 			compatible = "leica-uio";
 			status = "okay";
 			reg = < 0xFF280000 0x00200000 >;
-			interrupts = < 0 64 1 >;
+			interrupts = < 0 63 1 >;
 			interrupt-parent = <&intc>;
 	};
 
-	/* UIO access: Leica Frame Camera - JLS framewriter
+	/* UIO access: Leica Frame Camera - JLS Framewriter
 	*/
 	leicaUioSIFramewriterJLS0: leicaUioKAFC_JLS@0 {
 			compatible = "leica-uio";

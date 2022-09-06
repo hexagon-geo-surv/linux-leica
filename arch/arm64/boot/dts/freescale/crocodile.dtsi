@@ -314,7 +314,7 @@
 	status = "okay";
 };
 
-/* PP4 */
+/* MCU */
 &uart4 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart4>;
@@ -673,8 +673,8 @@
 
 	pinctrl_uart4: uart4grp {
 		fsl,pins = <
-			CROCODILE_IMX8_UART4_RXD	0x140
-			CROCODILE_IMX8_UART4_TXD	0x140
+			CROCODILE_IMX8_UART4_RXD	0x0
+			CROCODILE_IMX8_UART4_TXD	0x170
 		>;
 	};
 

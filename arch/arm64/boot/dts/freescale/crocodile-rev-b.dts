@@ -141,6 +141,7 @@
 };
 
 &gpio4 {
+	status = "okay";
 	gpio-line-names =
 		"DBG_ENET_WOL",
 		"DBG_ENET_INT",
@@ -157,6 +158,7 @@
 };
 
 &gpio5 {
+	status = "okay";
 	gpio-line-names =
 		"", "",
 		"LTE_FST_SHDN";

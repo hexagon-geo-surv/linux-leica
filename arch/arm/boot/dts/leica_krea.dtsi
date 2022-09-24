@@ -13,6 +13,19 @@
 		bootargs = "debug console=ttyAL0,115200";
 	};
 
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		reserved: fpga-pool@0 {
+			compatible = "shared-dma-pool";
+			size = <0x60000000>;
+			reusable;
+			linux,cma-default;
+		};
+	};
+
 	soc {
 		clkmgr@ffd04000 {
 			clocks {

@@ -8,6 +8,7 @@
 
 #include <dt-bindings/phy/phy-imx8-pcie.h>
 #include "imx8mp.dtsi"
+#include "beluga-rpmsg.dtsi"
 
 / {
 	model = "Leica Geosystems Beluga";

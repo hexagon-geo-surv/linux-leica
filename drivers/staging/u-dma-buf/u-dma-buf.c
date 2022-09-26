@@ -154,9 +154,9 @@ MODULE_PARM_DESC( info_enable , "udmabuf install/uninstall infomation enable");
 /**
  * dma_mask_bit module parameter
  */
-static int        dma_mask_bit = 32;
+static int        dma_mask_bit = 64;
 module_param(     dma_mask_bit, int, S_IRUGO);
-MODULE_PARM_DESC( dma_mask_bit, "udmabuf dma mask bit(default=32)");
+MODULE_PARM_DESC( dma_mask_bit, "udmabuf dma mask bit(default=64)");
 
 /**
  * DOC: Udmabuf Device Data Structure

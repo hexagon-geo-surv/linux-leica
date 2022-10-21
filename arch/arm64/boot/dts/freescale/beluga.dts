@@ -389,6 +389,20 @@
 	status = "okay";
 };
 
+/* USB1 - Type C PORT 1 */
+&usb3_phy0 {
+       status = "okay";
+};
+
+&usb3_0 {
+       status = "okay";
+};
+
+&usb_dwc3_0 {
+       dr_mode = "otg";
+       status = "okay";
+};
+
 &usb3_phy1 {
 	status = "okay";
 };

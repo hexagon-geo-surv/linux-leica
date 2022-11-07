@@ -1135,9 +1135,6 @@
 				power-domains = <&media_blk_ctrl IMX8MP_MEDIABLK_PD_LCDIF_1>;
 				status = "disabled";
 
-				#address-cells = <1>;
-				#size-cells = <0>;
-
 				lcdif1_disp: port {
 					lcdif_to_dsim: endpoint {
 						remote-endpoint = <&dsim_from_lcdif>;

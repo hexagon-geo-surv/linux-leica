@@ -629,13 +629,10 @@ static int phy_request_driver_module(struct phy_device *dev, u32 phy_id)
 	return 0;
 }
 
-struct phy_device *phy_device_create(struct mii_bus *bus, int addr, u32 phy_id,
-				     bool is_c45,
-				     struct phy_c45_device_ids *c45_ids)
+static struct phy_device *phy_device_alloc(struct mii_bus *bus, int addr)
 {
 	struct phy_device *dev;
 	struct mdio_device *mdiodev;
-	int ret = 0;
 
 	/* We allocate the device, and initialize the default values */
 	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
@@ -653,6 +650,15 @@ struct phy_device *phy_device_create(struct mii_bus *bus, int addr, u32 phy_id,
 	mdiodev->device_free = phy_mdio_device_free;
 	mdiodev->device_remove = phy_mdio_device_remove;
 
+	dev_set_name(&mdiodev->dev, PHY_ID_FMT, bus->id, addr);
+	device_initialize(&mdiodev->dev);
+
+	return dev;
+}
+
+static int phy_device_init(struct phy_device *dev, u32 phy_id, bool is_c45,
+			   struct phy_c45_device_ids *c45_ids)
+{
 	dev->speed = SPEED_UNKNOWN;
 	dev->duplex = DUPLEX_UNKNOWN;
 	dev->pause = 0;
@@ -669,9 +675,6 @@ struct phy_device *phy_device_create(struct mii_bus *bus, int addr, u32 phy_id,
 	if (c45_ids)
 		dev->c45_ids = *c45_ids;
 	dev->irq = bus->irq[addr];
-
-	dev_set_name(&mdiodev->dev, PHY_ID_FMT, bus->id, addr);
-	device_initialize(&mdiodev->dev);
 
 	dev->state = PHY_DOWN;
 
@@ -690,7 +693,7 @@ struct phy_device *phy_device_create(struct mii_bus *bus, int addr, u32 phy_id,
 	 */
 	if (is_c45 && c45_ids) {
 		const int num_ids = ARRAY_SIZE(c45_ids->device_ids);
-		int i;
+		int ret, i;
 
 		for (i = 1; i < num_ids; i++) {
 			if (c45_ids->device_ids[i] == 0xffffffff)
@@ -699,14 +702,29 @@ struct phy_device *phy_device_create(struct mii_bus *bus, int addr, u32 phy_id,
 			ret = phy_request_driver_module(dev,
 						c45_ids->device_ids[i]);
 			if (ret)
-				break;
+				return ret;
 		}
-	} else {
-		ret = phy_request_driver_module(dev, phy_id);
+
+		return 0;
 	}
 
+	return phy_request_driver_module(dev, phy_id);
+}
+
+struct phy_device *phy_device_create(struct mii_bus *bus, int addr, u32 phy_id,
+				     bool is_c45,
+				     struct phy_c45_device_ids *c45_ids)
+{
+	struct phy_device *dev;
+	int ret;
+
+	dev = phy_device_alloc(bus, addr);
+	if (IS_ERR(dev))
+		return dev;
+
+	ret = phy_device_init(dev, phy_id, is_c45, c45_ids);
 	if (ret) {
-		put_device(&mdiodev->dev);
+		put_device(&dev->mdio.dev);
 		dev = ERR_PTR(ret);
 	}
 

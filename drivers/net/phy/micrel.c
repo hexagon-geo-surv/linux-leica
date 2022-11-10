@@ -3055,7 +3055,7 @@ static void lan8814_ptp_init(struct phy_device *phydev)
 	ptp_priv->mii_ts.hwtstamp = lan8814_hwtstamp;
 	ptp_priv->mii_ts.ts_info  = lan8814_ts_info;
 
-	phydev->mii_ts = &ptp_priv->mii_ts;
+	phy_device_set_miits(phydev, &ptp_priv->mii_ts);
 }
 
 static int lan8814_ptp_probe_once(struct phy_device *phydev)

@@ -732,6 +732,22 @@ struct phy_device *phy_device_create(struct mii_bus *bus, int addr, u32 phy_id,
 }
 EXPORT_SYMBOL(phy_device_create);
 
+void phy_device_set_miits(struct phy_device *phydev,
+			  struct mii_timestamper *mii_ts)
+{
+	if (!phydev)
+		return;
+
+	if (phydev->mii_ts) {
+		phydev_dbg(phydev,
+			   "MII timestamper already set -> skip set\n");
+		return;
+	}
+
+	phydev->mii_ts = mii_ts;
+}
+EXPORT_SYMBOL(phy_device_set_miits);
+
 /* phy_c45_probe_present - checks to see if a MMD is present in the package
  * @bus: the target MII bus
  * @prtad: PHY package address on the MII bus

@@ -938,6 +938,32 @@ int fwnode_get_phy_id(struct fwnode_handle *fwnode, u32 *phy_id)
 }
 EXPORT_SYMBOL(fwnode_get_phy_id);
 
+static int phy_device_detect(struct mii_bus *bus, int addr, bool *is_c45,
+			     u32 *phy_id, struct phy_c45_device_ids *c45_ids)
+{
+	int r;
+
+	if (*is_c45)
+		r = get_phy_c45_ids(bus, addr, c45_ids);
+	else
+		r = get_phy_c22_id(bus, addr, phy_id);
+
+	if (r)
+		return r;
+
+	/* PHY device such as the Marvell Alaska 88E2110 will return a PHY ID
+	 * of 0 when probed using get_phy_c22_id() with no error. Proceed to
+	 * probe with C45 to see if we're able to get a valid PHY ID in the C45
+	 * space, if successful, create the C45 PHY device.
+	 */
+	if (!*is_c45 && *phy_id == 0 && bus->read_c45) {
+		*is_c45 = true;
+		return get_phy_c45_ids(bus, addr, c45_ids);
+	}
+
+	return 0;
+}
+
 /**
  * get_phy_device - reads the specified PHY device and returns its @phy_device
  *		    struct
@@ -967,25 +993,9 @@ struct phy_device *get_phy_device(struct mii_bus *bus, int addr, bool is_c45)
 	c45_ids.mmds_present = 0;
 	memset(c45_ids.device_ids, 0xff, sizeof(c45_ids.device_ids));
 
-	if (is_c45)
-		r = get_phy_c45_ids(bus, addr, &c45_ids);
-	else
-		r = get_phy_c22_id(bus, addr, &phy_id);
-
+	r = phy_device_detect(bus, addr, &is_c45, &phy_id, &c45_ids);
 	if (r)
 		return ERR_PTR(r);
-
-	/* PHY device such as the Marvell Alaska 88E2110 will return a PHY ID
-	 * of 0 when probed using get_phy_c22_id() with no error. Proceed to
-	 * probe with C45 to see if we're able to get a valid PHY ID in the C45
-	 * space, if successful, create the C45 PHY device.
-	 */
-	if (!is_c45 && phy_id == 0 && bus->read_c45) {
-		r = get_phy_c45_ids(bus, addr, &c45_ids);
-		if (!r)
-			return phy_device_create(bus, addr, phy_id,
-						 true, &c45_ids);
-	}
 
 	return phy_device_create(bus, addr, phy_id, is_c45, &c45_ids);
 }

@@ -905,7 +905,7 @@ static void bcm_ptp_init(struct bcm_ptp_private *priv)
 	priv->mii_ts.hwtstamp = bcm_ptp_hwtstamp;
 	priv->mii_ts.ts_info = bcm_ptp_ts_info;
 
-	priv->phydev->mii_ts = &priv->mii_ts;
+	phy_device_set_miits(priv->phydev, &priv->mii_ts);
 }
 
 struct bcm_ptp_private *bcm_ptp_probe(struct phy_device *phydev)

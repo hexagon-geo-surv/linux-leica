@@ -1485,7 +1485,7 @@ static int __vsc8584_init_ptp(struct phy_device *phydev)
 	vsc8531->mii_ts.txtstamp = vsc85xx_txtstamp;
 	vsc8531->mii_ts.hwtstamp = vsc85xx_hwtstamp;
 	vsc8531->mii_ts.ts_info  = vsc85xx_ts_info;
-	phydev->mii_ts = &vsc8531->mii_ts;
+	phy_device_set_miits(phydev, &vsc8531->mii_ts);
 
 	memcpy(&vsc8531->ptp->caps, &vsc85xx_clk_caps, sizeof(vsc85xx_clk_caps));
 

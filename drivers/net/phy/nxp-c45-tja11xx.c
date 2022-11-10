@@ -1658,7 +1658,7 @@ static int nxp_c45_probe(struct phy_device *phydev)
 		priv->mii_ts.txtstamp = nxp_c45_txtstamp;
 		priv->mii_ts.hwtstamp = nxp_c45_hwtstamp;
 		priv->mii_ts.ts_info = nxp_c45_ts_info;
-		phydev->mii_ts = &priv->mii_ts;
+		phy_device_set_miits(phydev, &priv->mii_ts);
 		ret = nxp_c45_init_ptp_clock(priv);
 
 		/* Timestamp selected by default to keep legacy API */

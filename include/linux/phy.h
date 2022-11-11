@@ -761,6 +761,7 @@ static inline struct phy_device *to_phy_device(const struct device *dev)
  *
  * @mii_bus: The target MII bus the PHY is connected to
  * @phy_addr: PHY address on the MII bus
+ * @fwnode: The PHY firmware handle
  * @phy_id: UID for this device found during discovery
  * @c45_ids: 802.3-c45 Device Identifiers if is_c45.
  * @is_c45: If true the PHY uses the 802.3 clause 45 protocol
@@ -774,6 +775,7 @@ static inline struct phy_device *to_phy_device(const struct device *dev)
 struct phy_device_config {
 	struct mii_bus *mii_bus;
 	int phy_addr;
+	struct fwnode_handle *fwnode;
 	u32 phy_id;
 	struct phy_c45_device_ids c45_ids;
 	bool is_c45;
@@ -1574,6 +1576,7 @@ struct phy_device *device_phy_find_device(struct device *dev);
 struct fwnode_handle *fwnode_get_phy_node(const struct fwnode_handle *fwnode);
 struct phy_device *get_phy_device(struct phy_device_config *config);
 int phy_device_register(struct phy_device *phy);
+struct phy_device *phy_device_atomic_register(struct phy_device_config *config);
 void phy_device_free(struct phy_device *phydev);
 #else
 static inline int fwnode_get_phy_id(struct fwnode_handle *fwnode, u32 *phy_id)
@@ -1612,6 +1615,12 @@ struct phy_device *get_phy_device(struct phy_device_config *config)
 static inline int phy_device_register(struct phy_device *phy)
 {
 	return 0;
+}
+
+static inline
+struct phy_device *phy_device_atomic_register(struct phy_device_config *config)
+{
+	return NULL;
 }
 
 static inline void phy_device_free(struct phy_device *phydev) { }

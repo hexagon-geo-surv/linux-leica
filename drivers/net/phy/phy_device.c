@@ -3124,6 +3124,214 @@ struct fwnode_handle *fwnode_get_phy_node(const struct fwnode_handle *fwnode)
 }
 EXPORT_SYMBOL_GPL(fwnode_get_phy_node);
 
+static int fwnode_setup_phy_irq(struct phy_device *phydev, struct mii_bus *bus,
+				struct fwnode_handle *fwnode)
+{
+	u32 addr = phydev->mdio.addr;
+	int ret;
+
+	if (is_acpi_node(fwnode)) {
+		phydev->irq = bus->irq[addr];
+		return 0;
+	}
+
+	/* of_node */
+	ret = fwnode_irq_get(fwnode, 0);
+	/* Don't wait forever if the IRQ provider doesn't become available,
+	 * just fall back to poll mode
+	 */
+	if (ret == -EPROBE_DEFER)
+		ret = driver_deferred_probe_check_state(&phydev->mdio.dev);
+	if (ret == -EPROBE_DEFER)
+		return ret;
+
+	if (ret > 0) {
+		phydev->irq = ret;
+		bus->irq[addr] = ret;
+	} else {
+		phydev->irq = bus->irq[addr];
+	}
+
+	return 0;
+}
+
+static struct pse_control *
+fwnode_find_pse_control(struct fwnode_handle *fwnode)
+{
+	struct pse_control *psec;
+	struct device_node *np;
+
+	if (!IS_ENABLED(CONFIG_PSE_CONTROLLER))
+		return NULL;
+
+	np = to_of_node(fwnode);
+	if (!np)
+		return NULL;
+
+	psec = of_pse_control_get(np);
+	if (PTR_ERR(psec) == -ENOENT)
+		return NULL;
+
+	return psec;
+}
+
+static struct mii_timestamper *
+fwnode_find_mii_timestamper(struct fwnode_handle *fwnode)
+{
+	struct of_phandle_args arg;
+	int err;
+
+	if (is_acpi_node(fwnode))
+		return NULL;
+
+	err = of_parse_phandle_with_fixed_args(to_of_node(fwnode),
+					       "timestamper", 1, 0, &arg);
+	if (err == -ENOENT)
+		return NULL;
+	else if (err)
+		return ERR_PTR(err);
+
+	if (arg.args_count != 1)
+		return ERR_PTR(-EINVAL);
+
+	return register_mii_timestamper(arg.np, arg.args[0]);
+}
+
+static int
+phy_device_parse_fwnode(struct phy_device *phydev,
+			struct phy_device_config *config)
+{
+	struct fwnode_handle *fwnode = config->fwnode;
+	struct mii_bus *bus = config->mii_bus;
+	u32 addr = phydev->mdio.addr;
+	int ret;
+
+	if (!fwnode)
+		return 0;
+
+	if (!is_acpi_node(fwnode) && !is_of_node(fwnode))
+		return 0;
+
+	ret = fwnode_setup_phy_irq(phydev, bus, fwnode);
+	if (ret)
+		return ret;
+
+	ret = fwnode_property_match_string(fwnode, "compatible",
+					   "ethernet-phy-ieee802.3-c45");
+	if (ret >= 0)
+		config->is_c45 = true;
+
+	if (fwnode_property_read_bool(fwnode, "broken-turn-around"))
+		bus->phy_ignore_ta_mask |= 1 << addr;
+	fwnode_property_read_u32(fwnode, "reset-assert-us",
+				 &phydev->mdio.reset_assert_delay);
+	fwnode_property_read_u32(fwnode, "reset-deassert-us",
+				 &phydev->mdio.reset_deassert_delay);
+
+	fwnode_handle_get(fwnode);
+	if (is_acpi_node(fwnode))
+		phydev->mdio.dev.fwnode = fwnode;
+	else if (is_of_node(fwnode))
+		device_set_node(&phydev->mdio.dev, fwnode);
+
+	phydev->psec = fwnode_find_pse_control(fwnode);
+	if (IS_ERR(phydev->psec)) {
+		ret = PTR_ERR(phydev->psec);
+		goto put_fwnode;
+	}
+
+	/* A mii_timestamper probed via the device tree will have precedence. */
+	phydev->mii_ts = fwnode_find_mii_timestamper(fwnode);
+	if (IS_ERR(phydev->mii_ts)) {
+		ret = PTR_ERR(phydev->mii_ts);
+		goto put_pse;
+	}
+
+	return 0;
+
+put_pse:
+	pse_control_put(phydev->psec);
+put_fwnode:
+	fwnode_handle_put(phydev->mdio.dev.fwnode);
+
+	return ret;
+}
+
+/**
+ * phy_device_atomic_register - Setup, init and register a PHY on the MDIO bus
+ * @config: The PHY config
+ *
+ * Probe, initialise and register a PHY at @addr on @bus.
+ *
+ * Returns an allocated and registered &struct phy_device on success.
+ */
+struct phy_device *phy_device_atomic_register(struct phy_device_config *config)
+{
+	struct phy_c45_device_ids *c45_ids = &config->c45_ids;
+	struct phy_device *phydev;
+	int err;
+
+	phydev = phy_device_alloc(config);
+	if (IS_ERR(phydev))
+		return ERR_CAST(phydev);
+
+	err = phy_device_parse_fwnode(phydev, config);
+	if (err) {
+		phydev_err(phydev, "failed to parse fwnode\n");
+		goto err_free_phydev;
+	}
+
+	err = mdiobus_register_device(&phydev->mdio);
+	if (err) {
+		phydev_err(phydev, "pre-init step failed\n");
+		goto err_free_fwnode;
+	}
+
+	phy_device_reset(phydev, 0);
+
+	memset(c45_ids->device_ids, 0xff, sizeof(c45_ids->device_ids));
+
+	err = phy_device_detect(config);
+	if (err) {
+		phydev_err(phydev, "failed to query the phyid\n");
+		goto err_unregister_mdiodev;
+	}
+
+	err = phy_device_init(phydev, config);
+	if (err) {
+		phydev_err(phydev, "failed to initialize\n");
+		goto err_unregister_mdiodev;
+	}
+
+	err = phy_scan_fixups(phydev);
+	if (err) {
+		phydev_err(phydev, "failed to apply fixups\n");
+		goto err_unregister_mdiodev;
+	}
+
+	err = device_add(&phydev->mdio.dev);
+	if (err) {
+		phydev_err(phydev, "failed to add\n");
+		goto err_out;
+	}
+
+	return 0;
+
+err_out:
+	phy_device_reset(phydev, 1);
+err_unregister_mdiodev:
+	mdiobus_unregister_device(&phydev->mdio);
+err_free_fwnode:
+	unregister_mii_timestamper(phydev->mii_ts);
+	pse_control_put(phydev->psec);
+	fwnode_handle_put(phydev->mdio.dev.fwnode);
+err_free_phydev:
+	kfree(phydev);
+
+	return ERR_PTR(err);
+}
+EXPORT_SYMBOL(phy_device_atomic_register);
+
 /**
  * phy_probe - probe and init a PHY device
  * @dev: device to probe and init

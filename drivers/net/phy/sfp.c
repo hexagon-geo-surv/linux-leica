@@ -1635,10 +1635,15 @@ static void sfp_sm_phy_detach(struct sfp *sfp)
 
 static int sfp_sm_probe_phy(struct sfp *sfp, int addr, bool is_c45)
 {
+	struct phy_device_config config = {
+		.mii_bus = sfp->i2c_mii,
+		.phy_addr = addr,
+		.is_c45 = is_c45,
+	};
 	struct phy_device *phy;
 	int err;
 
-	phy = get_phy_device(sfp->i2c_mii, addr, is_c45);
+	phy = get_phy_device(&config);
 	if (phy == ERR_PTR(-ENODEV))
 		return PTR_ERR(phy);
 	if (IS_ERR(phy)) {

@@ -33,15 +33,6 @@ static int of_get_phy_id(struct device_node *device, u32 *phy_id)
 	return fwnode_get_phy_id(of_fwnode_handle(device), phy_id);
 }
 
-int of_mdiobus_phy_device_register(struct mii_bus *mdio, struct phy_device *phy,
-				   struct device_node *child, u32 addr)
-{
-	return fwnode_mdiobus_phy_device_register(mdio, phy,
-						  of_fwnode_handle(child),
-						  addr);
-}
-EXPORT_SYMBOL(of_mdiobus_phy_device_register);
-
 static int of_mdiobus_register_phy(struct mii_bus *mdio,
 				    struct device_node *child, u32 addr)
 {

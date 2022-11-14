@@ -760,6 +760,8 @@ static inline struct phy_device *to_phy_device(const struct device *dev)
  * struct phy_device_config - Configuration of a PHY
  *
  * @mii_bus: The target MII bus the PHY is connected to
+ * @parent_mdiodev: Set the MDIO device parent if specified else mii_bus->dev is
+ *                  used as parent.
  * @phy_addr: PHY address on the MII bus
  * @fwnode: The PHY firmware handle
  * @phy_id: UID for this device found during discovery
@@ -774,6 +776,7 @@ static inline struct phy_device *to_phy_device(const struct device *dev)
 
 struct phy_device_config {
 	struct mii_bus *mii_bus;
+	struct device *parent_mdiodev;
 	int phy_addr;
 	struct fwnode_handle *fwnode;
 	u32 phy_id;

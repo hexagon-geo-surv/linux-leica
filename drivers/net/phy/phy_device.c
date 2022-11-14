@@ -642,7 +642,7 @@ static struct phy_device *phy_device_alloc(struct phy_device_config *config)
 		return ERR_PTR(-ENOMEM);
 
 	mdiodev = &dev->mdio;
-	mdiodev->dev.parent = &bus->dev;
+	mdiodev->dev.parent = config->parent_mdiodev ? : &bus->dev;
 	mdiodev->dev.bus = &mdio_bus_type;
 	mdiodev->dev.type = &mdio_bus_phy_type;
 	mdiodev->bus = bus;

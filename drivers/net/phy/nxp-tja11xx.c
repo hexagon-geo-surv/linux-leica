@@ -554,17 +554,20 @@ static void tja1102_p1_register(struct work_struct *work)
 	struct device *dev = &phydev_phy0->mdio.dev;
 	struct device_node *np = dev->of_node;
 	struct device_node *child;
-	int ret;
 
 	for_each_available_child_of_node(np, child) {
+		struct phy_device_config config = {
+			.mii_bus = bus,
+			/* Real PHY ID of Port 1 is 0 */
+			.phy_id = PHY_ID_TJA1102,
+		};
 		struct phy_device *phy;
-		int addr;
 
-		addr = of_mdio_parse_addr(dev, child);
-		if (addr < 0) {
+		config.phy_addr = of_mdio_parse_addr(dev, child);
+		if (config.phy_addr < 0) {
 			dev_err(dev, "Can't parse addr\n");
 			continue;
-		} else if (addr != phydev_phy0->mdio.addr + 1) {
+		} else if (config.phy_addr != phydev_phy0->mdio.addr + 1) {
 			/* Currently we care only about double PHY chip TJA1102.
 			 * If some day NXP will decide to bring chips with more
 			 * PHYs, this logic should be reworked.
@@ -574,16 +577,15 @@ static void tja1102_p1_register(struct work_struct *work)
 			continue;
 		}
 
-		if (mdiobus_is_registered_device(bus, addr)) {
+		if (mdiobus_is_registered_device(bus, config.phy_addr)) {
 			dev_err(dev, "device is already registered\n");
 			continue;
 		}
 
-		/* Real PHY ID of Port 1 is 0 */
-		phy = phy_device_create(bus, addr, PHY_ID_TJA1102, false, NULL);
+		phy = phy_device_create(&config);
 		if (IS_ERR(phy)) {
 			dev_err(dev, "Can't create PHY device for Port 1: %i\n",
-				addr);
+				config.phy_addr);
 			continue;
 		}
 
@@ -592,7 +594,8 @@ static void tja1102_p1_register(struct work_struct *work)
 		 */
 		phy->mdio.dev.parent = dev;
 
-		ret = of_mdiobus_phy_device_register(bus, phy, child, addr);
+		ret = of_mdiobus_phy_device_register(bus, phy, child,
+						     config.phy_addr);
 		if (ret) {
 			/* All resources needed for Port 1 should be already
 			 * available for Port 0. Both ports use the same

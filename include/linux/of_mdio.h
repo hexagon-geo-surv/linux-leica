@@ -47,8 +47,6 @@ struct mii_bus *of_mdio_find_bus(struct device_node *mdio_np);
 int of_phy_register_fixed_link(struct device_node *np);
 void of_phy_deregister_fixed_link(struct device_node *np);
 bool of_phy_is_fixed_link(struct device_node *np);
-int of_mdiobus_phy_device_register(struct mii_bus *mdio, struct phy_device *phy,
-				   struct device_node *child, u32 addr);
 
 static inline int of_mdio_parse_addr(struct device *dev,
 				     const struct device_node *np)
@@ -142,12 +140,6 @@ static inline bool of_phy_is_fixed_link(struct device_node *np)
 	return false;
 }
 
-static inline int of_mdiobus_phy_device_register(struct mii_bus *mdio,
-					    struct phy_device *phy,
-					    struct device_node *child, u32 addr)
-{
-	return -ENOSYS;
-}
 #endif
 
 

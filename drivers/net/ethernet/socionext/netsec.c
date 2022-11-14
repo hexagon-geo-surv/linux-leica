@@ -1961,6 +1961,11 @@ static int netsec_register_mdio(struct netsec_priv *priv, u32 phy_addr)
 			return ret;
 		}
 	} else {
+		struct phy_device_config config = {
+			.mii_bus = bus,
+			.phy_addr = phy_addr,
+		};
+
 		/* Mask out all PHYs from auto probing. */
 		bus->phy_mask = ~0;
 		ret = mdiobus_register(bus);
@@ -1969,7 +1974,7 @@ static int netsec_register_mdio(struct netsec_priv *priv, u32 phy_addr)
 			return ret;
 		}
 
-		priv->phydev = get_phy_device(bus, phy_addr, false);
+		priv->phydev = get_phy_device(&config);
 		if (IS_ERR(priv->phydev)) {
 			ret = PTR_ERR(priv->phydev);
 			dev_err(priv->dev, "get_phy_device err(%d)\n", ret);

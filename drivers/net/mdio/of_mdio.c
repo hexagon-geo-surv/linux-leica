@@ -10,7 +10,6 @@
 
 #include <linux/device.h>
 #include <linux/err.h>
-#include <linux/fwnode_mdio.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/netdevice.h>

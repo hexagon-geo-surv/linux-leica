@@ -112,10 +112,13 @@ EXPORT_SYMBOL(fwnode_mdiobus_phy_device_register);
 int fwnode_mdiobus_register_phy(struct mii_bus *bus,
 				struct fwnode_handle *child, u32 addr)
 {
+	struct phy_device_config config = {
+		.mii_bus = bus,
+		.phy_addr = addr,
+	};
 	struct mii_timestamper *mii_ts = NULL;
 	struct pse_control *psec = NULL;
 	struct phy_device *phy;
-	bool is_c45 = false;
 	u32 phy_id;
 	int rc;
 
@@ -132,12 +135,12 @@ int fwnode_mdiobus_register_phy(struct mii_bus *bus,
 	rc = fwnode_property_match_string(child, "compatible",
 					  "ethernet-phy-ieee802.3-c45");
 	if (rc >= 0)
-		is_c45 = true;
+		config.is_c45 = true;
 
-	if (is_c45 || fwnode_get_phy_id(child, &phy_id))
-		phy = get_phy_device(bus, addr, is_c45);
+	if (config.is_c45 || fwnode_get_phy_id(child, &config.phy_id))
+		phy = get_phy_device(&config);
 	else
-		phy = phy_device_create(bus, addr, phy_id, 0, NULL);
+		phy = phy_device_create(&config);
 	if (IS_ERR(phy)) {
 		rc = PTR_ERR(phy);
 		goto clean_mii_ts;

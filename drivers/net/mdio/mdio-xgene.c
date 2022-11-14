@@ -262,9 +262,13 @@ static int xgene_xfi_mdio_read(struct mii_bus *bus, int phy_id, int reg)
 
 struct phy_device *xgene_enet_phy_register(struct mii_bus *bus, int phy_addr)
 {
+	struct phy_device_config config = {
+		.mii_bus = bus,
+		.phy_addr = phy_addr,
+	};
 	struct phy_device *phy_dev;
 
-	phy_dev = get_phy_device(bus, phy_addr, false);
+	phy_dev = get_phy_device(&config);
 	if (!phy_dev || IS_ERR(phy_dev))
 		return NULL;
 

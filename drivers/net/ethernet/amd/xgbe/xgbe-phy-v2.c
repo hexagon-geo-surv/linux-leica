@@ -1056,6 +1056,10 @@ static int xgbe_phy_find_phy_device(struct xgbe_prv_data *pdata)
 {
 	struct ethtool_link_ksettings *lks = &pdata->phy.lks;
 	struct xgbe_phy_data *phy_data = pdata->phy_data;
+	struct phy_device_config config = {
+		.mii_bus = phy_data->mii,
+		.phy_addr = phy_data->mdio_addr,
+	};
 	struct phy_device *phydev;
 	int ret;
 
@@ -1086,8 +1090,8 @@ static int xgbe_phy_find_phy_device(struct xgbe_prv_data *pdata)
 	}
 
 	/* Create and connect to the PHY device */
-	phydev = get_phy_device(phy_data->mii, phy_data->mdio_addr,
-				(phy_data->phydev_mode == XGBE_MDIO_MODE_CL45));
+	config.is_c45 = phy_data->phydev_mode == XGBE_MDIO_MODE_CL45;
+	phydev = get_phy_device(&config);
 	if (IS_ERR(phydev)) {
 		netdev_err(pdata->netdev, "get_phy_device failed\n");
 		return -ENODEV;

@@ -229,6 +229,9 @@ static struct phy_device *__fixed_phy_register(unsigned int irq,
 					       struct gpio_desc *gpiod)
 {
 	struct fixed_mdio_bus *fmb = &platform_fmb;
+	struct phy_device_config config = {
+		.mii_bus = fmb->mii_bus,
+	};
 	struct phy_device *phy;
 	int phy_addr;
 	int ret;
@@ -254,7 +257,8 @@ static struct phy_device *__fixed_phy_register(unsigned int irq,
 		return ERR_PTR(ret);
 	}
 
-	phy = get_phy_device(fmb->mii_bus, phy_addr, false);
+	config.phy_addr = phy_addr;
+	phy = get_phy_device(&config);
 	if (IS_ERR(phy)) {
 		fixed_phy_del(phy_addr);
 		return ERR_PTR(-EINVAL);

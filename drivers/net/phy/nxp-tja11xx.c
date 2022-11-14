@@ -561,6 +561,8 @@ static void tja1102_p1_register(struct work_struct *work)
 			/* Real PHY ID of Port 1 is 0 */
 			.phy_id = PHY_ID_TJA1102,
 			.phy_id_broken = true,
+			.parent_mdiodev = dev,
+			.fwnode = of_fwnode_handle(child),
 		};
 		struct phy_device *phy;
 
@@ -583,30 +585,11 @@ static void tja1102_p1_register(struct work_struct *work)
 			continue;
 		}
 
-		phy = phy_device_create(&config);
-		if (IS_ERR(phy)) {
-			dev_err(dev, "Can't create PHY device for Port 1: %i\n",
-				config.phy_addr);
-			continue;
-		}
-
-		/* Overwrite parent device. phy_device_create() set parent to
-		 * the mii_bus->dev, which is not correct in case.
-		 */
-		phy->mdio.dev.parent = dev;
-
-		ret = of_mdiobus_phy_device_register(bus, phy, child,
-						     config.phy_addr);
-		if (ret) {
-			/* All resources needed for Port 1 should be already
-			 * available for Port 0. Both ports use the same
-			 * interrupt line, so -EPROBE_DEFER would make no sense
-			 * here.
-			 */
-			dev_err(dev, "Can't register Port 1. Unexpected error: %i\n",
-				ret);
-			phy_device_free(phy);
-		}
+		phy = phy_device_atomic_register(&config);
+		if (IS_ERR(phy))
+			dev_err_probe(dev, PTR_ERR(phy),
+				      "Can't create PHY device for Port 1: %i\n",
+				      config.phy_addr);
 	}
 }
 

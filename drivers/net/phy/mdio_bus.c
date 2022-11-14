@@ -687,20 +687,27 @@ EXPORT_SYMBOL(mdiobus_free);
 struct phy_device *mdiobus_scan(struct mii_bus *bus, int addr)
 {
 	struct phy_device *phydev = ERR_PTR(-ENODEV);
+	struct phy_device_config config = {
+		.mii_bus = bus,
+		.phy_addr = addr,
+	};
 	int err;
 
 	switch (bus->probe_capabilities) {
 	case MDIOBUS_NO_CAP:
 	case MDIOBUS_C22:
-		phydev = get_phy_device(bus, addr, false);
+		phydev = get_phy_device(&config);
 		break;
 	case MDIOBUS_C45:
-		phydev = get_phy_device(bus, addr, true);
+		config.is_c45 = true;
+		phydev = get_phy_device(&config);
 		break;
 	case MDIOBUS_C22_C45:
-		phydev = get_phy_device(bus, addr, false);
-		if (IS_ERR(phydev))
-			phydev = get_phy_device(bus, addr, true);
+		phydev = get_phy_device(&config);
+		if (IS_ERR(phydev)) {
+			config.is_c45 = true;
+			phydev = get_phy_device(&config);
+		}
 		break;
 	}
 

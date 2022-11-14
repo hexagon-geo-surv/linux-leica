@@ -757,6 +757,27 @@ static inline struct phy_device *to_phy_device(const struct device *dev)
 }
 
 /**
+ * struct phy_device_config - Configuration of a PHY
+ *
+ * @mii_bus: The target MII bus the PHY is connected to
+ * @phy_addr: PHY address on the MII bus
+ * @phy_id: UID for this device found during discovery
+ * @c45_ids: 802.3-c45 Device Identifiers if is_c45.
+ * @is_c45: If true the PHY uses the 802.3 clause 45 protocol
+ *
+ * The struct contain possible configuration parameters for a PHY device which
+ * are used to setup the struct phy_device.
+ */
+
+struct phy_device_config {
+	struct mii_bus *mii_bus;
+	int phy_addr;
+	u32 phy_id;
+	struct phy_c45_device_ids c45_ids;
+	bool is_c45;
+};
+
+/**
  * struct phy_tdr_config - Configuration of a TDR raw test
  *
  * @first: Distance for first data collection point
@@ -1539,9 +1560,7 @@ int phy_modify_paged_changed(struct phy_device *phydev, int page, u32 regnum,
 int phy_modify_paged(struct phy_device *phydev, int page, u32 regnum,
 		     u16 mask, u16 set);
 
-struct phy_device *phy_device_create(struct mii_bus *bus, int addr, u32 phy_id,
-				     bool is_c45,
-				     struct phy_c45_device_ids *c45_ids);
+struct phy_device *phy_device_create(struct phy_device_config *config);
 void phy_device_set_miits(struct phy_device *phydev,
 			  struct mii_timestamper *mii_ts);
 #if IS_ENABLED(CONFIG_PHYLIB)
@@ -1550,7 +1569,7 @@ struct mdio_device *fwnode_mdio_find_device(struct fwnode_handle *fwnode);
 struct phy_device *fwnode_phy_find_device(struct fwnode_handle *phy_fwnode);
 struct phy_device *device_phy_find_device(struct device *dev);
 struct fwnode_handle *fwnode_get_phy_node(const struct fwnode_handle *fwnode);
-struct phy_device *get_phy_device(struct mii_bus *bus, int addr, bool is_c45);
+struct phy_device *get_phy_device(struct phy_device_config *config);
 int phy_device_register(struct phy_device *phy);
 void phy_device_free(struct phy_device *phydev);
 #else
@@ -1582,7 +1601,7 @@ struct fwnode_handle *fwnode_get_phy_node(struct fwnode_handle *fwnode)
 }
 
 static inline
-struct phy_device *get_phy_device(struct mii_bus *bus, int addr, bool is_c45)
+struct phy_device *get_phy_device(struct phy_device_config *config)
 {
 	return NULL;
 }

@@ -629,8 +629,10 @@ static int phy_request_driver_module(struct phy_device *dev, u32 phy_id)
 	return 0;
 }
 
-static struct phy_device *phy_device_alloc(struct mii_bus *bus, int addr)
+static struct phy_device *phy_device_alloc(struct phy_device_config *config)
 {
+	struct mii_bus *bus = config->mii_bus;
+	int addr = config->phy_addr;
 	struct phy_device *dev;
 	struct mdio_device *mdiodev;
 
@@ -656,9 +658,15 @@ static struct phy_device *phy_device_alloc(struct mii_bus *bus, int addr)
 	return dev;
 }
 
-static int phy_device_init(struct phy_device *dev, u32 phy_id, bool is_c45,
-			   struct phy_c45_device_ids *c45_ids)
+static int phy_device_init(struct phy_device *dev,
+			   struct phy_device_config *config)
 {
+	struct phy_c45_device_ids *c45_ids = &config->c45_ids;
+	struct mii_bus *bus = config->mii_bus;
+	bool is_c45 = config->is_c45;
+	u32 phy_id = config->phy_id;
+	int addr = config->phy_addr;
+
 	dev->speed = SPEED_UNKNOWN;
 	dev->duplex = DUPLEX_UNKNOWN;
 	dev->pause = 0;
@@ -711,18 +719,16 @@ static int phy_device_init(struct phy_device *dev, u32 phy_id, bool is_c45,
 	return phy_request_driver_module(dev, phy_id);
 }
 
-struct phy_device *phy_device_create(struct mii_bus *bus, int addr, u32 phy_id,
-				     bool is_c45,
-				     struct phy_c45_device_ids *c45_ids)
+struct phy_device *phy_device_create(struct phy_device_config *config)
 {
 	struct phy_device *dev;
 	int ret;
 
-	dev = phy_device_alloc(bus, addr);
+	dev = phy_device_alloc(config);
 	if (IS_ERR(dev))
 		return dev;
 
-	ret = phy_device_init(dev, phy_id, is_c45, c45_ids);
+	ret = phy_device_init(dev, config);
 	if (ret) {
 		put_device(&dev->mdio.dev);
 		dev = ERR_PTR(ret);
@@ -954,12 +960,16 @@ int fwnode_get_phy_id(struct fwnode_handle *fwnode, u32 *phy_id)
 }
 EXPORT_SYMBOL(fwnode_get_phy_id);
 
-static int phy_device_detect(struct mii_bus *bus, int addr, bool *is_c45,
-			     u32 *phy_id, struct phy_c45_device_ids *c45_ids)
+static int phy_device_detect(struct phy_device_config *config)
 {
+	struct phy_c45_device_ids *c45_ids = &config->c45_ids;
+	struct mii_bus *bus = config->mii_bus;
+	u32 *phy_id = &config->phy_id;
+	bool is_c45 = config->is_c45;
+	int addr = config->phy_addr;
 	int r;
 
-	if (*is_c45)
+	if (is_c45)
 		r = get_phy_c45_ids(bus, addr, c45_ids);
 	else
 		r = get_phy_c22_id(bus, addr, phy_id);
@@ -972,8 +982,8 @@ static int phy_device_detect(struct mii_bus *bus, int addr, bool *is_c45,
 	 * probe with C45 to see if we're able to get a valid PHY ID in the C45
 	 * space, if successful, create the C45 PHY device.
 	 */
-	if (!*is_c45 && *phy_id == 0 && bus->read_c45) {
-		*is_c45 = true;
+	if (!is_c45 && *phy_id == 0 && bus->read_c45) {
+		config->is_c45 = true;
 		return get_phy_c45_ids(bus, addr, c45_ids);
 	}
 
@@ -983,11 +993,9 @@ static int phy_device_detect(struct mii_bus *bus, int addr, bool *is_c45,
 /**
  * get_phy_device - reads the specified PHY device and returns its @phy_device
  *		    struct
- * @bus: the target MII bus
- * @addr: PHY address on the MII bus
- * @is_c45: If true the PHY uses the 802.3 clause 45 protocol
+ * @config: The PHY device config
  *
- * Probe for a PHY at @addr on @bus.
+ * Use the @config parameters to probe for a PHY.
  *
  * When probing for a clause 22 PHY, then read the ID registers. If we find
  * a valid ID, allocate and return a &struct phy_device.
@@ -999,21 +1007,18 @@ static int phy_device_detect(struct mii_bus *bus, int addr, bool *is_c45,
  * Returns an allocated &struct phy_device on success, %-ENODEV if there is
  * no PHY present, or %-EIO on bus access error.
  */
-struct phy_device *get_phy_device(struct mii_bus *bus, int addr, bool is_c45)
+struct phy_device *get_phy_device(struct phy_device_config *config)
 {
-	struct phy_c45_device_ids c45_ids;
-	u32 phy_id = 0;
+	struct phy_c45_device_ids *c45_ids = &config->c45_ids;
 	int r;
 
-	c45_ids.devices_in_package = 0;
-	c45_ids.mmds_present = 0;
-	memset(c45_ids.device_ids, 0xff, sizeof(c45_ids.device_ids));
+	memset(c45_ids->device_ids, 0xff, sizeof(c45_ids->device_ids));
 
-	r = phy_device_detect(bus, addr, &is_c45, &phy_id, &c45_ids);
+	r = phy_device_detect(config);
 	if (r)
 		return ERR_PTR(r);
 
-	return phy_device_create(bus, addr, phy_id, is_c45, &c45_ids);
+	return phy_device_create(config);
 }
 EXPORT_SYMBOL(get_phy_device);
 

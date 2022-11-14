@@ -31,8 +31,10 @@ MODULE_LICENSE("GPL");
 int __acpi_mdiobus_register(struct mii_bus *mdio, struct fwnode_handle *fwnode,
 			    struct module *owner)
 {
+	struct phy_device_config config = {
+		.mii_bus = mdio,
+	};
 	struct fwnode_handle *child;
-	u32 addr;
 	int ret;
 
 	/* Mask out all PHYs from auto probing. */
@@ -45,15 +47,19 @@ int __acpi_mdiobus_register(struct mii_bus *mdio, struct fwnode_handle *fwnode,
 
 	/* Loop over the child nodes and register a phy_device for each PHY */
 	fwnode_for_each_child_node(fwnode, child) {
-		ret = acpi_get_local_address(ACPI_HANDLE_FWNODE(child), &addr);
-		if (ret || addr >= PHY_MAX_ADDR)
+		struct phy_device *phy;
+
+		ret = acpi_get_local_address(ACPI_HANDLE_FWNODE(child),
+					     &config.phy_addr);
+		if (ret || config.phy_addr >= PHY_MAX_ADDR)
 			continue;
 
-		ret = fwnode_mdiobus_register_phy(mdio, child, addr);
-		if (ret == -ENODEV)
+		config.fwnode = child;
+		phy = phy_device_atomic_register(&config);
+		if (PTR_ERR(phy) == -ENODEV)
 			dev_err(&mdio->dev,
 				"MDIO device at address %d is missing.\n",
-				addr);
+				config.phy_addr);
 	}
 	return 0;
 }

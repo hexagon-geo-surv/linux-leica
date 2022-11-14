@@ -516,9 +516,14 @@ static int mdiobus_create_device(struct mii_bus *bus,
 static struct phy_device *mdiobus_scan(struct mii_bus *bus, int addr, bool c45)
 {
 	struct phy_device *phydev = ERR_PTR(-ENODEV);
+	struct phy_device_config config = {
+		.mii_bus = bus,
+		.phy_addr = addr,
+		.is_c45 = c45,
+	};
 	int err;
 
-	phydev = get_phy_device(bus, addr, c45);
+	phydev = get_phy_device(&config);
 	if (IS_ERR(phydev))
 		return phydev;
 

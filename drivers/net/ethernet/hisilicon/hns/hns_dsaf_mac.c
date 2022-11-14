@@ -687,9 +687,12 @@ static int
 hns_mac_register_phydev(struct mii_bus *mdio, struct hns_mac_cb *mac_cb,
 			u32 addr)
 {
+	struct phy_device_config config = {
+		.mii_bus = mdio,
+		.phy_addr = addr,
+	};
 	struct phy_device *phy;
 	const char *phy_type;
-	bool is_c45;
 	int rc;
 
 	rc = fwnode_property_read_string(mac_cb->fw_port,
@@ -698,13 +701,13 @@ hns_mac_register_phydev(struct mii_bus *mdio, struct hns_mac_cb *mac_cb,
 		return rc;
 
 	if (!strcmp(phy_type, phy_modes(PHY_INTERFACE_MODE_XGMII)))
-		is_c45 = true;
+		config.is_c45 = true;
 	else if (!strcmp(phy_type, phy_modes(PHY_INTERFACE_MODE_SGMII)))
-		is_c45 = false;
+		config.is_c45 = false;
 	else
 		return -ENODATA;
 
-	phy = get_phy_device(mdio, addr, is_c45);
+	phy = get_phy_device(&config);
 	if (!phy || IS_ERR(phy))
 		return -EIO;
 

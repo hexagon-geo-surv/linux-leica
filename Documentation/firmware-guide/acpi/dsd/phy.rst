@@ -5,7 +5,7 @@ MDIO bus and PHYs in ACPI
 =========================
 
 The PHYs on an MDIO bus [phy] are probed and registered using
-fwnode_mdiobus_register_phy().
+phy_device_atomic_register().
 
 Later, for connecting these PHYs to their respective MACs, the PHYs registered
 on the MDIO bus have to be referenced.

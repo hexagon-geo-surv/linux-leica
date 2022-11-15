@@ -3197,6 +3197,9 @@ fwnode_find_mii_timestamper(struct fwnode_handle *fwnode)
 	return register_mii_timestamper(arg.np, arg.args[0]);
 }
 
+#define DEFAULT_GPIO_RESET_ASSERT_DELAY_US	1000
+#define DEFAULT_GPIO_RESET_DEASSERT_DELAY_US	1000
+
 static int
 phy_device_parse_fwnode(struct phy_device *phydev,
 			struct phy_device_config *config)
@@ -3223,8 +3226,11 @@ phy_device_parse_fwnode(struct phy_device *phydev,
 
 	if (fwnode_property_read_bool(fwnode, "broken-turn-around"))
 		bus->phy_ignore_ta_mask |= 1 << addr;
+
+	phydev->mdio.reset_assert_delay = DEFAULT_GPIO_RESET_ASSERT_DELAY_US;
 	fwnode_property_read_u32(fwnode, "reset-assert-us",
 				 &phydev->mdio.reset_assert_delay);
+	phydev->mdio.reset_deassert_delay = DEFAULT_GPIO_RESET_DEASSERT_DELAY_US;
 	fwnode_property_read_u32(fwnode, "reset-deassert-us",
 				 &phydev->mdio.reset_deassert_delay);
 

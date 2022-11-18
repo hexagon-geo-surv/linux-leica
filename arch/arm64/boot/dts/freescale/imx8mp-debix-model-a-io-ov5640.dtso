@@ -1,0 +1,98 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright 2022 Ideas on Board Oy
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/clock/imx8mp-clock.h>
+#include <dt-bindings/gpio/gpio.h>
+#include "imx8mp-pinfunc.h"
+
+&{/} {
+	ov5640_clk: ov5640-clk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <24000000>;
+	};
+
+	csi_3v3: regulator-csi-3v3 {
+		compatible = "regulator-fixed";
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_csi0_enable>;
+
+		regulator-name = "CSI_3V3";
+		regulator-max-microvolt = <3300000>;
+		regulator-min-microvolt = <3300000>;
+		/* TODO: Check if the delay could be shortened. */
+		startup-delay-us = <50000>;
+
+		gpio = <&gpio1 6 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+};
+
+&i2c2 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c2>;
+	status = "okay";
+
+	camera@3c {
+		compatible = "ovti,ov5640";
+		reg = <0x3c>;
+
+		clocks = <&ov5640_clk>;
+		clock-names = "xclk";
+
+		AVDD-supply = <&csi_3v3>;
+		DVDD-supply = <&csi_3v3>;
+		DOVDD-supply = <&csi_3v3>;
+
+		rotation = <0>;
+		orientation = <2>; /* External camera */
+
+		port {
+			ov5640_out: endpoint {
+				remote-endpoint = <&mipi_csi_0_in>;
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+};
+
+&iomuxc {
+	pinctrl_csi0_enable: csi0_enable_grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06	0x19
+		>;
+	};
+
+	pinctrl_i2c2: i2c2grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_I2C2_SCL__I2C2_SCL		0x400001c2
+			MX8MP_IOMUXC_I2C2_SDA__I2C2_SDA		0x400001c2
+		>;
+	};
+};
+
+&isi_0 {
+	status = "okay";
+};
+
+&mipi_csi_0 {
+	status = "okay";
+
+	ports {
+		port@0 {
+			mipi_csi_0_in: endpoint {
+				remote-endpoint = <&ov5640_out>;
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+};

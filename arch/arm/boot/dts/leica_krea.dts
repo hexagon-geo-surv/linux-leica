@@ -408,9 +408,9 @@
 			#address-cells = < 1 >;
 			#size-cells = < 0 >;
 
-			spiADCKELA: spiADCKELA@0 {
-					compatible = "leica,spidev";
-					spi-max-frequency = < 625000 >;
+			imuKELA: spiimuKELA@0 {
+					compatible = "murata,sca3300";
+					spi-max-frequency = < 2000000 >;
 					reg = < 0x00000000 >;
 			};
 	};
@@ -601,18 +601,16 @@
 	/* This is a kind of template how to add spi devices
 	 * that can be accessed from userspace
 	 */
-	stepperSPI: spiStepperKADR@0 {
-		compatible = "leica,spidev";
+	bmiaccelSPI: spiaccelKADR@0 {
+		compatible = "bosch,bmi088-accel";
 		reg = <0>; /*chip select 0 */
-		spi-max-frequency = <2000000>;
-		enable-dma = <1>;
+		spi-max-frequency = <10000000>;
 	};
 
-	bldcSPI: spiBLDCKADR@1 {
-		compatible = "leica,spidev";
+	bmigyroSPI: spigyroKADR@1 {
+		compatible = "bosch,bmg160";
 		reg = <1>; /*chip select 1 */
 		spi-max-frequency = <10000000>;
-		enable-dma = <1>;
 	};
 };
 

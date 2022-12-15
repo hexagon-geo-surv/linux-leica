@@ -337,10 +337,14 @@ static int imx_pgc_power_up(struct generic_pm_domain *genpd)
 
 	reset_control_assert(domain->reset);
 
-	/* Enable reset clocks for all devices in the domain */
-	ret = clk_bulk_prepare_enable(domain->num_clks, domain->clks);
+	if (!domain->bus_clocks)
+		/* Enable reset clocks for all devices in the domain */
+		ret = clk_bulk_prepare_enable(domain->num_clks, domain->clks);
+	else
+		/* Enable bus clocks for this domain */
+		ret = clk_bulk_enable(domain->num_clks, domain->clks);
 	if (ret) {
-		dev_err(domain->dev, "failed to enable reset clocks\n");
+		dev_err(domain->dev, "failed to enable clocks\n");
 		goto out_regulator_disable;
 	}
 
@@ -402,7 +406,10 @@ static int imx_pgc_power_up(struct generic_pm_domain *genpd)
 	return 0;
 
 out_clk_disable:
-	clk_bulk_disable_unprepare(domain->num_clks, domain->clks);
+	if (!domain->bus_clocks)
+		clk_bulk_disable_unprepare(domain->num_clks, domain->clks);
+	else
+		clk_bulk_disable(domain->num_clks, domain->clks);
 out_regulator_disable:
 	if (!IS_ERR(domain->regulator))
 		regulator_disable(domain->regulator);
@@ -466,8 +473,11 @@ static int imx_pgc_power_down(struct generic_pm_domain *genpd)
 		}
 	}
 
-	/* Disable reset clocks for all devices in the domain */
-	clk_bulk_disable_unprepare(domain->num_clks, domain->clks);
+	/* Disable bus or reset clocks for all devices in the domain */
+	if (!domain->bus_clocks)
+		clk_bulk_disable_unprepare(domain->num_clks, domain->clks);
+	else
+		clk_bulk_disable(domain->num_clks, domain->clks);
 
 	if (!IS_ERR(domain->regulator)) {
 		ret = regulator_disable(domain->regulator);
@@ -486,6 +496,8 @@ static int imx_pgc_power_down(struct generic_pm_domain *genpd)
 out_clk_disable:
 	if (!domain->bus_clocks)
 		clk_bulk_disable_unprepare(domain->num_clks, domain->clks);
+	else
+		clk_bulk_disable(domain->num_clks, domain->clks);
 
 	return ret;
 }
@@ -1343,10 +1355,19 @@ static int imx_pgc_domain_probe(struct platform_device *pdev)
 		regmap_update_bits(domain->regmap, domain->regs->map,
 				   domain->bits.map, domain->bits.map);
 
+	if (domain->bus_clocks) {
+		ret = clk_bulk_prepare(domain->num_clks, domain->clks);
+		if (ret) {
+			dev_err(domain->dev,
+				"Failed to prepare domain's clocks\n");
+			goto out_domain_unmap;
+		}
+	}
+
 	ret = pm_genpd_init(&domain->genpd, NULL, true);
 	if (ret) {
 		dev_err(domain->dev, "Failed to init power domain\n");
-		goto out_domain_unmap;
+		goto out_disable_clocks;
 	}
 
 	if (IS_ENABLED(CONFIG_LOCKDEP) &&
@@ -1364,6 +1385,9 @@ static int imx_pgc_domain_probe(struct platform_device *pdev)
 
 out_genpd_remove:
 	pm_genpd_remove(&domain->genpd);
+out_disable_clocks:
+	if (domain->bus_clocks)
+		clk_bulk_unprepare(domain->num_clks, domain->clks);
 out_domain_unmap:
 	if (domain->bits.map)
 		regmap_update_bits(domain->regmap, domain->regs->map,
@@ -1379,6 +1403,9 @@ static int imx_pgc_domain_remove(struct platform_device *pdev)
 
 	of_genpd_del_provider(domain->dev->of_node);
 	pm_genpd_remove(&domain->genpd);
+
+	if (domain->bus_clocks)
+		clk_bulk_unprepare(domain->num_clks, domain->clks);
 
 	if (domain->bits.map)
 		regmap_update_bits(domain->regmap, domain->regs->map,

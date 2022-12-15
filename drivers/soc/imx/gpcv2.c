@@ -293,7 +293,7 @@ struct imx_pgc_domain {
 	} bits;
 
 	const int voltage;
-	const bool keep_clocks;
+	const bool bus_clocks;
 	struct device *dev;
 
 	unsigned int pgc_sw_pup_reg;
@@ -396,7 +396,7 @@ static int imx_pgc_power_up(struct generic_pm_domain *genpd)
 	}
 
 	/* Disable reset clocks for all devices in the domain */
-	if (!domain->keep_clocks)
+	if (!domain->bus_clocks)
 		clk_bulk_disable_unprepare(domain->num_clks, domain->clks);
 
 	return 0;
@@ -419,7 +419,7 @@ static int imx_pgc_power_down(struct generic_pm_domain *genpd)
 	int ret;
 
 	/* Enable reset clocks for all devices in the domain */
-	if (!domain->keep_clocks) {
+	if (!domain->bus_clocks) {
 		ret = clk_bulk_prepare_enable(domain->num_clks, domain->clks);
 		if (ret) {
 			dev_err(domain->dev, "failed to enable reset clocks\n");
@@ -484,7 +484,7 @@ static int imx_pgc_power_down(struct generic_pm_domain *genpd)
 	return 0;
 
 out_clk_disable:
-	if (!domain->keep_clocks)
+	if (!domain->bus_clocks)
 		clk_bulk_disable_unprepare(domain->num_clks, domain->clks);
 
 	return ret;
@@ -638,7 +638,7 @@ static const struct imx_pgc_domain imx8m_pgc_domains[] = {
 			.hskack = IMX8M_VPU_HSK_PWRDNACKN,
 		},
 		.pgc   = BIT(IMX8M_PGC_VPU),
-		.keep_clocks = true,
+		.bus_clocks = true,
 	},
 
 	[IMX8M_POWER_DOMAIN_DISP] = {
@@ -738,7 +738,7 @@ static const struct imx_pgc_domain imx8mm_pgc_domains[] = {
 			.hskreq = IMX8MM_HSIO_HSK_PWRDNREQN,
 			.hskack = IMX8MM_HSIO_HSK_PWRDNACKN,
 		},
-		.keep_clocks = true,
+		.bus_clocks = true,
 	},
 
 	[IMX8MM_POWER_DOMAIN_PCIE] = {
@@ -787,7 +787,7 @@ static const struct imx_pgc_domain imx8mm_pgc_domains[] = {
 			.hskack = IMX8MM_GPUMIX_HSK_PWRDNACKN,
 		},
 		.pgc   = BIT(IMX8MM_PGC_GPUMIX),
-		.keep_clocks = true,
+		.bus_clocks = true,
 	},
 
 	[IMX8MM_POWER_DOMAIN_GPU] = {
@@ -814,7 +814,7 @@ static const struct imx_pgc_domain imx8mm_pgc_domains[] = {
 			.hskack = IMX8MM_VPUMIX_HSK_PWRDNACKN,
 		},
 		.pgc   = BIT(IMX8MM_PGC_VPUMIX),
-		.keep_clocks = true,
+		.bus_clocks = true,
 	},
 
 	[IMX8MM_POWER_DOMAIN_VPUG1] = {
@@ -848,7 +848,7 @@ static const struct imx_pgc_domain imx8mm_pgc_domains[] = {
 			.map = IMX8MM_VPUH1_A53_DOMAIN,
 		},
 		.pgc   = BIT(IMX8MM_PGC_VPUH1),
-		.keep_clocks = true,
+		.bus_clocks = true,
 	},
 
 	[IMX8MM_POWER_DOMAIN_DISPMIX] = {
@@ -862,7 +862,7 @@ static const struct imx_pgc_domain imx8mm_pgc_domains[] = {
 			.hskack = IMX8MM_DISPMIX_HSK_PWRDNACKN,
 		},
 		.pgc   = BIT(IMX8MM_PGC_DISPMIX),
-		.keep_clocks = true,
+		.bus_clocks = true,
 	},
 
 	[IMX8MM_POWER_DOMAIN_MIPI] = {
@@ -976,7 +976,7 @@ static const struct imx_pgc_domain imx8mp_pgc_domains[] = {
 			.hskack = IMX8MP_MLMIX_PWRDNACKN,
 		},
 		.pgc = BIT(IMX8MP_PGC_MLMIX),
-		.keep_clocks = true,
+		.bus_clocks = true,
 	},
 
 	[IMX8MP_POWER_DOMAIN_AUDIOMIX] = {
@@ -990,7 +990,7 @@ static const struct imx_pgc_domain imx8mp_pgc_domains[] = {
 			.hskack = IMX8MP_AUDIOMIX_PWRDNACKN,
 		},
 		.pgc = BIT(IMX8MP_PGC_AUDIOMIX),
-		.keep_clocks = true,
+		.bus_clocks = true,
 	},
 
 	[IMX8MP_POWER_DOMAIN_GPU2D] = {
@@ -1015,7 +1015,7 @@ static const struct imx_pgc_domain imx8mp_pgc_domains[] = {
 			.hskack = IMX8MP_GPUMIX_PWRDNACKN,
 		},
 		.pgc = BIT(IMX8MP_PGC_GPUMIX),
-		.keep_clocks = true,
+		.bus_clocks = true,
 	},
 
 	[IMX8MP_POWER_DOMAIN_VPUMIX] = {
@@ -1029,7 +1029,7 @@ static const struct imx_pgc_domain imx8mp_pgc_domains[] = {
 			.hskack = IMX8MP_VPUMIX_PWRDNACKN,
 		},
 		.pgc = BIT(IMX8MP_PGC_VPUMIX),
-		.keep_clocks = true,
+		.bus_clocks = true,
 	},
 
 	[IMX8MP_POWER_DOMAIN_GPU3D] = {
@@ -1054,7 +1054,7 @@ static const struct imx_pgc_domain imx8mp_pgc_domains[] = {
 			.hskack = IMX8MP_MEDIAMIX_PWRDNACKN,
 		},
 		.pgc = BIT(IMX8MP_PGC_MEDIAMIX),
-		.keep_clocks = true,
+		.bus_clocks = true,
 	},
 
 	[IMX8MP_POWER_DOMAIN_VPU_G1] = {
@@ -1101,7 +1101,7 @@ static const struct imx_pgc_domain imx8mp_pgc_domains[] = {
 			.hskack = IMX8MP_HDMIMIX_PWRDNACKN,
 		},
 		.pgc = BIT(IMX8MP_PGC_HDMIMIX),
-		.keep_clocks = true,
+		.bus_clocks = true,
 	},
 
 	[IMX8MP_POWER_DOMAIN_HDMI_PHY] = {
@@ -1137,7 +1137,7 @@ static const struct imx_pgc_domain imx8mp_pgc_domains[] = {
 			.hskack = IMX8MP_HSIOMIX_PWRDNACKN,
 		},
 		.pgc = BIT(IMX8MP_PGC_HSIOMIX),
-		.keep_clocks = true,
+		.bus_clocks = true,
 	},
 
 	[IMX8MP_POWER_DOMAIN_MEDIAMIX_ISPDWP] = {
@@ -1228,7 +1228,7 @@ static const struct imx_pgc_domain imx8mn_pgc_domains[] = {
 			.hskreq = IMX8MN_HSIO_HSK_PWRDNREQN,
 			.hskack = IMX8MN_HSIO_HSK_PWRDNACKN,
 		},
-		.keep_clocks = true,
+		.bus_clocks = true,
 	},
 
 	[IMX8MN_POWER_DOMAIN_OTG1] = {
@@ -1254,7 +1254,7 @@ static const struct imx_pgc_domain imx8mn_pgc_domains[] = {
 			.hskack = IMX8MN_GPUMIX_HSK_PWRDNACKN,
 		},
 		.pgc   = BIT(IMX8MN_PGC_GPUMIX),
-		.keep_clocks = true,
+		.bus_clocks = true,
 	},
 
 	[IMX8MN_POWER_DOMAIN_DISPMIX] = {
@@ -1268,7 +1268,7 @@ static const struct imx_pgc_domain imx8mn_pgc_domains[] = {
 			.hskack = IMX8MN_DISPMIX_HSK_PWRDNACKN,
 		},
 		.pgc   = BIT(IMX8MN_PGC_DISPMIX),
-		.keep_clocks = true,
+		.bus_clocks = true,
 	},
 
 	[IMX8MN_POWER_DOMAIN_MIPI] = {

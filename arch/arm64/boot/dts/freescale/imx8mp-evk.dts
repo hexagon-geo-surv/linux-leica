@@ -47,7 +47,6 @@
 		regulator-max-microvolt = <3300000>;
 		gpio = <&gpio4 29 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
-		regulator-always-on;
 	};
 
 	reg_can1_stby: regulator-can1-stby {
@@ -94,21 +93,34 @@
 		enable-active-high;
 	};
 
-	sound-wm8960 {
-		compatible = "fsl,imx-audio-wm8960";
-		model = "wm8960-audio";
-		audio-cpu = <&sai3>;
-		audio-codec = <&codec>;
-		audio-routing =
+	sound-wm8524 {
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "wm8960-audio";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,frame-master = <&cpudai>;
+		simple-audio-card,bitclock-master = <&cpudai>;
+		simple-audio-card,widgets =
+			"Headphone", "Headphone Jack",
+			"Speaker", "External Speaker",
+			"Microphone", "Mic Jack";
+		simple-audio-card,routing =
 			"Headphone Jack", "HP_L",
 			"Headphone Jack", "HP_R",
-			"Ext Spk", "SPK_LP",
-			"Ext Spk", "SPK_LN",
-			"Ext Spk", "SPK_RP",
-			"Ext Spk", "SPK_RN",
+			"External Speaker", "SPK_LP",
+			"External Speaker", "SPK_LN",
+			"External Speaker", "SPK_RP",
+			"External Speaker", "SPK_RN",
 			"LINPUT1", "Mic Jack",
 			"LINPUT3", "Mic Jack",
 			"Mic Jack", "MICB";
+
+		cpudai: simple-audio-card,cpu {
+			sound-dai = <&sai3>;
+		};
+
+		simple-audio-card,codec {
+			sound-dai = <&wm8960>;
+		};
 	};
 };
 
@@ -364,7 +376,7 @@
 	pinctrl-0 = <&pinctrl_i2c3>;
 	status = "okay";
 
-	codec: wm8960@1a {
+	wm8960: codec@1a {
 		compatible = "wlf,wm8960";
 		reg = <0x1a>;
 		clocks = <&audio_blk_ctrl IMX8MP_CLK_AUDIOMIX_SAI3_MCLK1>;
@@ -373,6 +385,7 @@
 		wlf,hp-cfg = <3 2 3>;
 		wlf,gpio-cfg = <1 3>;
 		SPKVDD1-supply = <&reg_audio_pwr>;
+		#sound-dai-cells = <0>;
 	};
 
 	pca6416: gpio@20 {

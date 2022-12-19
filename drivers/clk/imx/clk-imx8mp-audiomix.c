@@ -202,22 +202,15 @@ static int clk_imx8mp_audiomix_probe(struct platform_device *pdev)
 	for (i = 0; i < ARRAY_SIZE(sels); i++) {
 		if (sels[i].num_parents == 1) {
 			hw = devm_clk_hw_register_gate_parent_data(dev,
-								   sels[i].name,
-								   &sels[i].parent,
-								   0,
-								   base + sels[i].reg,
-								   sels[i].shift,
-								   0, NULL);
+					sels[i].name, &sels[i].parent, 0,
+					base + sels[i].reg, sels[i].shift,
+					0, NULL);
 		} else {
 			hw = devm_clk_hw_register_mux_parent_data(dev,
-								  sels[i].name,
-								  sels[i].parents,
-								  sels[i].num_parents,
-								  0,
-								  base + sels[i].reg,
-								  sels[i].shift,
-								  sels[i].width,
-								  0, NULL);
+					sels[i].name, sels[i].parents,
+					sels[i].num_parents, 0,
+					base + sels[i].reg, sels[i].shift,
+					sels[i].width, 0, NULL);
 		}
 
 		if (IS_ERR(hw))

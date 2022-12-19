@@ -179,23 +179,25 @@ static struct clk_imx8mp_audiomix_sel sels[] = {
 
 static int clk_imx8mp_audiomix_probe(struct platform_device *pdev)
 {
-	struct clk_hw_onecell_data *priv;
+	struct clk_hw_onecell_data *clk_data;
 	struct device *dev = &pdev->dev;
 	void __iomem *base;
 	struct clk_hw *hw;
 	int i;
 
-	priv = devm_kzalloc(dev,
-			    struct_size(priv, hws, IMX8MP_CLK_AUDIOMIX_END),
-			    GFP_KERNEL);
-	if (!priv)
-		return -ENOMEM;
 
-	priv->num = IMX8MP_CLK_AUDIOMIX_END;
+	clk_data = devm_kzalloc(dev,
+				struct_size(clk_data, hws,
+					    IMX8MP_CLK_AUDIOMIX_END),
+				GFP_KERNEL);
+	if (!clk_data)
+		return -ENOMEM;
 
 	base = devm_platform_ioremap_resource(pdev, 0);
 	if (IS_ERR(base))
 		return PTR_ERR(base);
+
+	clk_data->num = IMX8MP_CLK_AUDIOMIX_END;
 
 	for (i = 0; i < ARRAY_SIZE(sels); i++) {
 		if (sels[i].num_parents == 1) {
@@ -221,7 +223,7 @@ static int clk_imx8mp_audiomix_probe(struct platform_device *pdev)
 		if (IS_ERR(hw))
 			return PTR_ERR(hw);
 
-		priv->hws[sels[i].clkid] = hw;
+		clk_data->hws[sels[i].clkid] = hw;
 	}
 
 	/* SAI PLL */
@@ -231,13 +233,13 @@ static int clk_imx8mp_audiomix_probe(struct platform_device *pdev)
 						  CLK_SET_RATE_NO_REPARENT,
 						  base + SAI_PLL_GNRL_CTL,
 						  0, 2, 0, NULL);
-	priv->hws[IMX8MP_CLK_AUDIOMIX_SAI_PLL_REF_SEL] = hw;
+	clk_data->hws[IMX8MP_CLK_AUDIOMIX_SAI_PLL_REF_SEL] = hw;
 
 	hw = imx_dev_clk_hw_pll14xx(dev, "sai_pll", "sai_pll_ref_sel",
 				    base + 0x400, &imx_1443x_pll);
 	if (IS_ERR(hw))
 		return PTR_ERR(hw);
-	priv->hws[IMX8MP_CLK_AUDIOMIX_SAI_PLL] = hw;
+	clk_data->hws[IMX8MP_CLK_AUDIOMIX_SAI_PLL] = hw;
 
 	hw = devm_clk_hw_register_mux_parent_data(dev, "sai_pll_bypass",
 						  clk_imx8mp_audiomix_pll_bypass_sels,
@@ -247,14 +249,14 @@ static int clk_imx8mp_audiomix_probe(struct platform_device *pdev)
 						  16, 1, 0, NULL);
 	if (IS_ERR(hw))
 		return PTR_ERR(hw);
-	priv->hws[IMX8MP_CLK_AUDIOMIX_SAI_PLL_BYPASS] = hw;
+	clk_data->hws[IMX8MP_CLK_AUDIOMIX_SAI_PLL_BYPASS] = hw;
 
 	hw = devm_clk_hw_register_gate(dev, "sai_pll_out", "sai_pll_bypass",
 				       0, base + SAI_PLL_GNRL_CTL, 13,
 				       0, NULL);
 	if (IS_ERR(hw))
 		return PTR_ERR(hw);
-	priv->hws[IMX8MP_CLK_AUDIOMIX_SAI_PLL_OUT] = hw;
+	clk_data->hws[IMX8MP_CLK_AUDIOMIX_SAI_PLL_OUT] = hw;
 
 	hw = devm_clk_hw_register_fixed_factor(dev, "sai_pll_out_div2",
 					       "sai_pll_out", 0, 1, 2);
@@ -262,7 +264,7 @@ static int clk_imx8mp_audiomix_probe(struct platform_device *pdev)
 		return PTR_ERR(hw);
 
 	return devm_of_clk_add_hw_provider(&pdev->dev, of_clk_hw_onecell_get,
-					   priv);
+					   clk_data);
 }
 
 static const struct of_device_id clk_imx8mp_audiomix_of_match[] = {

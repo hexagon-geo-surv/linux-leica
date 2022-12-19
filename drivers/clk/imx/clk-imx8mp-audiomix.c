@@ -18,7 +18,7 @@
 
 #define CLKEN0			0x000
 #define CLKEN1			0x004
-#define SAI_MCLK_SEL(n)		(300 + 4 * (n))	/* n in 0..5 */
+#define SAI_MCLK_SEL(n)		(0x300 + 4 * (n))	/* n in 0..5 */
 #define PDM_SEL			0x318
 #define SAI_PLL_GNRL_CTL	0x400
 

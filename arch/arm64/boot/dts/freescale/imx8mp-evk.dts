@@ -42,6 +42,24 @@
 		clock-frequency = <100000000>;
 	};
 
+	reg_audio_1v8: regulator-audio-1v8 {
+		compatible = "regulator-fixed";
+		regulator-name = "audio-1v8";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		vin-supply = <&reg_vdd_5v0>;
+		regulator-always-on;
+	};
+
+	reg_audio_3v3: regulator-audio-3v3 {
+		compatible = "regulator-fixed";
+		regulator-name = "audio-3v3";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		vin-supply = <&reg_vdd_5v0>;
+		regulator-always-on;
+	};
+
 	reg_audio_pwr: regulator-audio-pwr {
 		compatible = "regulator-fixed";
 		pinctrl-names = "default";
@@ -97,6 +115,14 @@
 		enable-active-high;
 	};
 
+	reg_vdd_5v0: regulator-vdd-5v0 {
+		compatible = "regulator-fixed";
+		regulator-name = "VDD_5V";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-always-on;
+	};
+
 	sound {
 		compatible = "simple-audio-card";
 		simple-audio-card,name = "wm8960-audio";
@@ -117,6 +143,7 @@
 			"LINPUT1", "Mic Jack",
 			"LINPUT3", "Mic Jack",
 			"Mic Jack", "MICB";
+		status = "disabled";
 
 		cpudai: simple-audio-card,cpu {
 			sound-dai = <&sai3>;
@@ -140,6 +167,33 @@
 			usb_ss_mux: endpoint {
 				remote-endpoint = <&usb_con_ss_mux>;
 			};
+		};
+	};
+
+	sound-tlv320aic3120 {
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "tlv320aic3120-audio";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,frame-master = <&codecdai>;
+		simple-audio-card,bitclock-master = <&codecdai>;
+		simple-audio-card,widgets =
+			"Headphone", "Headphone Jack",
+			"Speaker", "External Speaker",
+			"Microphone", "Mic Jack";
+		simple-audio-card,routing =
+			"Headphone Jack", "HPL",
+			"Headphone Jack", "HPR",
+			"External Speaker", "SPK",
+			"MIC1LP", "Mic Jack",
+			"MIC1RP", "Mic Jack";
+
+		simple-audio-card,cpu {
+			sound-dai = <&sai3>;
+		};
+
+		codecdai: simple-audio-card,codec {
+			sound-dai = <&tlv320aic3120>;
+			clocks = <&audio_blk_ctrl IMX8MP_CLK_AUDIOMIX_SAI3_MCLK1>;
 		};
 	};
 };
@@ -451,6 +505,19 @@
 	pinctrl-0 = <&pinctrl_i2c3>;
 	status = "okay";
 
+	tlv320aic3120: codec@18 {
+		compatible = "ti,tlv320aic3120";
+		reg = <0x18>;
+
+		HPVDD-supply = <&reg_audio_3v3>;
+		SPRVDD-supply = <&reg_vdd_5v0>;
+		SPLVDD-supply = <&reg_vdd_5v0>;
+		AVDD-supply = <&reg_audio_3v3>;
+		IOVDD-supply = <&reg_audio_3v3>;
+		DVDD-supply = <&reg_audio_1v8>;
+		#sound-dai-cells = <0>;
+	};
+
 	wm8960: codec@1a {
 		compatible = "wlf,wm8960";
 		reg = <0x1a>;
@@ -461,6 +528,7 @@
 		wlf,hp-cfg = <3 2 3>;
 		wlf,gpio-cfg = <1 3>;
 		SPKVDD1-supply = <&reg_audio_pwr>;
+		status = "disabled";
 	};
 
 	pca6416: gpio@20 {
@@ -548,9 +616,9 @@
 &sai3 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_sai3>;
-	assigned-clocks = <&clk IMX8MP_CLK_SAI3>;
+	assigned-clocks = <&clk IMX8MP_CLK_SAI3>, <&clk IMX8MP_AUDIO_PLL1_OUT>;
 	assigned-clock-parents = <&clk IMX8MP_AUDIO_PLL1_OUT>;
-	assigned-clock-rates = <12288000>;
+	assigned-clock-rates = <0>, <12000000>;
 	fsl,sai-mclk-direction-output;
 	status = "okay";
 };
@@ -847,11 +915,11 @@
 
 	pinctrl_sai3: sai3grp {
 		fsl,pins = <
-			MX8MP_IOMUXC_SAI3_TXFS__AUDIOMIX_SAI3_TX_SYNC	0xd6
-			MX8MP_IOMUXC_SAI3_TXC__AUDIOMIX_SAI3_TX_BCLK	0xd6
-			MX8MP_IOMUXC_SAI3_RXD__AUDIOMIX_SAI3_RX_DATA00	0xd6
-			MX8MP_IOMUXC_SAI3_TXD__AUDIOMIX_SAI3_TX_DATA00	0xd6
-			MX8MP_IOMUXC_SAI3_MCLK__AUDIOMIX_SAI3_MCLK	0xd6
+			MX8MP_IOMUXC_SAI3_TXFS__AUDIOMIX_SAI3_TX_SYNC	0xd0
+			MX8MP_IOMUXC_SAI3_TXC__AUDIOMIX_SAI3_TX_BCLK	0xd0
+			MX8MP_IOMUXC_SAI3_RXD__AUDIOMIX_SAI3_RX_DATA00	0xd0
+			MX8MP_IOMUXC_SAI3_TXD__AUDIOMIX_SAI3_TX_DATA00	0xd0
+			MX8MP_IOMUXC_SAI3_MCLK__AUDIOMIX_SAI3_MCLK	0xd0
 		>;
 	};
 

@@ -42,8 +42,8 @@ struct tmp117_data {
 };
 
 static int tmp117_read_raw(struct iio_dev *indio_dev,
-		struct iio_chan_spec const *channel, int *val,
-		int *val2, long mask)
+			   struct iio_chan_spec const *channel, int *val,
+			   int *val2, long mask)
 {
 	struct tmp117_data *data = iio_priv(indio_dev);
 	s32 ret;
@@ -51,7 +51,7 @@ static int tmp117_read_raw(struct iio_dev *indio_dev,
 	switch (mask) {
 	case IIO_CHAN_INFO_RAW:
 		ret = i2c_smbus_read_word_swapped(data->client,
-						TMP117_REG_TEMP);
+						  TMP117_REG_TEMP);
 		if (ret < 0)
 			return ret;
 		*val = sign_extend32(ret, 15);
@@ -59,7 +59,7 @@ static int tmp117_read_raw(struct iio_dev *indio_dev,
 
 	case IIO_CHAN_INFO_CALIBBIAS:
 		ret = i2c_smbus_read_word_swapped(data->client,
-					TMP117_REG_TEMP_OFFSET);
+						  TMP117_REG_TEMP_OFFSET);
 		if (ret < 0)
 			return ret;
 		*val = sign_extend32(ret, 15);
@@ -81,9 +81,8 @@ static int tmp117_read_raw(struct iio_dev *indio_dev,
 	}
 }
 
-static int tmp117_write_raw(struct iio_dev *indio_dev,
-		struct iio_chan_spec const *channel, int val,
-		int val2, long mask)
+static int tmp117_write_raw(struct iio_dev *indio_dev, struct iio_chan_spec
+			    const *channel, int val, int val2, long mask)
 {
 	struct tmp117_data *data = iio_priv(indio_dev);
 	s16 off;
@@ -106,7 +105,9 @@ static const struct iio_chan_spec tmp117_channels[] = {
 	{
 		.type = IIO_TEMP,
 		.info_mask_separate = BIT(IIO_CHAN_INFO_RAW) |
-			BIT(IIO_CHAN_INFO_CALIBBIAS) | BIT(IIO_CHAN_INFO_SCALE),
+				      BIT(IIO_CHAN_INFO_CALIBBIAS) |
+				      BIT(IIO_CHAN_INFO_SCALE),
+	},
 };
 
 static const struct iio_chan_spec tmp116_channels[] = {

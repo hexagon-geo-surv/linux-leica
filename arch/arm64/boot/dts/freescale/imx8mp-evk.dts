@@ -559,6 +559,11 @@
 			"EXP_P1_6",
 			"EXP_P1_7";
 	};
+
+	temperature-sensor@48 {
+		compatible = "ti,tmp116";
+		reg = <0x48>;
+	};
 };
 
 /* I2C on expansion connector J22. */

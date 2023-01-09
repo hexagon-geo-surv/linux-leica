@@ -7,6 +7,7 @@
 
 #include "crocodile-pinmap-rev-b.h"
 #include "crocodile.dtsi"
+#include "crocodile-rpmsg.dtsi"
 
 / {
 	model = "Crocodile-Rev-B";

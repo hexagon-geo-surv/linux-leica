@@ -300,9 +300,7 @@ static const struct imx8mp_blk_ctrl_data imx8mp_hsio_blk_ctl_dev_data = {
 #define HDMI_RTX_CLK_CTL3	0x70
 #define HDMI_RTX_CLK_CTL4	0x80
 #define HDMI_TX_CONTROL0	0x200
-#define HDMI_LCDIF_NOC_HURRY_PRIO_MASK	GENMASK(14, 12)
-#define HDMI_LCDIF_NOC_HURRY_PRIO(p)	\
-	(((p) << 12) & HDMI_LCDIF_NOC_HURRY_PRIO_MASK)
+#define  HDMI_LCDIF_NOC_HURRY_PRIO_MASK		GENMASK(14, 12)
 
 static void imx8mp_hdmi_blk_ctrl_power_on(struct imx8mp_blk_ctrl *bc,
 					  struct imx8mp_blk_ctrl_domain *domain)
@@ -320,7 +318,7 @@ static void imx8mp_hdmi_blk_ctrl_power_on(struct imx8mp_blk_ctrl *bc,
 		regmap_set_bits(bc->regmap, HDMI_RTX_RESET_CTL0,
 				BIT(4) | BIT(5) | BIT(6));
 		regmap_set_bits(bc->regmap, HDMI_TX_CONTROL0,
-				HDMI_LCDIF_NOC_HURRY_PRIO(7));
+				FIELD_PREP(HDMI_LCDIF_NOC_HURRY_PRIO_MASK, 7));
 		break;
 	case IMX8MP_HDMIBLK_PD_PAI:
 		regmap_set_bits(bc->regmap, HDMI_RTX_CLK_CTL1, BIT(17));
@@ -377,12 +375,6 @@ static void imx8mp_hdmi_blk_ctrl_power_off(struct imx8mp_blk_ctrl *bc,
 		regmap_clear_bits(bc->regmap, HDMI_RTX_CLK_CTL0,
 				  BIT(16) | BIT(17) | BIT(18) |
 				  BIT(19) | BIT(20));
-		/*
-		 * Set priority to highest level case of LCDIF panic to avoid
-		 * FIFO underruns.
-		 */
-		regmap_clear_bits(bc->regmap, HDMI_TX_CONTROL0,
-				  HDMI_LCDIF_NOC_HURRY_PRIO(7));
 		break;
 	case IMX8MP_HDMIBLK_PD_PAI:
 		regmap_clear_bits(bc->regmap, HDMI_RTX_RESET_CTL0, BIT(18));

@@ -103,7 +103,7 @@
 
 &eqos {
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_eqos>;
+	pinctrl-0 = <&pinctrl_eqos>, <&pinctrl_eqos_pps_out>;
 	phy-mode = "rgmii-id";
 	phy-handle = <&ethphy0>;
 	snps,force_thresh_dma_mode;
@@ -195,7 +195,7 @@
 
 &fec {
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_fec>;
+	pinctrl-0 = <&pinctrl_fec>,<&pinctrl_fec_pps_out>;
 	phy-mode = "rgmii-id";
 	phy-handle = <&ethphy1>;
 	fsl,magic-packet;
@@ -469,6 +469,12 @@
 		>;
 	};
 
+	pinctrl_eqos_pps_out: eqosppsgrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_GPIO1_IO09__ENET_QOS_1588_EVENT0_OUT		0xd6
+		>;
+	};
+
 	pinctrl_fec: fecgrp {
 		fsl,pins = <
 			MX8MP_IOMUXC_SAI1_RXD2__ENET1_MDC		0x3
@@ -486,6 +492,12 @@
 			MX8MP_IOMUXC_SAI1_TXD4__ENET1_RGMII_TX_CTL	0x1f
 			MX8MP_IOMUXC_SAI1_TXD5__ENET1_RGMII_TXC		0x1f
 			MX8MP_IOMUXC_SAI1_RXD0__GPIO4_IO02		0x19
+		>;
+	};
+
+	pinctrl_fec_pps_out: fecppsgrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SAI1_RXC__ENET1_1588_EVENT0_OUT			0x1c0
 		>;
 	};
 
@@ -681,4 +693,5 @@
 			MX8MP_IOMUXC_GPIO1_IO02__WDOG1_WDOG_B	0x166
 		>;
 	};
+
 };

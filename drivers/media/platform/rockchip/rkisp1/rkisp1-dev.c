@@ -22,6 +22,7 @@
 
 #include "rkisp1-common.h"
 #include "rkisp1-csi.h"
+#include "rkisp1-tpg.h"
 
 /*
  * ISP Details
@@ -351,6 +352,18 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 			return ret;
 	}
 
+	if (rkisp1_has_feature(rkisp1, TPG)) {
+		/*
+		 * Link the test pattern generator to the ISP. This is done to
+		 * model the TPG component of the ISP as a video source.
+		 */
+		ret = media_create_pad_link(&rkisp1->tpg.sd.entity, 0,
+					    &rkisp1->isp.sd.entity,
+					    RKISP1_ISP_PAD_SINK_VIDEO, 0);
+		if (ret)
+			return ret;
+	}
+
 	/* create ISP->RSZ->CAP links */
 	for (i = 0; i < dev_count; i++) {
 		struct media_entity *resizer =
@@ -392,6 +405,8 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 
 static void rkisp1_entities_unregister(struct rkisp1_device *rkisp1)
 {
+	if (rkisp1_has_feature(rkisp1, TPG))
+		rkisp1_tpg_unregister(rkisp1);
 	if (rkisp1_has_feature(rkisp1, MIPI_CSI2))
 		rkisp1_csi_unregister(rkisp1);
 	rkisp1_params_unregister(rkisp1);
@@ -427,6 +442,12 @@ static int rkisp1_entities_register(struct rkisp1_device *rkisp1)
 
 	if (rkisp1_has_feature(rkisp1, MIPI_CSI2)) {
 		ret = rkisp1_csi_register(rkisp1);
+		if (ret)
+			goto error;
+	}
+
+	if (rkisp1_has_feature(rkisp1, TPG)) {
+		ret = rkisp1_tpg_register(rkisp1);
 		if (ret)
 			goto error;
 	}
@@ -520,7 +541,8 @@ static const struct rkisp1_info imx8mp_isp_info = {
 	.isp_ver = IMX8MP_V10,
 	.features = RKISP1_FEATURE_MAIN_STRIDE
 		  | RKISP1_FEATURE_DMA_34BIT
-		  | RKISP1_FEATURE_MI_OUTPUT_ALIGN,
+		  | RKISP1_FEATURE_MI_OUTPUT_ALIGN
+		  | RKISP1_FEATURE_TPG,
 };
 
 static const struct of_device_id rkisp1_of_match[] = {
@@ -653,6 +675,12 @@ static int rkisp1_probe(struct platform_device *pdev)
 	ret = rkisp1_entities_register(rkisp1);
 	if (ret)
 		goto err_cleanup_csi;
+
+	if (rkisp1_has_feature(rkisp1, TPG)) {
+		ret = v4l2_device_register_subdev_nodes(&rkisp1->v4l2_dev);
+		if (ret)
+			goto err_unreg_entities;
+	}
 
 	ret = rkisp1_subdev_notifier_register(rkisp1);
 	if (ret)

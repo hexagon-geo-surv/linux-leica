@@ -108,6 +108,7 @@ enum rkisp1_isp_pad {
  * @RKISP1_FEATURE_MAIN_STRIDE: The ISP supports configurable stride on the main path
  * @RKISP1_FEATURE_DMA_34BIT: The ISP uses 34-bit DMA addresses
  * @RKISP1_FEATURE_MI_OUTPUT_ALIGN: The ISP has the MI_OUTPUT_ALIGN_FORMAT register
+ * @RKISP1_FEATURE_TPG: The ISP has test pattern generator registers at base 0x0700
  *
  * The ISP features are stored in a bitmask in &rkisp1_info.features and allow
  * the driver to implement support for features present in some ISP versions
@@ -121,6 +122,7 @@ enum rkisp1_feature {
 	RKISP1_FEATURE_DMA_34BIT = BIT(4),
 	RKISP1_FEATURE_SELF_PATH = BIT(5),
 	RKISP1_FEATURE_MI_OUTPUT_ALIGN = BIT(6),
+	RKISP1_FEATURE_TPG = BIT(7),
 };
 
 #define rkisp1_has_feature(rkisp1, feature) \
@@ -197,6 +199,29 @@ struct rkisp1_csi {
 	const struct rkisp1_mbus_info *sink_fmt;
 	struct mutex lock;
 	struct v4l2_subdev *source;
+};
+
+/*
+ * struct rkisp1_tpg - Test pattern generator subdev
+ *
+ * @rkisp1: pointer to the rkisp1 device
+ * @sd: v4l2_subdev
+ * @pad: media source pad
+ * @lock: protects pad_cfg, src_fmt, src_width, and src_height
+ * @pad_cfg: configuration for the source pad
+ * @src_fmt: test pattern format
+ * @src_width: test pattern width
+ * @src_height: test pattern height
+ */
+struct rkisp1_tpg {
+	struct rkisp1_device *rkisp1;
+	struct v4l2_subdev sd;
+	struct media_pad pad;
+	struct mutex lock;
+	struct v4l2_subdev_pad_config pad_cfg;
+	const struct rkisp1_mbus_info *src_fmt;
+	u32 src_width;
+	u32 src_height;
 };
 
 /*
@@ -467,6 +492,7 @@ struct rkisp1_debug {
  * @notifier:	   a notifier to register on the v4l2-async API to be notified on the sensor
  * @source:        source subdev in-use, set when starting streaming
  * @csi:	   internal CSI-2 receiver
+ * @tpg:	   internal test pattern generator
  * @isp:	   ISP sub-device
  * @resizer_devs:  resizer sub-devices
  * @capture_devs:  capture devices
@@ -489,6 +515,7 @@ struct rkisp1_device {
 	struct v4l2_async_notifier notifier;
 	struct v4l2_subdev *source;
 	struct rkisp1_csi csi;
+	struct rkisp1_tpg tpg;
 	struct rkisp1_isp isp;
 	struct rkisp1_resizer resizer_devs[2];
 	struct rkisp1_capture capture_devs[2];

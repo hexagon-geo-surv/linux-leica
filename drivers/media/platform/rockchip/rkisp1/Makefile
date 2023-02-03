@@ -7,6 +7,7 @@ rockchip-isp1-y := rkisp1-capture.o \
 		   rkisp1-isp.o \
 		   rkisp1-resizer.o \
 		   rkisp1-stats.o \
+		   rkisp1-tpg.o \
 		   rkisp1-params.o
 
 rockchip-isp1-$(CONFIG_DEBUG_FS) += rkisp1-debug.o

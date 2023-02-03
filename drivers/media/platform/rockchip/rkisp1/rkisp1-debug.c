@@ -166,6 +166,27 @@ static int rkisp1_debug_dump_is_show(struct seq_file *m, void *p)
 }
 DEFINE_SHOW_ATTRIBUTE(rkisp1_debug_dump_is);
 
+static int rkisp1_debug_dump_tpg_show(struct seq_file *m, void *p)
+{
+	static const struct rkisp1_debug_register registers[] = {
+			RKISP1_DEBUG_REG(ISP_TPG_BASE),
+			RKISP1_DEBUG_REG(ISP_TPG_CTRL),
+			RKISP1_DEBUG_REG(ISP_TPG_TOTAL_IN),
+			RKISP1_DEBUG_REG(ISP_TPG_ACT_IN),
+			RKISP1_DEBUG_REG(ISP_TPG_FP_IN),
+			RKISP1_DEBUG_REG(ISP_TPG_BP_IN),
+			RKISP1_DEBUG_REG(ISP_TPG_W_IN),
+			RKISP1_DEBUG_REG(ISP_TPG_GAP_IN),
+			RKISP1_DEBUG_REG(ISP_TPG_GAP_STD_IN),
+			RKISP1_DEBUG_REG(ISP_TPG_RANDOM_SEED_IN),
+			{ /* Sentinel */ },
+		};
+	struct rkisp1_device *rkisp1 = m->private;
+
+	return rkisp1_debug_dump_regs(rkisp1, m, 0, registers);
+}
+DEFINE_SHOW_ATTRIBUTE(rkisp1_debug_dump_tpg);
+
 #define RKISP1_DEBUG_DATA_COUNT_BINS	32
 #define RKISP1_DEBUG_DATA_COUNT_STEP	(4096 / RKISP1_DEBUG_DATA_COUNT_BINS)
 
@@ -265,6 +286,10 @@ void rkisp1_debug_init(struct rkisp1_device *rkisp1)
 
 	debugfs_create_file("is", 0444, regs_dir, rkisp1,
 			    &rkisp1_debug_dump_is_fops);
+
+	if (rkisp1_has_feature(rkisp1, TPG))
+		debugfs_create_file("tpg", 0444, regs_dir, rkisp1,
+				    &rkisp1_debug_dump_tpg_fops);
 }
 
 void rkisp1_debug_cleanup(struct rkisp1_device *rkisp1)

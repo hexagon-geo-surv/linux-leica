@@ -426,7 +426,8 @@ static int rkisp1_isp_start(struct rkisp1_isp *isp,
 
 	rkisp1_config_clk(isp);
 
-	if (rkisp1->info->isp_ver == IMX8MP_V10) {
+	if (rkisp1->info->isp_ver == IMX8MP_V10 &&
+	    rkisp1->source != &rkisp1->tpg.sd) {
 		ret = rkisp1_gasket_enable(rkisp1, source);
 		if (ret)
 			return ret;
@@ -934,6 +935,9 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int enable)
 
 	if (rkisp1->source == &rkisp1->csi.sd) {
 		mbus_type = V4L2_MBUS_CSI2_DPHY;
+		mbus_flags = 0;
+	} else if (rkisp1->source == &rkisp1->tpg.sd) {
+		mbus_type = V4L2_MBUS_UNKNOWN;
 		mbus_flags = 0;
 	} else {
 		const struct rkisp1_sensor_async *asd;

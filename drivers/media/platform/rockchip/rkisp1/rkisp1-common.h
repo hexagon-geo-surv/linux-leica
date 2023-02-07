@@ -207,11 +207,13 @@ struct rkisp1_csi {
  * @rkisp1: pointer to the rkisp1 device
  * @sd: v4l2_subdev
  * @pad: media source pad
- * @lock: protects pad_cfg, src_fmt, src_width, and src_height
+ * @lock: protects pad_cfg, src_fmt, src_width, src_height, and v4l2 controls
  * @pad_cfg: configuration for the source pad
  * @src_fmt: test pattern format
  * @src_width: test pattern width
  * @src_height: test pattern height
+ * @ctrl_handler: v4l2 control handler
+ * @tp_ctrl: v4l2 control for test pattern
  */
 struct rkisp1_tpg {
 	struct rkisp1_device *rkisp1;
@@ -222,6 +224,8 @@ struct rkisp1_tpg {
 	const struct rkisp1_mbus_info *src_fmt;
 	u32 src_width;
 	u32 src_height;
+	struct v4l2_ctrl_handler ctrl_handler;
+	struct v4l2_ctrl *tp_ctrl;
 };
 
 /*

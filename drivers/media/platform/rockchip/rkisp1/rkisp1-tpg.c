@@ -15,6 +15,7 @@
 
 #include <media/media-entity.h>
 #include <media/v4l2-common.h>
+#include <media/v4l2-ctrls.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-subdev.h>
 
@@ -25,6 +26,31 @@
 
 /* Same as the ISP. */
 #define RKISP1_TPG_DEF_FMT	MEDIA_BUS_FMT_SRGGB10_1X10
+
+/*
+ * TODO Should we add Disabled? And put the TPG subdev in
+ * between the CSI2 receiver and the ISP?
+ */
+/*
+ * The random generator mode needs a seed, however it doesn't seem to affect
+ * the generated pattern, and it is all zeros.
+ * TODO Investigate further the random generator seed register.
+ */
+static const char * const rkisp1_tpg_test_pattern_menu[] = {
+	"3x3 color block",
+	"Color bar",
+	"Gray bar",
+	"Highlighted grid",
+	"Random generator"
+};
+
+static const int rkisp1_tpg_test_pattern_val[] = {
+	RKISP1_CIF_ISP_TPG_CTRL_IMG_3X3_COLOR_BLOCK,
+	RKISP1_CIF_ISP_TPG_CTRL_IMG_COLOR_BAR,
+	RKISP1_CIF_ISP_TPG_CTRL_IMG_GRAY_BAR,
+	RKISP1_CIF_ISP_TPG_CTRL_IMG_HIGHLIGHT_GRID,
+	RKISP1_CIF_ISP_TPG_CTRL_IMG_RAND,
+};
 
 static inline struct rkisp1_tpg *to_rkisp1_tpg(struct v4l2_subdev *sd)
 {
@@ -62,6 +88,8 @@ static void rkisp1_tpg_config_regs(struct rkisp1_tpg *tpg)
 
 	/* The bayer_pat enum happens to be the same as the register */
 	tpg_ctrl |= (mbus_info->bayer_pat) << 4;
+
+	tpg_ctrl |= rkisp1_tpg_test_pattern_val[tpg->tp_ctrl->val];
 
 	/* default cannot happen as it is filtered */
 	switch (mbus_info->bus_width) {
@@ -121,6 +149,77 @@ static void rkisp1_tpg_start(struct rkisp1_tpg *tpg)
 static void rkisp1_tpg_stop(struct rkisp1_tpg *tpg)
 {
 	rkisp1_tpg_enable(tpg, 0);
+}
+
+static int rkisp1_tpg_set_ctrl(struct v4l2_ctrl *ctrl)
+{
+	struct rkisp1_tpg *tpg =
+		container_of(ctrl->handler, struct rkisp1_tpg, ctrl_handler);
+	struct rkisp1_device *rkisp1 = tpg->rkisp1;
+	int ret = 0;
+
+	switch (ctrl->id) {
+	case V4L2_CID_TEST_PATTERN:
+		/*
+		 * We can't write the register directly here as it will be lost
+		 * when the ISP is powered off.
+		 * TODO: Allow setting the test pattern at runtime. Save the
+		 * control value, and set the register in the interrupt handler.
+		 */
+		break;
+	default:
+		dev_info(rkisp1->dev,
+			 "ctrl(id:0x%x,val:0x%x) is not handled\n",
+			 ctrl->id, ctrl->val);
+		ret = -EINVAL;
+		break;
+	}
+
+	return ret;
+}
+
+static const struct v4l2_ctrl_ops rkisp1_tpg_ctrl_ops = {
+	.s_ctrl = rkisp1_tpg_set_ctrl,
+};
+
+static int rkisp1_tpg_init_controls(struct rkisp1_tpg *tpg)
+{
+	struct v4l2_ctrl_handler *ctrl_hdlr;
+	int ret;
+
+	ctrl_hdlr = &tpg->ctrl_handler;
+	ret = v4l2_ctrl_handler_init(ctrl_hdlr, 1);
+	if (ret)
+		return ret;
+
+	ctrl_hdlr->lock = &tpg->lock;
+
+	tpg->tp_ctrl =
+		v4l2_ctrl_new_std_menu_items(ctrl_hdlr, &rkisp1_tpg_ctrl_ops,
+					     V4L2_CID_TEST_PATTERN,
+					     ARRAY_SIZE(rkisp1_tpg_test_pattern_menu) - 1,
+					     0, 0, rkisp1_tpg_test_pattern_menu);
+
+	if (ctrl_hdlr->error) {
+		ret = ctrl_hdlr->error;
+		dev_err(tpg->rkisp1->dev, "%s control init failed (%d)\n",
+			__func__, ret);
+		goto error;
+	}
+
+	tpg->sd.ctrl_handler = ctrl_hdlr;
+
+	return 0;
+
+error:
+	v4l2_ctrl_handler_free(ctrl_hdlr);
+
+	return ret;
+}
+
+static void rkisp1_tpg_free_controls(struct rkisp1_tpg *tpg)
+{
+	v4l2_ctrl_handler_free(tpg->sd.ctrl_handler);
 }
 
 /* ----------------------------------------------------------------------------
@@ -293,6 +392,10 @@ int rkisp1_tpg_register(struct rkisp1_device *rkisp1)
 	tpg->rkisp1 = rkisp1;
 	mutex_init(&tpg->lock);
 
+	ret = rkisp1_tpg_init_controls(tpg);
+	if (ret)
+		goto error;
+
 	sd = &tpg->sd;
 	v4l2_subdev_init(sd, &rkisp1_tpg_ops);
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
@@ -323,6 +426,7 @@ int rkisp1_tpg_register(struct rkisp1_device *rkisp1)
 
 error:
 	media_entity_cleanup(&sd->entity);
+	rkisp1_tpg_free_controls(tpg);
 	mutex_destroy(&tpg->lock);
 	tpg->rkisp1 = NULL;
 	return ret;
@@ -337,5 +441,6 @@ void rkisp1_tpg_unregister(struct rkisp1_device *rkisp1)
 
 	v4l2_device_unregister_subdev(&tpg->sd);
 	media_entity_cleanup(&tpg->sd.entity);
+	rkisp1_tpg_free_controls(tpg);
 	mutex_destroy(&tpg->lock);
 }

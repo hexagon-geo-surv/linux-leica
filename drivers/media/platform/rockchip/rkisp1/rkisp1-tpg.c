@@ -10,6 +10,7 @@
  */
 
 #include <linux/container_of.h>
+#include <linux/math.h>
 #include <linux/minmax.h>
 #include <linux/mutex.h>
 
@@ -26,6 +27,30 @@
 
 /* Same as the ISP. */
 #define RKISP1_TPG_DEF_FMT	MEDIA_BUS_FMT_SRGGB10_1X10
+
+/*
+ * This came from measuring the effects of RKISP1_CIF_ISP_TPG_TOTAL_IN on
+ * the freerunning framerate. It also matches the max clock rate for the ISP
+ * from the i.MX8MP datasheet.
+ */
+#define RKISP1_TPG_CLOCK_RATE	500000000
+
+/*
+ * These are assumed from the maximum pre-defined size.
+ * TODO Validate these.
+ */
+#define RKISP1_TPG_MAX_WIDTH	3840
+#define RKISP1_TPG_MAX_HEIGHT	2160
+
+/*
+ * These are arbitrarily defined. 32x32 (minimum of the ISP) was too small to
+ * be able to control the frame rate.
+ * TODO Even 240x240 seems too small. Find better minimums.
+ */
+#define RKISP1_TPG_MIN_WIDTH	32
+#define RKISP1_TPG_MIN_HEIGHT	32
+
+#define RKISP1_TPG_W_H(w, h) ((((w) & 0x3fff) << 14) | ((h) & 0x3fff))
 
 /*
  * TODO Should we add Disabled? And put the TPG subdev in
@@ -57,6 +82,22 @@ static inline struct rkisp1_tpg *to_rkisp1_tpg(struct v4l2_subdev *sd)
 	return container_of(sd, struct rkisp1_tpg, sd);
 }
 
+static u32 rkisp1_tpg_calc_frame_sync(struct v4l2_fract interval,
+				      u32 width, u32 height)
+{
+	u32 b, c, tmp;
+
+	b = width + height;
+
+	tmp = mult_frac(RKISP1_TPG_CLOCK_RATE,
+			interval.numerator, interval.denominator);
+	c = (width * height) - tmp;
+
+	tmp = -b + int_sqrt((b * b) - (4 * c));
+
+	return tmp / 2;
+}
+
 static struct v4l2_mbus_framefmt *
 rkisp1_tpg_get_pad_fmt(struct rkisp1_tpg *tpg,
 		       struct v4l2_subdev_state *sd_state,
@@ -78,6 +119,7 @@ static void rkisp1_tpg_config_regs(struct rkisp1_tpg *tpg)
 {
 	struct rkisp1_device *rkisp1 = tpg->rkisp1;
 	const struct rkisp1_mbus_info *mbus_info = tpg->src_fmt;
+	u32 sync;
 	u32 val;
 	u32 tpg_ctrl;
 
@@ -105,16 +147,60 @@ static void rkisp1_tpg_config_regs(struct rkisp1_tpg *tpg)
 		break;
 	}
 
-	/* TODO Support other resolutions */
-	if (tpg->src_width == 1920 && tpg->src_height == 1080) {
+	dev_dbg(rkisp1->dev, "%s: setting size to %dx%d\n", __func__,
+		tpg->src_width, tpg->src_height);
+
+	/*
+	 * TODO: Get better fps comparators. Or we can just get rid of these
+	 * built-in ones, as they only work for these specific fps values
+	 * anyway.
+	 */
+	if (tpg->src_width == 1920 && tpg->src_height == 1080 &&
+	    tpg->interval.numerator == 1 &&
+	    tpg->interval.denominator == 89) {
 		tpg_ctrl |= RKISP1_CIF_ISP_TPG_CTRL_SOL_1080P;
-	} else if (tpg->src_width == 1280 && tpg->src_height == 720) {
+	} else if (tpg->src_width == 1280 && tpg->src_height == 720 &&
+		   tpg->interval.numerator == 1 &&
+		   tpg->interval.denominator == 89) {
 		tpg_ctrl |= RKISP1_CIF_ISP_TPG_CTRL_SOL_720P;
+	} else if (tpg->src_width == 3840 && tpg->src_height == 2160 &&
+		   tpg->interval.numerator == 1 &&
+		   tpg->interval.denominator == 34) {
+		tpg_ctrl |= RKISP1_CIF_ISP_TPG_CTRL_SOL_4K;
 	} else {
-		dev_err(rkisp1->dev,
-			"Unsupported resolution %dx%d, defaulting to 1080P\n",
-			tpg->src_width, tpg->src_height);
-		tpg_ctrl |= RKISP1_CIF_ISP_TPG_CTRL_SOL_1080P;
+		tpg_ctrl |= RKISP1_CIF_ISP_TPG_CTRL_SOL_USER_DEFINED;
+		tpg_ctrl &= ~(RKISP1_CIF_ISP_TPG_CTRL_DEF_SYNC |
+			      RKISP1_CIF_ISP_TPG_CTRL_MAX_SYNC);
+
+		val = RKISP1_TPG_W_H(tpg->src_width, tpg->src_height);
+		rkisp1_write(rkisp1, RKISP1_CIF_ISP_TPG_ACT_IN, val);
+
+		sync = rkisp1_tpg_calc_frame_sync(tpg->interval,
+						  tpg->src_width, tpg->src_height);
+
+		val = RKISP1_TPG_W_H(tpg->src_width + sync,
+				     tpg->src_height + sync);
+		rkisp1_write(rkisp1, RKISP1_CIF_ISP_TPG_TOTAL_IN, val);
+
+		/*
+		 * These seem to be fine as arbitrary values
+		 * TODO: Figure out if these values can be improved.
+		 */
+		val = RKISP1_TPG_W_H(sync / 3, sync / 3);
+		rkisp1_write(rkisp1, RKISP1_CIF_ISP_TPG_FP_IN, val);
+		rkisp1_write(rkisp1, RKISP1_CIF_ISP_TPG_BP_IN, val);
+		rkisp1_write(rkisp1, RKISP1_CIF_ISP_TPG_W_IN, val);
+
+		/* The size of one block in the 3x3 color block mode */
+		val = RKISP1_TPG_W_H(tpg->src_width / 3, tpg->src_height / 3);
+		rkisp1_write(rkisp1, RKISP1_CIF_ISP_TPG_GAP_IN, val);
+
+		/*
+		 * The width of one column in color bar, gray bar, and
+		 * highlighted grid modes.
+		 */
+		val = (tpg->src_width / 8) & 0x3fff;
+		rkisp1_write(rkisp1, RKISP1_CIF_ISP_TPG_GAP_STD_IN, val);
 	}
 
 	rkisp1_write(rkisp1, RKISP1_CIF_ISP_TPG_CTRL, tpg_ctrl);
@@ -257,19 +343,20 @@ static int rkisp1_tpg_enum_mbus_code(struct v4l2_subdev *sd,
 static int rkisp1_tpg_init_config(struct v4l2_subdev *sd,
 				  struct v4l2_subdev_state *sd_state)
 {
+	struct rkisp1_tpg *tpg = to_rkisp1_tpg(sd);
 	struct v4l2_mbus_framefmt *fmt;
 
 	fmt = v4l2_subdev_get_try_format(sd, sd_state, 0);
 
-	/*
-	 * As we don't have documentation for the TPG component, we'll stick to
-	 * using a pre-defined resolution for now, just to get TPG working.
-	 * TODO Support other resolutions
-	 */
-	fmt->width = 1920;
-	fmt->height = 1080;
+	fmt->width = RKISP1_DEFAULT_WIDTH;
+	fmt->height = RKISP1_DEFAULT_HEIGHT;
 	fmt->field = V4L2_FIELD_NONE;
 	fmt->code = RKISP1_TPG_DEF_FMT;
+
+	tpg->interval = (struct v4l2_fract){
+		.numerator = 1,
+		.denominator = 30,
+	};
 
 	return 0;
 }
@@ -295,9 +382,6 @@ static int rkisp1_tpg_set_fmt(struct v4l2_subdev *sd,
 	struct rkisp1_tpg *tpg = to_rkisp1_tpg(sd);
 	const struct rkisp1_mbus_info *mbus_info;
 	struct v4l2_mbus_framefmt *src_fmt;
-	static const u32 area_1080p = 1920 * 1080;
-	static const u32 area_720p = 1280 * 720;
-	u32 area;
 
 	mutex_lock(&tpg->lock);
 
@@ -312,19 +396,16 @@ static int rkisp1_tpg_set_fmt(struct v4l2_subdev *sd,
 	}
 
 	/*
-	 * Quick hack to clamp to either of these two resolutions. This will be
-	 * replaced with proper clamping once we support arbitrary resolutions.
-	 * TODO Support other resolutions
+	 * We don't actually have documentation on the minimum and maximum
+	 * sizes supported by the TPG. Assume an arbitrary minimum and 12MP
+	 * maximum.
 	 */
-	area = clamp_t(u32, fmt->format.width * fmt->format.height,
-		       area_720p, area_1080p);
-	if (area - area_720p < area - area_1080p) {
-		src_fmt->width = 1280;
-		src_fmt->height = 720;
-	} else {
-		src_fmt->width = 1920;
-		src_fmt->height = 1080;
-	}
+	src_fmt->width = clamp_t(u32, fmt->format.width,
+				 RKISP1_TPG_MIN_WIDTH,
+				 RKISP1_TPG_MAX_WIDTH);
+	src_fmt->height = clamp_t(u32, fmt->format.height,
+				  RKISP1_TPG_MIN_HEIGHT,
+				  RKISP1_TPG_MAX_HEIGHT);
 
 	fmt->format = *src_fmt;
 
@@ -357,6 +438,52 @@ static int rkisp1_tpg_s_stream(struct v4l2_subdev *sd, int enable)
 	return 0;
 }
 
+static int rkisp1_tpg_g_frame_interval(struct v4l2_subdev *sd,
+				       struct v4l2_subdev_frame_interval *interval)
+{
+	struct rkisp1_tpg *tpg = to_rkisp1_tpg(sd);
+
+	if (interval->pad != 0)
+		return -EINVAL;
+
+	interval->interval = tpg->interval;
+
+	return 0;
+}
+
+static int rkisp1_tpg_s_frame_interval(struct v4l2_subdev *sd,
+				       struct v4l2_subdev_frame_interval *interval)
+{
+	struct rkisp1_tpg *tpg = to_rkisp1_tpg(sd);
+	u32 sync;
+
+	if (interval->pad != 0)
+		return -EINVAL;
+
+	sync = rkisp1_tpg_calc_frame_sync(interval->interval,
+					  tpg->src_width, tpg->src_height);
+
+	/*
+	 * This is the minimum padding necessary for the maximum frame size,
+	 * and gets 57 fps. If it's so low that it overflows, we'll just let it
+	 * be, and treat the overflow itself as automatic adjustment.
+	 * TODO Come up with better frame interval validation. Or get rid of
+	 * g/s_frame_interval and just use hblank/vblank.
+	 * Data points:
+	 * - 1080p max 210 min 2 fps
+	 */
+	if (sync < 96) {
+		sync = 96;
+		interval->interval.numerator =
+			(tpg->src_width + sync) * (tpg->src_height + sync);
+		interval->interval.denominator = RKISP1_TPG_CLOCK_RATE;
+	}
+
+	tpg->interval = interval->interval;
+
+	return 0;
+}
+
 /* ----------------------------------------------------------------------------
  * Registration
  */
@@ -367,6 +494,8 @@ static const struct media_entity_operations rkisp1_tpg_media_ops = {
 
 static const struct v4l2_subdev_video_ops rkisp1_tpg_video_ops = {
 	.s_stream = rkisp1_tpg_s_stream,
+	.g_frame_interval = rkisp1_tpg_g_frame_interval,
+	.s_frame_interval = rkisp1_tpg_s_frame_interval,
 };
 
 static const struct v4l2_subdev_pad_ops rkisp1_tpg_pad_ops = {

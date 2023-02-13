@@ -340,6 +340,25 @@ static int rkisp1_tpg_enum_mbus_code(struct v4l2_subdev *sd,
 	return -EINVAL;
 }
 
+static int rkisp1_tpg_enum_frame_size(struct v4l2_subdev *sd,
+				      struct v4l2_subdev_state *state,
+				      struct v4l2_subdev_frame_size_enum *fse)
+{
+	const struct rkisp1_mbus_info *fmt =
+		rkisp1_mbus_info_get_by_code(fse->code);
+
+	if (!fmt || !(fmt->pixel_enc & V4L2_PIXEL_ENC_BAYER) ||
+	    fse->index != 0 || fse->pad != 0)
+		return -EINVAL;
+
+	fse->min_width = RKISP1_TPG_MIN_WIDTH;
+	fse->max_width = RKISP1_TPG_MAX_WIDTH;
+	fse->min_height = RKISP1_TPG_MIN_HEIGHT;
+	fse->max_height = RKISP1_TPG_MAX_HEIGHT;
+
+	return 0;
+}
+
 static int rkisp1_tpg_init_config(struct v4l2_subdev *sd,
 				  struct v4l2_subdev_state *sd_state)
 {
@@ -500,6 +519,7 @@ static const struct v4l2_subdev_video_ops rkisp1_tpg_video_ops = {
 
 static const struct v4l2_subdev_pad_ops rkisp1_tpg_pad_ops = {
 	.enum_mbus_code = rkisp1_tpg_enum_mbus_code,
+	.enum_frame_size = rkisp1_tpg_enum_frame_size,
 	.init_cfg = rkisp1_tpg_init_config,
 	.get_fmt = rkisp1_tpg_get_fmt,
 	.set_fmt = rkisp1_tpg_set_fmt,

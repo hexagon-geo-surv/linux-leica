@@ -486,7 +486,7 @@
 	};
 
 	temperature-sensor@48 {
-		compatible = "ti,tmp116", "ti,tmp117";
+		compatible = "ti,tmp116";
 		reg = <0x48>;
 	};
 };

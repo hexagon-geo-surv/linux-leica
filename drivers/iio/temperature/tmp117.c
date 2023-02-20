@@ -16,6 +16,7 @@
 #include <linux/types.h>
 #include <linux/kernel.h>
 #include <linux/limits.h>
+#include <linux/property.h>
 
 #include <linux/iio/iio.h>
 
@@ -113,32 +114,60 @@ static const struct iio_info tmp117_info = {
 	.write_raw = tmp117_write_raw,
 };
 
+static const struct of_device_id tmp117_of_match[] = {
+	{ .compatible = "ti,tmp117", .data = (void *)TMP117_DEVICE_ID },
+	{ }
+};
+MODULE_DEVICE_TABLE(of, tmp117_of_match);
+
+static const struct i2c_device_id tmp117_id[] = {
+	{ "tmp117", TMP117_DEVICE_ID },
+	{ }
+};
+MODULE_DEVICE_TABLE(i2c, tmp117_id);
+
 static int tmp117_identify(struct i2c_client *client)
 {
+	unsigned long match_data;
 	int dev_id;
 
 	dev_id = i2c_smbus_read_word_swapped(client, TMP117_REG_DEVICE_ID);
 	if (dev_id < 0)
 		return dev_id;
-	if (dev_id != TMP117_DEVICE_ID) {
-		dev_err(&client->dev, "TMP117 not found\n");
-		return -ENODEV;
+
+	switch (dev_id) {
+	case TMP117_DEVICE_ID:
+		return dev_id;
 	}
-	return 0;
+
+	dev_info(&client->dev, "Unkown device id (0x%x), use fallback compatible\n",
+		 dev_id);
+
+	match_data = (uintptr_t)device_get_match_data(&client->dev);
+	if (match_data)
+		return match_data;
+
+	match_data = i2c_match_id(tmp117_id, client)->driver_data;
+	if (match_data)
+		return match_data;
+
+	dev_err(&client->dev, "error: No valid fallback found\n");
+
+	return -ENODEV;
 }
 
 static int tmp117_probe(struct i2c_client *client)
 {
 	struct tmp117_data *data;
 	struct iio_dev *indio_dev;
-	int ret;
+	int dev_id;
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_WORD_DATA))
 		return -EOPNOTSUPP;
 
-	ret = tmp117_identify(client);
-	if (ret < 0)
-		return ret;
+	dev_id = tmp117_identify(client);
+	if (dev_id < 0)
+		return dev_id;
 
 	indio_dev = devm_iio_device_alloc(&client->dev, sizeof(*data));
 	if (!indio_dev)
@@ -148,27 +177,19 @@ static int tmp117_probe(struct i2c_client *client)
 	data->client = client;
 	data->calibbias = 0;
 
-	indio_dev->name = "tmp117";
 	indio_dev->modes = INDIO_DIRECT_MODE;
 	indio_dev->info = &tmp117_info;
 
-	indio_dev->channels = tmp117_channels;
-	indio_dev->num_channels = ARRAY_SIZE(tmp117_channels);
+	switch (dev_id) {
+	case TMP117_DEVICE_ID:
+		indio_dev->channels = tmp117_channels;
+		indio_dev->num_channels = ARRAY_SIZE(tmp117_channels);
+		indio_dev->name = "tmp117";
+		break;
+	}
 
 	return devm_iio_device_register(&client->dev, indio_dev);
 }
-
-static const struct of_device_id tmp117_of_match[] = {
-	{ .compatible = "ti,tmp117", },
-	{ }
-};
-MODULE_DEVICE_TABLE(of, tmp117_of_match);
-
-static const struct i2c_device_id tmp117_id[] = {
-	{ "tmp117", 0 },
-	{ }
-};
-MODULE_DEVICE_TABLE(i2c, tmp117_id);
 
 static struct i2c_driver tmp117_driver = {
 	.driver = {

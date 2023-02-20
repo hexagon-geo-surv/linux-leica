@@ -52,5 +52,6 @@
 		memory-region = <&vdev0buffer>, <&vdev0vring0>, <&vdev0vring1>,
 				<&ram_console_buffer>, <&rsc_table>;
 		syscon = <&src>;
+		fsl,auto-boot;
 	};
 };

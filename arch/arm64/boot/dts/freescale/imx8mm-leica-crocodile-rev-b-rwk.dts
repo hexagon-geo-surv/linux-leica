@@ -5,9 +5,9 @@
 
 /dts-v1/;
 
-#include "crocodile-pinmap.h"
-#include "crocodile.dtsi"
-#include "crocodile-rpmsg.dtsi"
+#include "imx8mm-leica-crocodile-pinmap.h"
+#include "imx8mm-leica-crocodile.dtsi"
+#include "imx8mm-leica-crocodile-rpmsg.dtsi"
 
 / {
 	model = "Crocodile-Rev-B-rwk";

@@ -10,6 +10,7 @@
 
 / {
 	model = "Crocodile-Rev-B";
+	compatible = "leica,crocodile-rev-b", "leica,crocodile", "fsl,imx8mm";
 };
 
 &fec1 {

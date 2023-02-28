@@ -10,7 +10,7 @@
 #include "imx8mm.dtsi"
 
 / {
-	compatible = "fsl,imx8mm";
+	compatible = "leica,crocodile", "fsl,imx8mm";
 
 	chosen {
 		stdout-path = &uart3;

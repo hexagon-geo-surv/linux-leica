@@ -5,8 +5,6 @@
 
 /dts-v1/;
 
-#include "imx8mm-crocodile-pinmap.h"
-
 #include "imx8mm-leica-crocodile.dtsi"
 #include "imx8mm-leica-crocodile-rpmsg.dtsi"
 

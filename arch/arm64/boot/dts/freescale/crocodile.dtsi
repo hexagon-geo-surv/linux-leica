@@ -349,6 +349,11 @@
 	non-removable;
 	mmc-pwrseq = <&usdhc1_pwrseq>;
 	status = "okay";
+
+	mwifiex: wifi@1 {
+		compatible = "marvell,sd8978";
+		reg = <1>;
+	};
 };
 
 &usdhc2 { /* SD card */

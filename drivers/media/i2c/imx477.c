@@ -1085,7 +1085,7 @@ static const char * const imx477_supply_name[] = {
  * Note, that delay between XCLR low->high and reading the CCI ID register (T6
  * in the datasheet) is much smaller - 600us.
  */
-#define IMX477_XCLR_MIN_DELAY_US	8000
+#define IMX477_XCLR_MIN_DELAY_US	(8000 + 300000)
 #define IMX477_XCLR_DELAY_RANGE_US	1000
 
 struct imx477_compatible_data {

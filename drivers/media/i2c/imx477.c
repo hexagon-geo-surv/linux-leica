@@ -118,8 +118,7 @@ MODULE_PARM_DESC(trigger_mode, "Set vsync trigger mode: 1=source, 2=sink");
 
 enum pad_types {
 	IMAGE_PAD,
-	METADATA_PAD,
-	NUM_PADS
+	NUM_PADS,
 };
 
 /* IMX477 native and active pixel array size. */
@@ -1273,8 +1272,6 @@ static int imx477_open(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 	struct imx477 *imx477 = to_imx477(sd);
 	struct v4l2_mbus_framefmt *try_fmt_img =
 		v4l2_subdev_get_try_format(sd, fh->state, IMAGE_PAD);
-	struct v4l2_mbus_framefmt *try_fmt_meta =
-		v4l2_subdev_get_try_format(sd, fh->state, METADATA_PAD);
 	struct v4l2_rect *try_crop;
 
 	mutex_lock(&imx477->mutex);
@@ -1285,12 +1282,6 @@ static int imx477_open(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 	try_fmt_img->code = imx477_get_format_code(imx477,
 						   MEDIA_BUS_FMT_SRGGB12_1X12);
 	try_fmt_img->field = V4L2_FIELD_NONE;
-
-	/* Initialize try_fmt for the embedded metadata pad */
-	try_fmt_meta->width = IMX477_EMBEDDED_LINE_WIDTH;
-	try_fmt_meta->height = IMX477_NUM_EMBEDDED_LINES;
-	try_fmt_meta->code = MEDIA_BUS_FMT_SENSOR_DATA;
-	try_fmt_meta->field = V4L2_FIELD_NONE;
 
 	/* Initialize try_crop */
 	try_crop = v4l2_subdev_get_try_crop(sd, fh->state, IMAGE_PAD);
@@ -2249,7 +2240,6 @@ static int imx477_probe(struct i2c_client *client)
 
 	/* Initialize source pads */
 	imx477->pad[IMAGE_PAD].flags = MEDIA_PAD_FL_SOURCE;
-	imx477->pad[METADATA_PAD].flags = MEDIA_PAD_FL_SOURCE;
 
 	ret = media_entity_pads_init(&imx477->sd.entity, NUM_PADS, imx477->pad);
 	if (ret) {

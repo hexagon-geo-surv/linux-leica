@@ -205,6 +205,60 @@ static void rkisp1_bls_enable(struct rkisp1_params *params, bool enable)
 					RKISP1_CIF_ISP_BLS_ENA);
 }
 
+static void rkisp1_bls_config_imx8mp(struct rkisp1_params *params,
+				     const struct rkisp1_cif_isp_bls_config *arg)
+{
+	const struct rkisp1_cif_isp_bls_fixed_val *pval = &arg->fixed_val;
+	unsigned int shift = 20 - params->rkisp1->isp.sink_fmt->bus_width;
+	u32 b, gb, gr, r;
+
+	b = pval->b << shift;
+	gb = pval->gb << shift;
+	gr = pval->gr << shift;
+	r = pval->r << shift;
+
+	switch (params->raw_type) {
+	case RKISP1_RAW_BGGR:
+		rkisp1_write(params->rkisp1, RKISP1_CIF_ISP_COMPAND_BLS_D_FIXED, r);
+		rkisp1_write(params->rkisp1, RKISP1_CIF_ISP_COMPAND_BLS_C_FIXED, gr);
+		rkisp1_write(params->rkisp1, RKISP1_CIF_ISP_COMPAND_BLS_B_FIXED, gb);
+		rkisp1_write(params->rkisp1, RKISP1_CIF_ISP_COMPAND_BLS_A_FIXED, b);
+		break;
+	case RKISP1_RAW_GBRG:
+		rkisp1_write(params->rkisp1, RKISP1_CIF_ISP_COMPAND_BLS_C_FIXED, r);
+		rkisp1_write(params->rkisp1, RKISP1_CIF_ISP_COMPAND_BLS_D_FIXED, gr);
+		rkisp1_write(params->rkisp1, RKISP1_CIF_ISP_COMPAND_BLS_A_FIXED, gb);
+		rkisp1_write(params->rkisp1, RKISP1_CIF_ISP_COMPAND_BLS_B_FIXED, b);
+		break;
+	case RKISP1_RAW_GRBG:
+		rkisp1_write(params->rkisp1, RKISP1_CIF_ISP_COMPAND_BLS_B_FIXED, r);
+		rkisp1_write(params->rkisp1, RKISP1_CIF_ISP_COMPAND_BLS_A_FIXED, gr);
+		rkisp1_write(params->rkisp1, RKISP1_CIF_ISP_COMPAND_BLS_D_FIXED, gb);
+		rkisp1_write(params->rkisp1, RKISP1_CIF_ISP_COMPAND_BLS_C_FIXED, b);
+		break;
+	case RKISP1_RAW_RGGB:
+		rkisp1_write(params->rkisp1, RKISP1_CIF_ISP_COMPAND_BLS_A_FIXED, r);
+		rkisp1_write(params->rkisp1, RKISP1_CIF_ISP_COMPAND_BLS_B_FIXED, gr);
+		rkisp1_write(params->rkisp1, RKISP1_CIF_ISP_COMPAND_BLS_C_FIXED, gb);
+		rkisp1_write(params->rkisp1, RKISP1_CIF_ISP_COMPAND_BLS_D_FIXED, b);
+		break;
+	default:
+		break;
+	}
+}
+
+static void rkisp1_bls_enable_imx8mp(struct rkisp1_params *params, bool enable)
+{
+	if (enable)
+		rkisp1_param_set_bits(params,
+				      RKISP1_CIF_ISP_COMPAND_CTRL,
+				      RKISP1_CIF_ISP_COMPAND_CTRL_BLS_ENABLE);
+	else
+		rkisp1_param_clear_bits(params,
+					RKISP1_CIF_ISP_COMPAND_CTRL,
+					RKISP1_CIF_ISP_COMPAND_CTRL_BLS_ENABLE);
+}
+
 /* ISP LS correction interface function */
 static void
 rkisp1_lsc_matrix_config_v10(struct rkisp1_params *params,
@@ -1747,6 +1801,20 @@ static const struct rkisp1_params_ops rkisp1_v12_params_ops = {
 	.bls_enable = rkisp1_bls_enable,
 };
 
+static const struct rkisp1_params_ops rkisp1_imx8mp_params_ops = {
+	.lsc_matrix_config = rkisp1_lsc_matrix_config_v10,
+	.goc_config = rkisp1_goc_config_v10,
+	.awb_meas_config = rkisp1_awb_meas_config_v10,
+	.awb_meas_enable = rkisp1_awb_meas_enable_v10,
+	.awb_gain_config = rkisp1_awb_gain_config_v10,
+	.aec_config = rkisp1_aec_config_v10,
+	.hst_config = rkisp1_hst_config_v10,
+	.hst_enable = rkisp1_hst_enable_v10,
+	.afm_config = rkisp1_afm_config_v10,
+	.bls_config = rkisp1_bls_config_imx8mp,
+	.bls_enable = rkisp1_bls_enable_imx8mp,
+};
+
 static int rkisp1_params_enum_fmt_meta_out(struct file *file, void *priv,
 					   struct v4l2_fmtdesc *f)
 {
@@ -1913,10 +1981,17 @@ static void rkisp1_init_params(struct rkisp1_params *params)
 	params->vdev_fmt.fmt.meta.buffersize =
 		sizeof(struct rkisp1_params_cfg);
 
-	if (params->rkisp1->info->isp_ver == RKISP1_V12)
+	switch (params->rkisp1->info->isp_ver) {
+	case RKISP1_V12:
 		params->ops = &rkisp1_v12_params_ops;
-	else
+		break;
+	case IMX8MP_V10:
+		params->ops = &rkisp1_imx8mp_params_ops;
+		break;
+	default:
 		params->ops = &rkisp1_v10_params_ops;
+		break;
+	}
 }
 
 int rkisp1_params_register(struct rkisp1_device *rkisp1)

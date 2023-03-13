@@ -222,6 +222,8 @@ static int rkisp1_config_isp(struct rkisp1_isp *isp,
 	sink_fmt = rkisp1_mbus_info_get_by_code(sink_frm->code);
 	src_fmt = rkisp1_mbus_info_get_by_code(src_frm->code);
 
+	isp->sink_fmt = sink_fmt;
+
 	if (sink_fmt->pixel_enc == V4L2_PIXEL_ENC_BAYER) {
 		acq_mult = 1;
 		if (src_fmt->pixel_enc == V4L2_PIXEL_ENC_BAYER) {
@@ -317,8 +319,6 @@ static int rkisp1_config_isp(struct rkisp1_isp *isp,
 					    src_frm->quantization,
 					    src_frm->ycbcr_enc);
 	}
-
-	isp->sink_fmt = sink_fmt;
 
 	return 0;
 }

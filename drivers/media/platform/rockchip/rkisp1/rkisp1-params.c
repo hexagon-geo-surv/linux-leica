@@ -193,6 +193,18 @@ static void rkisp1_bls_config(struct rkisp1_params *params,
 	rkisp1_write(params->rkisp1, RKISP1_CIF_ISP_BLS_CTRL, new_control);
 }
 
+static void rkisp1_bls_enable(struct rkisp1_params *params, bool enable)
+{
+	if (enable)
+		rkisp1_param_set_bits(params,
+				      RKISP1_CIF_ISP_BLS_CTRL,
+				      RKISP1_CIF_ISP_BLS_ENA);
+	else
+		rkisp1_param_clear_bits(params,
+					RKISP1_CIF_ISP_BLS_CTRL,
+					RKISP1_CIF_ISP_BLS_ENA);
+}
+
 /* ISP LS correction interface function */
 static void
 rkisp1_lsc_matrix_config_v10(struct rkisp1_params *params,
@@ -1267,19 +1279,12 @@ rkisp1_isp_isr_other_config(struct rkisp1_params *params,
 
 	/* update bls config */
 	if (module_cfg_update & RKISP1_CIF_ISP_MODULE_BLS)
-		rkisp1_bls_config(params,
-				  &new_params->others.bls_config);
+		params->ops->bls_config(params,
+					&new_params->others.bls_config);
 
-	if (module_en_update & RKISP1_CIF_ISP_MODULE_BLS) {
-		if (module_ens & RKISP1_CIF_ISP_MODULE_BLS)
-			rkisp1_param_set_bits(params,
-					      RKISP1_CIF_ISP_BLS_CTRL,
-					      RKISP1_CIF_ISP_BLS_ENA);
-		else
-			rkisp1_param_clear_bits(params,
-						RKISP1_CIF_ISP_BLS_CTRL,
-						RKISP1_CIF_ISP_BLS_ENA);
-	}
+	if (module_en_update & RKISP1_CIF_ISP_MODULE_BLS)
+		params->ops->bls_enable(params,
+					module_ens & RKISP1_CIF_ISP_MODULE_BLS);
 
 	/* update sdg config */
 	if (module_cfg_update & RKISP1_CIF_ISP_MODULE_SDG)
@@ -1724,6 +1729,8 @@ static const struct rkisp1_params_ops rkisp1_v10_params_ops = {
 	.hst_config = rkisp1_hst_config_v10,
 	.hst_enable = rkisp1_hst_enable_v10,
 	.afm_config = rkisp1_afm_config_v10,
+	.bls_config = rkisp1_bls_config,
+	.bls_enable = rkisp1_bls_enable,
 };
 
 static const struct rkisp1_params_ops rkisp1_v12_params_ops = {
@@ -1736,6 +1743,8 @@ static const struct rkisp1_params_ops rkisp1_v12_params_ops = {
 	.hst_config = rkisp1_hst_config_v12,
 	.hst_enable = rkisp1_hst_enable_v12,
 	.afm_config = rkisp1_afm_config_v12,
+	.bls_config = rkisp1_bls_config,
+	.bls_enable = rkisp1_bls_enable,
 };
 
 static int rkisp1_params_enum_fmt_meta_out(struct file *file, void *priv,

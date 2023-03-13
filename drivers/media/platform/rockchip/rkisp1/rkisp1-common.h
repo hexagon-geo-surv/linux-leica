@@ -356,6 +356,9 @@ struct rkisp1_params_ops {
 			   const struct rkisp1_cif_isp_hst_config *arg, bool en);
 	void (*afm_config)(struct rkisp1_params *params,
 			   const struct rkisp1_cif_isp_afc_config *arg);
+	void (*bls_config)(struct rkisp1_params *params,
+			   const struct rkisp1_cif_isp_bls_config *arg);
+	void (*bls_enable)(struct rkisp1_params *params, bool en);
 };
 
 /*

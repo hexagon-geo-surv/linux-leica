@@ -198,18 +198,6 @@ static const struct mwifiex_sdio_card_reg mwifiex_reg_sd8978 = {
 	.cmd_cfg_1 = 0xc5,
 	.cmd_cfg_2 = 0xc6,
 	.cmd_cfg_3 = 0xc7,
-	.fw_dump_host_ready = 0xcc,
-	.fw_dump_ctrl = 0xf0,
-	.fw_dump_start = 0xf1,
-	.fw_dump_end = 0xf8,
-	.func1_dump_reg_start = 0x10,
-	.func1_dump_reg_end = 0x17,
-	.func1_scratch_reg = 0xe8,
-	.func1_spec_reg_num = 13,
-	.func1_spec_reg_table = {0x08, 0x58, 0x5C, 0x5D,
-				 0x60, 0x61, 0x62, 0x64,
-				 0x65, 0x66, 0x68, 0x69,
-				 0x6a},
 };
 
 static const struct mwifiex_sdio_card_reg mwifiex_reg_sd8997 = {

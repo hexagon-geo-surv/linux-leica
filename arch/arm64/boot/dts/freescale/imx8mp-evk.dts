@@ -5,7 +5,9 @@
 
 /dts-v1/;
 
+#include <dt-bindings/interrupt-controller/irq.h>
 #include <dt-bindings/phy/phy-imx8-pcie.h>
+#include <dt-bindings/usb/pd.h>
 #include "imx8mp.dtsi"
 
 / {
@@ -123,7 +125,22 @@
 		simple-audio-card,codec {
 			sound-dai = <&wm8960>;
 		};
+	};
 
+	usb-ss-mux {
+		compatible = "gpio-ss-mux";
+		enable-gpios = <&gpio2 20 GPIO_ACTIVE_LOW>;
+		select-gpios = <&gpio4 20 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_usb_ss_mux>;
+
+		orientation-switch;
+
+		port {
+			usb_ss_mux: endpoint {
+				remote-endpoint = <&usb_con_ss_mux>;
+			};
+		};
 	};
 };
 
@@ -392,6 +409,40 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c2>;
 	status = "okay";
+
+	tcpc@50 {
+		compatible = "nxp,ptn5110";
+		reg = <0x50>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_tcpc>;
+		interrupt-parent = <&gpio4>;
+		interrupts = <19 IRQ_TYPE_LEVEL_LOW>;
+
+		connector {
+			compatible = "usb-c-connector";
+			label = "USB-C";
+			power-role = "dual";
+			data-role = "dual";
+			try-power-role = "sink";
+			source-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;
+			sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)
+				     PDO_VAR(5000, 20000, 3000)>;
+			op-sink-microwatt = <15000000>;
+			self-powered;
+
+			port {
+				usb_con_ss_mux: endpoint {
+					remote-endpoint = <&usb_ss_mux>;
+				};
+			};
+		};
+
+		port {
+			usb_con_ss: endpoint {
+				remote-endpoint = <&usb_dwc3_0_drd>;
+			};
+		};
+	};
 };
 
 &i2c3 {
@@ -524,12 +575,35 @@
 	status = "okay";
 };
 
+&usb3_phy0 {
+	status = "okay";
+};
+
 &usb3_phy1 {
+	status = "okay";
+};
+
+&usb3_0 {
 	status = "okay";
 };
 
 &usb3_1 {
 	status = "okay";
+};
+
+&usb_dwc3_0 {
+	dr_mode = "otg";
+	hnp-disable;
+	srp-disable;
+	adp-disable;
+	usb-role-switch;
+	status = "okay";
+
+	port {
+		usb_dwc3_0_drd: endpoint {
+			remote-endpoint = <&usb_con_ss>;
+		};
+	};
 };
 
 &usb_dwc3_1 {
@@ -756,6 +830,12 @@
 		>;
 	};
 
+	pinctrl_tcpc: tcpcgrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SAI1_TXD7__GPIO4_IO19	0x1e0
+		>;
+	};
+
 	pinctrl_uart1: uart1grp {
 		fsl,pins = <
 			MX8MP_IOMUXC_UART1_RXD__UART1_DCE_RX	0x140
@@ -794,6 +874,13 @@
 			MX8MP_IOMUXC_ECSPI1_MOSI__UART3_DCE_TX		0x140
 			MX8MP_IOMUXC_ECSPI1_SS0__UART3_DCE_RTS		0x140
 			MX8MP_IOMUXC_ECSPI1_MISO__UART3_DCE_CTS		0x140
+		>;
+	};
+
+	pinctrl_usb_ss_mux: usbssmuxgrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD2_WP__GPIO2_IO20		0x104
+			MX8MP_IOMUXC_SAI1_MCLK__GPIO4_IO20	0x144
 		>;
 	};
 

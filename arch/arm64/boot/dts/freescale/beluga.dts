@@ -387,12 +387,6 @@
 	status = "okay";
 };
 
-&uart3 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_uart3>;
-	status = "okay";
-};
-
 /* USB1 - Type C PORT 1 */
 &usb3_phy0 {
        status = "okay";
@@ -595,13 +589,6 @@
 		fsl,pins = <
 			MX8MP_IOMUXC_UART2_RXD__UART2_DCE_RX	0x49
 			MX8MP_IOMUXC_UART2_TXD__UART2_DCE_TX	0x49
-		>;
-	};
-
-	pinctrl_uart3: uart3grp {
-		fsl,pins = <
-			MX8MP_IOMUXC_ECSPI1_SCLK__UART3_DCE_RX	0x140
-			MX8MP_IOMUXC_ECSPI1_MOSI__UART3_DCE_TX	0x140
 		>;
 	};
 

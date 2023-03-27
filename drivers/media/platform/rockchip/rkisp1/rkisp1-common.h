@@ -35,8 +35,8 @@ struct regmap;
 #define RKISP1_ISP_SD_SINK			BIT(1)
 
 /* min and max values for the widths and heights of the entities */
-#define RKISP1_ISP_MAX_WIDTH			4032
-#define RKISP1_ISP_MAX_HEIGHT			3024
+#define RKISP1_ISP_MAX_WIDTH			4096
+#define RKISP1_ISP_MAX_HEIGHT			3072
 #define RKISP1_ISP_MIN_WIDTH			32
 #define RKISP1_ISP_MIN_HEIGHT			32
 

@@ -39,8 +39,8 @@
  * These are assumed from the maximum pre-defined size.
  * TODO Validate these.
  */
-#define RKISP1_TPG_MAX_WIDTH	3840
-#define RKISP1_TPG_MAX_HEIGHT	2160
+#define RKISP1_TPG_MAX_WIDTH	4096
+#define RKISP1_TPG_MAX_HEIGHT	3072
 
 /*
  * These are arbitrarily defined. 32x32 (minimum of the ISP) was too small to

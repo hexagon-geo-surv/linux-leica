@@ -117,6 +117,13 @@
 			};
 		};
 	};
+
+	rtc@32 {
+		compatible = "epson,rx8130";
+		reg = <0x32>;
+		aux-voltage-chargeable = <0>;
+		wakeup-source;
+	};
 };
 
 &i2c2 {

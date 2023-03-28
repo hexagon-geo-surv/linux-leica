@@ -145,6 +145,12 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c2>;
 	status = "okay";
+
+	eeprom: eeprom@57 {
+		compatible = "atmel,24c512";
+		reg = <0x57>;
+		pagesize = <16>;
+	};
 };
 
 &i2c4 {

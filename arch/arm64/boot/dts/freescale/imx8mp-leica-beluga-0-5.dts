@@ -11,6 +11,10 @@
 / {
 	model = "Leica Geosystems Beluga pt0.5";
 	compatible = ",beluga-rev-0.5", "-beluga", "fsl,imx8mp";
+
+	chosen {
+		stdout-path = &uart1;
+	};
 };
 
 &A53_0 {
@@ -119,6 +123,13 @@
 	status = "okay";
 };
 
+/* A53 console */
+&uart1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart1>;
+	status = "okay";
+};
+
 /* EMMC */
 &usdhc3 {
 	assigned-clocks = <&clk IMX8MP_CLK_USDHC3>;
@@ -204,6 +215,13 @@
 			MX8MP_IOMUXC_NAND_CE3_B__USDHC3_DATA6	0x1d6 /* SD3_DATA6 */
 			MX8MP_IOMUXC_NAND_CLE__USDHC3_DATA7	0x1d6 /* SD3_DATA7 */
 			MX8MP_IOMUXC_NAND_CE1_B__USDHC3_STROBE	0x196 /* SD3_STROBE */
+		>;
+	};
+
+	pinctrl_uart1: uart1grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD1_CLK__UART1_DCE_TX	0x140 /* IMX_DBG_UART1_TXD */
+			MX8MP_IOMUXC_SD1_CMD__UART1_DCE_RX	0x140 /* IMX_DBG_UART1_RXD */
 		>;
 	};
 };

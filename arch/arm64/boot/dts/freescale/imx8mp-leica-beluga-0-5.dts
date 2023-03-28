@@ -151,6 +151,19 @@
 		reg = <0x57>;
 		pagesize = <16>;
 	};
+
+	tca6424a: gpio@22 {
+		compatible = "ti,tca6424";
+		reg = <0x22>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		interrupt-parent = <&gpio3>;
+		interrupts = <26 IRQ_TYPE_LEVEL_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_tca6424>;
+		interrupt-controller;
+		reset-gpios = <&gpio4 4 GPIO_ACTIVE_LOW>;
+	};
 };
 
 &i2c4 {
@@ -210,6 +223,13 @@
 		fsl,pins = <
 			MX8MP_IOMUXC_I2C1_SCL__I2C1_SCL		0x400001c2 /* I2C1_SCL */
 			MX8MP_IOMUXC_I2C1_SDA__I2C1_SDA		0x400001c2 /* I2C1_SDA */
+		>;
+	};
+
+	pinctrl_tca6424: tca6424grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_HDMI_DDC_SCL__GPIO3_IO26	0x146 /* IMX_IO_EXPDR_xINT */
+			MX8MP_IOMUXC_SAI1_RXD2__GPIO4_IO04	0x106 /* IMX_IO_EXPDR_xRST */
 		>;
 	};
 

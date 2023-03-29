@@ -196,6 +196,21 @@
 	pinctrl-0 = <&pinctrl_i2c6>;
 	clock-frequency = <400000>;
 	status = "okay";
+
+	tmp116@48 {
+		compatible = "ti,tmp116";
+		reg = <0x48>;
+	};
+
+	tmp116@49 {
+		compatible = "ti,tmp116";
+		reg = <0x49>;
+	};
+
+	tmp116@4A {
+		compatible = "ti,tmp116";
+		reg = <0x4a>;
+	};
 };
 
 &snvs_pwrkey {

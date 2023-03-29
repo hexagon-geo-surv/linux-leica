@@ -22,6 +22,17 @@
 		#clock-cells = <0>;
 		clock-frequency = <25000000>;
 	};
+
+	reg_ext_vdd_3v3: regulator-ext-vdd-3v3 {
+		compatible = "regulator-fixed";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_reg_ext_vdd_3v3>;
+		regulator-name = "VDD_3V3_EXT";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&gpio4 8 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
 };
 
 &A53_0 {
@@ -326,5 +337,11 @@
 			MX8MP_IOMUXC_SAI5_RXFS__I2C6_SCL	0x400001c2 /* I2C6_SCL */
 			MX8MP_IOMUXC_SAI5_RXC__I2C6_SDA		0x400001c2 /* I2C6_SDA */
 			>;
+	};
+
+	pinctrl_reg_ext_vdd_3v3: vdd3v3extgrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SAI1_RXD6__GPIO4_IO08		0x106 /* IMX_EN_EXT_VDD */
+		>;
 	};
 };

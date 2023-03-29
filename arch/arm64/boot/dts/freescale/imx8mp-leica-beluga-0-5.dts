@@ -211,6 +211,12 @@
 		compatible = "ti,tmp116";
 		reg = <0x4a>;
 	};
+
+	dps310@77 {
+		compatible = "infineon,dps310";
+		reg = <0x77>;
+		#io-channel-cells = <0>;
+	};
 };
 
 &snvs_pwrkey {

@@ -230,6 +230,20 @@
 	status = "okay";
 };
 
+/* WLAN */
+&usdhc2 {
+	assigned-clocks = <&clk IMX8MP_CLK_USDHC2>;
+	assigned-clock-rates = <400000000>;
+	pinctrl-names = "default", "state_100mhz", "state_200mhz";
+	pinctrl-0 = <&pinctrl_usdhc2>;
+	pinctrl-1 = <&pinctrl_usdhc2_100mhz>;
+	pinctrl-2 = <&pinctrl_usdhc2_200mhz>;
+	no-sd;
+	non-removable;
+	bus-width = <4>;
+	status = "okay";
+};
+
 /* EMMC */
 &usdhc3 {
 	assigned-clocks = <&clk IMX8MP_CLK_USDHC3>;
@@ -274,6 +288,39 @@
 	pinctrl_wdog: wdoggrp {
 		fsl,pins = <
 			MX8MP_IOMUXC_GPIO1_IO02__WDOG1_WDOG_B	0x166 /* IMX_WDOG */
+		>;
+	};
+
+	pinctrl_usdhc2: usdhc2grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD2_CLK__USDHC2_CLK	0x190 /* IMX_SDIO2_CLK */
+			MX8MP_IOMUXC_SD2_CMD__USDHC2_CMD	0x1d0 /* IMX_SDIO2_CMD */
+			MX8MP_IOMUXC_SD2_DATA0__USDHC2_DATA0	0x1d0 /* IMX_SDIO2_DATA0 */
+			MX8MP_IOMUXC_SD2_DATA1__USDHC2_DATA1	0x1d0 /* IMX_SDIO2_DATA1 */
+			MX8MP_IOMUXC_SD2_DATA2__USDHC2_DATA2	0x1d0 /* IMX_SDIO2_DATA2 */
+			MX8MP_IOMUXC_SD2_DATA3__USDHC2_DATA3	0x1d0 /* IMX_SDIO2_DATA3 */
+		>;
+	};
+
+	pinctrl_usdhc2_100mhz: usdhc2-100mhzgrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD2_CLK__USDHC2_CLK	0x194 /* IMX_SDIO2_CLK */
+			MX8MP_IOMUXC_SD2_CMD__USDHC2_CMD	0x1d4 /* IMX_SDIO2_CMD */
+			MX8MP_IOMUXC_SD2_DATA0__USDHC2_DATA0	0x1d4 /* IMX_SDIO2_DATA0 */
+			MX8MP_IOMUXC_SD2_DATA1__USDHC2_DATA1	0x1d4 /* IMX_SDIO2_DATA1 */
+			MX8MP_IOMUXC_SD2_DATA2__USDHC2_DATA2	0x1d4 /* IMX_SDIO2_DATA2 */
+			MX8MP_IOMUXC_SD2_DATA3__USDHC2_DATA3	0x1d4 /* IMX_SDIO2_DATA3 */
+		>;
+	};
+
+	pinctrl_usdhc2_200mhz: usdhc2-200mhzgrp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD2_CLK__USDHC2_CLK	0x196 /* IMX_SDIO2_CLK */
+			MX8MP_IOMUXC_SD2_CMD__USDHC2_CMD	0x1d6 /* IMX_SDIO2_CMD */
+			MX8MP_IOMUXC_SD2_DATA0__USDHC2_DATA0	0x1d6 /* IMX_SDIO2_DATA0 */
+			MX8MP_IOMUXC_SD2_DATA1__USDHC2_DATA1	0x1d6 /* IMX_SDIO2_DATA1 */
+			MX8MP_IOMUXC_SD2_DATA2__USDHC2_DATA2	0x1d6 /* IMX_SDIO2_DATA2 */
+			MX8MP_IOMUXC_SD2_DATA3__USDHC2_DATA3	0x1d6 /* IMX_SDIO2_DATA3 */
 		>;
 	};
 

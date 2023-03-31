@@ -483,20 +483,15 @@ static int rkisp1_tpg_s_frame_interval(struct v4l2_subdev *sd,
 					  tpg->src_width, tpg->src_height);
 
 	/*
-	 * This is the minimum padding necessary for the maximum frame size,
-	 * and gets 57 fps. If it's so low that it overflows, we'll just let it
-	 * be, and treat the overflow itself as automatic adjustment.
 	 * TODO Come up with better frame interval validation. Or get rid of
-	 * g/s_frame_interval and just use hblank/vblank.
+	 * g/s_frame_interval and just use hblank/vblank. Check the ratio
+	 * between active time and sync time?
 	 * Data points:
 	 * - 1080p max 210 min 2 fps
 	 */
-	if (sync < 96) {
-		sync = 96;
-		interval->interval.numerator =
-			(tpg->src_width + sync) * (tpg->src_height + sync);
-		interval->interval.denominator = RKISP1_TPG_CLOCK_RATE;
-	}
+	interval->interval.numerator =
+		(tpg->src_width + sync) * (tpg->src_height + sync);
+	interval->interval.denominator = RKISP1_TPG_CLOCK_RATE;
 
 	tpg->interval = interval->interval;
 

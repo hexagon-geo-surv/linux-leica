@@ -299,10 +299,12 @@ static int rkisp1_config_isp(struct rkisp1_isp *isp,
 	rkisp1_write(rkisp1, RKISP1_CIF_ISP_ACQ_V_SIZE, sink_frm->height);
 
 	/* ISP Out Area */
-	rkisp1_write(rkisp1, RKISP1_CIF_ISP_OUT_H_OFFS, sink_crop->left);
-	rkisp1_write(rkisp1, RKISP1_CIF_ISP_OUT_V_OFFS, sink_crop->top);
-	rkisp1_write(rkisp1, RKISP1_CIF_ISP_OUT_H_SIZE, sink_crop->width);
-	rkisp1_write(rkisp1, RKISP1_CIF_ISP_OUT_V_SIZE, sink_crop->height);
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_OUT_H_OFFS, 0);
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_OUT_V_OFFS, 0);
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_OUT_H_SIZE,
+		     sink_crop->left + sink_crop->width);
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_OUT_V_SIZE,
+		     sink_crop->top + sink_crop->height);
 
 	irq_mask |= RKISP1_CIF_ISP_FRAME | RKISP1_CIF_ISP_V_START |
 		    RKISP1_CIF_ISP_PIC_SIZE_ERROR;

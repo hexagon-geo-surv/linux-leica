@@ -151,6 +151,21 @@ static int rkisp1_debug_dump_mi_mp_show(struct seq_file *m, void *p)
 }
 DEFINE_SHOW_ATTRIBUTE(rkisp1_debug_dump_mi_mp);
 
+static int rkisp1_debug_dump_is_show(struct seq_file *m, void *p)
+{
+	static const struct rkisp1_debug_register registers[] = {
+		RKISP1_DEBUG_SHD_REG(ISP_IS_H_OFFS),
+		RKISP1_DEBUG_SHD_REG(ISP_IS_V_OFFS),
+		RKISP1_DEBUG_SHD_REG(ISP_IS_H_SIZE),
+		RKISP1_DEBUG_SHD_REG(ISP_IS_V_SIZE),
+		{ /* Sentinel */ },
+	};
+	struct rkisp1_device *rkisp1 = m->private;
+
+	return rkisp1_debug_dump_regs(rkisp1, m, 0, registers);
+}
+DEFINE_SHOW_ATTRIBUTE(rkisp1_debug_dump_is);
+
 static int rkisp1_debug_dump_tpg_show(struct seq_file *m, void *p)
 {
 	static const struct rkisp1_debug_register registers[] = {
@@ -268,6 +283,9 @@ void rkisp1_debug_init(struct rkisp1_device *rkisp1)
 
 	debugfs_create_file("mi_mp", 0444, regs_dir, rkisp1,
 			    &rkisp1_debug_dump_mi_mp_fops);
+
+	debugfs_create_file("is", 0444, regs_dir, rkisp1,
+			    &rkisp1_debug_dump_is_fops);
 
 	if (rkisp1_has_feature(rkisp1, TPG))
 		debugfs_create_file("tpg", 0444, regs_dir, rkisp1,

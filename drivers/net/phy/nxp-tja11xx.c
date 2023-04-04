@@ -560,6 +560,7 @@ static void tja1102_p1_register(struct work_struct *work)
 			.mii_bus = bus,
 			/* Real PHY ID of Port 1 is 0 */
 			.phy_id = PHY_ID_TJA1102,
+			.phy_id_broken = true,
 		};
 		struct phy_device *phy;
 

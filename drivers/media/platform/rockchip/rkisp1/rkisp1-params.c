@@ -1588,32 +1588,42 @@ void rkisp1_params_isr(struct rkisp1_device *rkisp1)
 	struct rkisp1_params *params = &rkisp1->params;
 	struct rkisp1_params_cfg *new_params;
 	struct rkisp1_buffer *cur_buf;
+	struct rkisp1_resizer *rsz = &rkisp1->resizer_devs[0];
+	bool has_buf;
 
 	spin_lock(&params->config_lock);
 
-	if (!rkisp1_params_get_buffer(params, &cur_buf, &new_params))
-		goto unlock;
+	has_buf = rkisp1_params_get_buffer(params, &cur_buf, &new_params);
 
-	rkisp1_isp_isr_other_config(params, new_params);
-	rkisp1_isp_isr_lsc_config(params, new_params);
-	rkisp1_isp_isr_meas_config(params, new_params);
+	/*
+	 * We still want to configure the resizer in the interrupt handler, but
+	 * it's possible that there are no buffers queued (if the params subdev
+	 * is unused), so configure the resizer here.
+	 */
+	rkisp1_rsz_config(rsz);
 
-	/* update shadow register immediately */
+	if (has_buf) {
+		rkisp1_isp_isr_other_config(params, new_params);
+		rkisp1_isp_isr_lsc_config(params, new_params);
+		rkisp1_isp_isr_meas_config(params, new_params);
+	}
+
+	/* Update shadow register immediately */
 	rkisp1_param_set_bits(params, RKISP1_CIF_ISP_CTRL,
 			      RKISP1_CIF_ISP_CTRL_ISP_CFG_UPD);
 
 	/*
 	 * This isr is called when the ISR finishes processing a frame
-	 * (RKISP1_CIF_ISP_FRAME). Configurations performed here will be
-	 * applied on the next frame. Since frame_sequence is updated on the
-	 * vertical sync signal, we should use frame_sequence + 1 here to
-	 * indicate to userspace on which frame these parameters are being
-	 * applied.
+	 * (RKISP1_CIF_ISP_FRAME). Configurations performed here will
+	 * be applied on the next frame. Since frame_sequence is
+	 * updated on the vertical sync signal, we should use
+	 * frame_sequence + 1 here to indicate to userspace on which
+	 * frame these parameters are being applied.
 	 */
-	rkisp1_params_complete_buffer(params, cur_buf,
-				      rkisp1->isp.frame_sequence + 1);
+	if (has_buf)
+		rkisp1_params_complete_buffer(params, cur_buf,
+					      rkisp1->isp.frame_sequence + 1);
 
-unlock:
 	spin_unlock(&params->config_lock);
 }
 

@@ -969,6 +969,9 @@ static int phy_device_detect(struct phy_device_config *config)
 	int addr = config->phy_addr;
 	int r;
 
+	if (config->phy_id_broken)
+		return 0;
+
 	if (is_c45)
 		r = get_phy_c45_ids(bus, addr, c45_ids);
 	else

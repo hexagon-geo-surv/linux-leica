@@ -764,6 +764,8 @@ static inline struct phy_device *to_phy_device(const struct device *dev)
  * @phy_id: UID for this device found during discovery
  * @c45_ids: 802.3-c45 Device Identifiers if is_c45.
  * @is_c45: If true the PHY uses the 802.3 clause 45 protocol
+ * @phy_id_broken: Skip the phy_id detection instead use the supplied phy_id or
+ *                 c45_ids.
  *
  * The struct contain possible configuration parameters for a PHY device which
  * are used to setup the struct phy_device.
@@ -775,6 +777,7 @@ struct phy_device_config {
 	u32 phy_id;
 	struct phy_c45_device_ids c45_ids;
 	bool is_c45;
+	bool phy_id_broken;
 };
 
 /**

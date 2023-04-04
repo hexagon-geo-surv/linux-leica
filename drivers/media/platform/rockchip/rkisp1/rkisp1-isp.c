@@ -175,9 +175,6 @@ static void rkisp1_gasket_disable(struct rkisp1_device *rkisp1)
 static void rkisp1_config_ism(struct rkisp1_isp *isp,
 			      struct v4l2_subdev_state *sd_state)
 {
-	const struct v4l2_rect *src_crop =
-		v4l2_subdev_get_pad_crop(&isp->sd, sd_state,
-					 RKISP1_ISP_PAD_SOURCE_VIDEO);
 	struct rkisp1_device *rkisp1 = isp->rkisp1;
 	u32 val;
 
@@ -185,13 +182,13 @@ static void rkisp1_config_ism(struct rkisp1_isp *isp,
 	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_MAX_DX, 0);
 	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_MAX_DY, 0);
 	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_DISPLACE, 0);
-	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_H_OFFS, src_crop->left);
-	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_V_OFFS, src_crop->top);
-	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_H_SIZE, src_crop->width);
-	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_V_SIZE, src_crop->height);
 
-	/* IS(Image Stabilization) is always on, working as output crop */
-	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_CTRL, 1);
+	/*
+	 * The crop on the IS (Image Stabilization) is applied even if the IS
+	 * is off, so disable IS as we aren't actually using it. The zeroing
+	 * above is for good pratice.
+	 */
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_CTRL, 0);
 	val = rkisp1_read(rkisp1, RKISP1_CIF_ISP_CTRL);
 	val |= RKISP1_CIF_ISP_CTRL_ISP_CFG_UPD;
 	rkisp1_write(rkisp1, RKISP1_CIF_ISP_CTRL, val);

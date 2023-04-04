@@ -151,6 +151,21 @@ static int rkisp1_debug_dump_mi_mp_show(struct seq_file *m, void *p)
 }
 DEFINE_SHOW_ATTRIBUTE(rkisp1_debug_dump_mi_mp);
 
+static int rkisp1_debug_dump_is_show(struct seq_file *m, void *p)
+{
+	static const struct rkisp1_debug_register registers[] = {
+		RKISP1_DEBUG_SHD_REG(ISP_IS_H_OFFS),
+		RKISP1_DEBUG_SHD_REG(ISP_IS_V_OFFS),
+		RKISP1_DEBUG_SHD_REG(ISP_IS_H_SIZE),
+		RKISP1_DEBUG_SHD_REG(ISP_IS_V_SIZE),
+		{ /* Sentinel */ },
+	};
+	struct rkisp1_device *rkisp1 = m->private;
+
+	return rkisp1_debug_dump_regs(rkisp1, m, 0, registers);
+}
+DEFINE_SHOW_ATTRIBUTE(rkisp1_debug_dump_is);
+
 #define RKISP1_DEBUG_DATA_COUNT_BINS	32
 #define RKISP1_DEBUG_DATA_COUNT_STEP	(4096 / RKISP1_DEBUG_DATA_COUNT_BINS)
 
@@ -247,6 +262,9 @@ void rkisp1_debug_init(struct rkisp1_device *rkisp1)
 
 	debugfs_create_file("mi_mp", 0444, regs_dir, rkisp1,
 			    &rkisp1_debug_dump_mi_mp_fops);
+
+	debugfs_create_file("is", 0444, regs_dir, rkisp1,
+			    &rkisp1_debug_dump_is_fops);
 }
 
 void rkisp1_debug_cleanup(struct rkisp1_device *rkisp1)

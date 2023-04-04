@@ -215,6 +215,15 @@ static void rkisp1_rsz_disable(struct rkisp1_resizer *rsz,
 		rkisp1_rsz_update_shadow(rsz, when);
 }
 
+static void rkisp1_rsz_config_regs_ism(struct rkisp1_resizer *rsz,
+				struct v4l2_rect *crop)
+{
+	rkisp1_write(rsz->rkisp1, RKISP1_CIF_ISP_IS_H_OFFS, crop->left);
+	rkisp1_write(rsz->rkisp1, RKISP1_CIF_ISP_IS_V_OFFS, crop->top);
+	rkisp1_write(rsz->rkisp1, RKISP1_CIF_ISP_IS_H_SIZE, crop->width);
+	rkisp1_write(rsz->rkisp1, RKISP1_CIF_ISP_IS_V_SIZE, crop->height);
+}
+
 static void rkisp1_rsz_config_regs(struct rkisp1_resizer *rsz,
 				   struct v4l2_rect *sink_y,
 				   struct v4l2_rect *sink_c,
@@ -298,9 +307,9 @@ static void rkisp1_rsz_config_regs(struct rkisp1_resizer *rsz,
 	rkisp1_rsz_update_shadow(rsz, when);
 }
 
-static void rkisp1_rsz_config(struct rkisp1_resizer *rsz,
-			      struct v4l2_subdev_state *sd_state,
-			      enum rkisp1_shadow_regs_when when)
+static void __rkisp1_rsz_config(struct rkisp1_resizer *rsz,
+			        struct v4l2_subdev_state *sd_state,
+				enum rkisp1_shadow_regs_when when)
 {
 	const struct rkisp1_rsz_yuv_mbus_info *sink_yuv_info, *src_yuv_info;
 	struct v4l2_rect sink_y, sink_c, src_y, src_c;
@@ -326,11 +335,16 @@ static void rkisp1_rsz_config(struct rkisp1_resizer *rsz,
 		return;
 	}
 
-	sink_y.width = sink_crop->width;
-	sink_y.height = sink_crop->height;
+	sink_y = *sink_crop;
+	src_y.left = 0;
+	src_y.top = 0;
 	src_y.width = src_fmt->width;
 	src_y.height = src_fmt->height;
 
+	rkisp1_rsz_config_regs_ism(rsz, &sink_y);
+
+	sink_c.left = sink_y.left / sink_yuv_info->hdiv;
+	sink_c.top = sink_y.top / sink_yuv_info->vdiv;
 	sink_c.width = sink_y.width / sink_yuv_info->hdiv;
 	sink_c.height = sink_y.height / sink_yuv_info->vdiv;
 
@@ -340,6 +354,8 @@ static void rkisp1_rsz_config(struct rkisp1_resizer *rsz,
 	 * (4:2:2 -> 4:2:0 for example). So the width/height of the CbCr
 	 * streams should be set according to the media bus format in the src pad.
 	 */
+	src_c.left = src_y.left / src_yuv_info->hdiv;
+	src_c.top = src_y.top / src_yuv_info->vdiv;
 	src_c.width = src_y.width / src_yuv_info->hdiv;
 	src_c.height = src_y.height / src_yuv_info->vdiv;
 
@@ -355,7 +371,17 @@ static void rkisp1_rsz_config(struct rkisp1_resizer *rsz,
 		sink_c.width, sink_c.height, src_c.width, src_c.height);
 
 	/* set values in the hw */
-	rkisp1_rsz_config_regs(rsz, &sink_y, &sink_c, &src_y, &src_c, when);
+	rkisp1_rsz_config_regs(rsz, &sink_y, &sink_c, &src_y, &src_c,
+			       sink_yuv_info, src_yuv_info, when);
+}
+
+void rkisp1_rsz_config(struct rkisp1_resizer *rsz)
+{
+	struct v4l2_subdev_state *sd_state;
+
+	sd_state = v4l2_subdev_lock_and_get_active_state(&rsz->sd);
+	__rkisp1_rsz_config(rsz, sd_state, RKISP1_SHADOW_REGS_SYNC);
+	v4l2_subdev_unlock_state(sd_state);
 }
 
 /* ----------------------------------------------------------------------------
@@ -685,7 +711,7 @@ static int rkisp1_rsz_s_stream(struct v4l2_subdev *sd, int enable)
 
 	sd_state = v4l2_subdev_lock_and_get_active_state(sd);
 
-	rkisp1_rsz_config(rsz, sd_state, when);
+	__rkisp1_rsz_config(rsz, sd_state, when);
 	if (rkisp1_has_feature(rkisp1, DUAL_CROP))
 		rkisp1_dcrop_config(rsz, sd_state);
 

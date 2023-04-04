@@ -642,6 +642,12 @@ irqreturn_t rkisp1_capture_isr(int irq, void *ctx);
 void rkisp1_stats_isr(struct rkisp1_stats *stats, u32 isp_ris);
 void rkisp1_params_isr(struct rkisp1_device *rkisp1);
 
+/*
+ * Reconfigure the resizer (and image stabilizer) for scaler crop. Uses the
+ * resizer sink crop and source format.
+ */
+void rkisp1_rsz_config(struct rkisp1_resizer *rsz);
+
 /* register/unregisters functions of the entities */
 int rkisp1_capture_devs_register(struct rkisp1_device *rkisp1);
 void rkisp1_capture_devs_unregister(struct rkisp1_device *rkisp1);

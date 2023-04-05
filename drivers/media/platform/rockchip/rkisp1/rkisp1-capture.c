@@ -16,6 +16,7 @@
 #include <media/v4l2-ioctl.h>
 #include <media/v4l2-mc.h>
 #include <media/v4l2-subdev.h>
+#include <media/videobuf2-core.h>
 #include <media/videobuf2-dma-contig.h>
 
 #include "rkisp1-common.h"
@@ -754,6 +755,10 @@ static void rkisp1_handle_buffer(struct rkisp1_capture *cap)
 {
 	struct rkisp1_isp *isp = &cap->rkisp1->isp;
 	struct rkisp1_buffer *curr_buf;
+	enum vb2_buffer_state state;
+
+	state = cap->has_wrapped ? VB2_BUF_STATE_ERROR : VB2_BUF_STATE_DONE;
+	cap->has_wrapped = false;
 
 	spin_lock(&cap->buf.lock);
 	curr_buf = cap->buf.curr;
@@ -762,7 +767,7 @@ static void rkisp1_handle_buffer(struct rkisp1_capture *cap)
 		curr_buf->vb.sequence = isp->frame_sequence;
 		curr_buf->vb.vb2_buf.timestamp = ktime_get_boottime_ns();
 		curr_buf->vb.field = V4L2_FIELD_NONE;
-		vb2_buffer_done(&curr_buf->vb.vb2_buf, VB2_BUF_STATE_DONE);
+		vb2_buffer_done(&curr_buf->vb.vb2_buf, state);
 	} else {
 		cap->rkisp1->debug.frame_drop[cap->id]++;
 	}
@@ -788,9 +793,25 @@ irqreturn_t rkisp1_capture_isr(int irq, void *ctx)
 	for (i = 0; i < dev_count; ++i) {
 		struct rkisp1_capture *cap = &rkisp1->capture_devs[i];
 
+		/*
+		 * Save the flag, as it could be lost if a wraparound happens,
+		 * but a different interrupt comes in and clears it before the
+		 * frame end interrupt comes to consume it.
+		 */
+		cap->has_wrapped = status & RKISP1_CIF_MI_WRAP_Y(cap);
+
 		if (!(status & RKISP1_CIF_MI_FRAME(cap)))
 			continue;
 		if (!cap->is_stopping) {
+			/*
+			 * When modifying the sink crop and scaler for digital
+			 * zoom, on some platforms (such as the i.MX8MP), this
+			 * will change parameters on both the ISP (for crop)
+			 * and the resizer (for scaling), and changing these
+			 * two are not atomic. This could thus race, so we
+			 * catch this by detecting buffer wraparound, and mark
+			 * the buffer as error.
+			 */
 			rkisp1_handle_buffer(cap);
 			continue;
 		}
@@ -808,6 +829,7 @@ irqreturn_t rkisp1_capture_isr(int irq, void *ctx)
 		}
 		cap->is_stopping = false;
 		cap->is_streaming = false;
+		cap->has_wrapped = false;
 		wake_up(&cap->done);
 	}
 

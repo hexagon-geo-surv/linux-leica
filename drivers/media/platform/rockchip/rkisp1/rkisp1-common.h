@@ -290,6 +290,7 @@ struct rkisp1_device;
  * @is_streaming: device is streaming
  * @is_stopping:  stop_streaming callback was called and the device is in the process of
  *		  stopping the streaming.
+ * @has_wrapped:  flag to store the Y wraparound status from the interrupt
  * @done:	  when stop_streaming callback is called, the device waits for the next irq
  *		  handler to stop the streaming by waiting on the 'done' wait queue.
  *		  If the irq handler is not called, the stream is stopped by the callback
@@ -314,6 +315,7 @@ struct rkisp1_capture {
 	const struct rkisp1_capture_config *config;
 	bool is_streaming;
 	bool is_stopping;
+	bool has_wrapped;
 	wait_queue_head_t done;
 	unsigned int stride;
 	struct {

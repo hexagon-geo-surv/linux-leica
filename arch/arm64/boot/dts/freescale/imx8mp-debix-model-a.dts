@@ -300,24 +300,6 @@
 	status = "okay";
 };
 
-&usb3_phy0 {
-	status = "okay";
-};
-
-&usb3_0 {
-	status = "okay";
-};
-
-&usb_dwc3_0 {
-	dr_mode = "otg"; 
-	hnp-disable;
-	srp-disable;
-	adp-disable;
-	maximum-speed="high-speed";
-	usb-role-switch;
-	snps,usb2-lpm-disable;
-};
-
 &usb3_phy1 {
 	status = "okay";
 };

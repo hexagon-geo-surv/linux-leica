@@ -235,7 +235,6 @@ static void rkisp1_rsz_config_regs(struct rkisp1_resizer *rsz,
 {
 	u32 ratio, rsz_ctrl = 0;
 	unsigned int i;
-	u32 val;
 
 	/* No phase offset */
 	rkisp1_rsz_write(rsz, RKISP1_CIF_RSZ_PHASE_HY, 0);
@@ -283,26 +282,6 @@ static void rkisp1_rsz_config_regs(struct rkisp1_resizer *rsz,
 	}
 
 	rkisp1_rsz_write(rsz, RKISP1_CIF_RSZ_CTRL, rsz_ctrl);
-
-	if (rkisp1_has_feature(rsz->rkisp1, RSZ_CROP)) {
-		val = RKISP1_CIF_RSZ_CROP_XY_DIR(src_y->left, src_y->left + src_y->width - 1);
-		rkisp1_rsz_write(rsz, RKISP1_CIF_RSZ_CROP_X_DIR, val);
-		val = RKISP1_CIF_RSZ_CROP_XY_DIR(src_y->top, src_y->top + src_y->height - 1);
-		rkisp1_rsz_write(rsz, RKISP1_CIF_RSZ_CROP_Y_DIR, val);
-
-		val = RKISP1_CIF_RSZ_FORMAT_CONV_CTRL_RSZ_PACK_FORMAT_SEMI_PLANAR;
-		if (sink_yuv_info->hdiv == 2 && sink_yuv_info->vdiv == 1)
-			val |= RKISP1_CIF_RSZ_FORMAT_CONV_CTRL_RSZ_INPUT_FORMAT_YCBCR_422;
-		else /* hdiv == 2, vdiv == 2 */
-			val |= RKISP1_CIF_RSZ_FORMAT_CONV_CTRL_RSZ_INPUT_FORMAT_YCBCR_420;
-
-		if (src_yuv_info->hdiv == 2 && src_yuv_info->vdiv == 1)
-			val |= RKISP1_CIF_RSZ_FORMAT_CONV_CTRL_RSZ_OUTPUT_FORMAT_YCBCR_422;
-		else /* hdiv == 2, vdiv == 2 */
-			val |= RKISP1_CIF_RSZ_FORMAT_CONV_CTRL_RSZ_OUTPUT_FORMAT_YCBCR_420;
-
-		rkisp1_rsz_write(rsz, RKISP1_CIF_RSZ_FORMAT_CONV_CTRL, val);
-	}
 
 	rkisp1_rsz_update_shadow(rsz, when);
 }

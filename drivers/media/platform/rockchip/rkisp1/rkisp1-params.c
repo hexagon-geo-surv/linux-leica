@@ -1610,7 +1610,7 @@ void rkisp1_params_isr(struct rkisp1_device *rkisp1)
 
 	/* Update shadow register immediately */
 	rkisp1_param_set_bits(params, RKISP1_CIF_ISP_CTRL,
-			      RKISP1_CIF_ISP_CTRL_ISP_CFG_UPD);
+			      RKISP1_CIF_ISP_CTRL_ISP_GEN_CFG_UPD);
 
 	/*
 	 * This isr is called when the ISR finishes processing a frame

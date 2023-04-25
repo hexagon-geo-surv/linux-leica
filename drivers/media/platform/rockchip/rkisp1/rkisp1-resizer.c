@@ -282,8 +282,6 @@ static void rkisp1_rsz_config_regs(struct rkisp1_resizer *rsz,
 	}
 
 	rkisp1_rsz_write(rsz, RKISP1_CIF_RSZ_CTRL, rsz_ctrl);
-
-	rkisp1_rsz_update_shadow(rsz, when);
 }
 
 static void __rkisp1_rsz_config(struct rkisp1_resizer *rsz,
@@ -691,6 +689,7 @@ static int rkisp1_rsz_s_stream(struct v4l2_subdev *sd, int enable)
 	sd_state = v4l2_subdev_lock_and_get_active_state(sd);
 
 	__rkisp1_rsz_config(rsz, sd_state, when);
+	rkisp1_rsz_update_shadow(rsz, RKISP1_SHADOW_REGS_SYNC);
 	if (rkisp1_has_feature(rkisp1, DUAL_CROP))
 		rkisp1_dcrop_config(rsz, sd_state);
 

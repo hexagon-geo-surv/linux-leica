@@ -209,7 +209,6 @@ static void rkisp1_gasket_disable(struct rkisp1_device *rkisp1)
 static void rkisp1_config_ism(struct rkisp1_isp *isp)
 {
 	struct rkisp1_device *rkisp1 = isp->rkisp1;
-	u32 val;
 
 	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_RECENTER, 0);
 	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_MAX_DX, 0);
@@ -222,9 +221,6 @@ static void rkisp1_config_ism(struct rkisp1_isp *isp)
 	 * above is for good pratice.
 	 */
 	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_CTRL, 0);
-	val = rkisp1_read(rkisp1, RKISP1_CIF_ISP_CTRL);
-	val |= RKISP1_CIF_ISP_CTRL_ISP_CFG_UPD;
-	rkisp1_write(rkisp1, RKISP1_CIF_ISP_CTRL, val);
 }
 
 /*

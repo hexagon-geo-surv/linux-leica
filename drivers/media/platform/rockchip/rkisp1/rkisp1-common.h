@@ -15,6 +15,7 @@
 #include <linux/interrupt.h>
 #include <linux/mutex.h>
 #include <linux/rkisp1-config.h>
+#include <linux/spinlock.h>
 #include <media/media-device.h>
 #include <media/media-entity.h>
 #include <media/v4l2-ctrls.h>
@@ -151,6 +152,25 @@ struct rkisp1_info {
 	unsigned int features;
 };
 
+struct rkisp1_scalercrop_regs {
+	u32 is_recenter;
+	u32 is_max_dx;
+	u32 is_max_dy;
+	u32 is_displace;
+
+	u32 is_h_offs;
+	u32 is_v_offs;
+	u32 is_h_size;
+	u32 is_v_size;
+	u32 is_ctrl;
+
+	u32 ratio_hy;
+	u32 ratio_hc;
+	u32 ratio_vy;
+	u32 ratio_vc;
+	u32 rsz_ctrl;
+};
+
 /*
  * struct rkisp1_sensor_async - A container for the v4l2_async_subdev to add to the notifier
  *				of the v4l2-async API
@@ -225,6 +245,11 @@ struct rkisp1_tpg {
  * @pads:			media pads
  * @sink_fmt:			input format
  * @frame_sequence:		used to synchronize frame_id between video devices.
+ * @config_lock:		lock scaler crop register values cache
+ * @scalercrop_regs:		cache for IS and resizer register values to write
+ * @crop_lock:			lock isp_crop and mrsz_crop
+ * @isp_crop:			source crop on the ISP subdev
+ * @mrsz_crop:			sink crop on the main resizer subdev
  */
 struct rkisp1_isp {
 	struct v4l2_subdev sd;
@@ -232,6 +257,11 @@ struct rkisp1_isp {
 	struct media_pad pads[RKISP1_ISP_PAD_MAX];
 	const struct rkisp1_mbus_info *sink_fmt;
 	__u32 frame_sequence;
+	spinlock_t config_lock;
+	struct rkisp1_scalercrop_regs scalercrop_regs;
+	struct mutex crop_lock;
+	struct v4l2_rect isp_crop;
+	struct v4l2_rect mrsz_crop;
 };
 
 /*
@@ -645,12 +675,6 @@ irqreturn_t rkisp1_capture_isr(int irq, void *ctx);
 void rkisp1_stats_isr(struct rkisp1_stats *stats, u32 isp_ris);
 void rkisp1_params_isr(struct rkisp1_device *rkisp1);
 
-/*
- * Reconfigure the resizer (and image stabilizer) for scaler crop. Uses the
- * resizer sink crop and source format.
- */
-void rkisp1_rsz_config(struct rkisp1_resizer *rsz);
-
 /* register/unregisters functions of the entities */
 int rkisp1_capture_devs_register(struct rkisp1_device *rkisp1);
 void rkisp1_capture_devs_unregister(struct rkisp1_device *rkisp1);
@@ -666,6 +690,19 @@ void rkisp1_stats_unregister(struct rkisp1_device *rkisp1);
 
 int rkisp1_params_register(struct rkisp1_device *rkisp1);
 void rkisp1_params_unregister(struct rkisp1_device *rkisp1);
+
+void rkisp1_config_scaler_crop_single(struct rkisp1_resizer *rsz,
+				      struct v4l2_subdev_state *rsz_sd_state);
+
+void rkisp1_rsz_update_shadow(struct rkisp1_resizer *rsz);
+
+void rkisp1_rsz_write_regs(struct rkisp1_resizer *rsz,
+			   struct rkisp1_scalercrop_regs *vals);
+
+void rkisp1_rsz_compute(struct rkisp1_resizer *rsz,
+			struct rkisp1_scalercrop_regs *ret,
+			struct v4l2_rect *sink_crop,
+			struct v4l2_subdev_state *rsz_sd_state);
 
 #if IS_ENABLED(CONFIG_DEBUG_FS)
 void rkisp1_debug_init(struct rkisp1_device *rkisp1);

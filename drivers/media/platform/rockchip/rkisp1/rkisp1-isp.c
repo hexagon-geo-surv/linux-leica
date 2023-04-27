@@ -169,25 +169,110 @@ static void rkisp1_gasket_disable(struct rkisp1_device *rkisp1)
 
 /*
  * Image Stabilization.
- * This should only be called when configuring CIF
- * or at the frame end interrupt
+ *
+ * This must be called with the isp.config_lock spinlock held.
  */
-static void rkisp1_config_ism(struct rkisp1_isp *isp,
-			      struct v4l2_subdev_state *sd_state)
+static void rkisp1_ism_compute(struct rkisp1_isp *isp, struct rkisp1_scalercrop_regs *ret)
 {
 	struct rkisp1_device *rkisp1 = isp->rkisp1;
+	struct v4l2_rect crop;
 
-	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_RECENTER, 0);
-	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_MAX_DX, 0);
-	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_MAX_DY, 0);
-	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_DISPLACE, 0);
+	ret->is_recenter = 0;
+	ret->is_max_dx = 0;
+	ret->is_max_dy = 0;
+	ret->is_displace = 0;
+
+	/*
+	 * The lack of a self path means there is neither dual crop (crop at
+	 * the output of the ISP) nor resizer crop (crop at the input of the
+	 * resizer). In that case we merge the crop rectangle on the input of the
+	 * resizer subdev with the crop on the output of the ISP subdev into
+	 * the image stabilizer.
+	 *
+	 * If there is a self path, then the image stabilizer only implements
+	 * the crop on the output of the ISP subdev. The dual crop (on Rockchip
+	 * platforms) or the resizer crop (on NXP platforms) will implement the
+	 * crop on the input of the resizer subdevices.
+	 *
+	 * TODO Implement resizer crop (the crop on the input of the resizer)
+	 * on NXP platforms. Depends on hardware.
+	 *
+	 * TODO Implement support for srsz_crop.
+	 */
+	if (!rkisp1_has_feature(rkisp1, SELF_PATH)) {
+		crop.left = isp->isp_crop.left + isp->mrsz_crop.left;
+		crop.top = isp->isp_crop.top + isp->mrsz_crop.top;
+		crop.width = isp->mrsz_crop.width;
+		crop.height = isp->mrsz_crop.height;
+	} else {
+		crop = isp->isp_crop;
+	}
+
+	ret->is_h_offs = crop.left;
+	ret->is_v_offs = crop.top;
+	ret->is_h_size = crop.width;
+	ret->is_v_size = crop.height;
 
 	/*
 	 * The crop on the IS (Image Stabilization) is applied even if the IS
 	 * is off, so disable IS as we aren't actually using it. The zeroing
 	 * above is for good pratice.
 	 */
-	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_CTRL, 0);
+	ret->is_ctrl = 0;
+}
+
+static void rkisp1_ism_write_regs(struct rkisp1_isp *isp,
+				  struct rkisp1_scalercrop_regs *regs)
+{
+	struct rkisp1_device *rkisp1 = isp->rkisp1;
+
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_RECENTER, regs->is_recenter);
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_MAX_DX, regs->is_max_dx);
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_MAX_DY, regs->is_max_dy);
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_DISPLACE, regs->is_displace);
+
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_H_OFFS, regs->is_h_offs);
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_V_OFFS, regs->is_v_offs);
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_H_SIZE, regs->is_h_size);
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_V_SIZE, regs->is_v_size);
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_CTRL, regs->is_ctrl);
+}
+
+void rkisp1_config_scaler_crop_single(struct rkisp1_resizer *rsz, 
+				      struct v4l2_subdev_state *rsz_sd_state)
+{
+	struct rkisp1_device *rkisp1 = rsz->rkisp1;
+	struct rkisp1_isp *isp = &rkisp1->isp;
+
+	mutex_lock(&rkisp1->isp.crop_lock);
+
+	/*
+	 * TODO Add support for srsz_crop. Might be better to move the cache of
+	 * the resizer subdev's crop to the resizer struct.
+	 */
+	spin_lock_irq(&isp->config_lock);
+	rkisp1_rsz_compute(rsz, &isp->scalercrop_regs, &isp->mrsz_crop, rsz_sd_state);
+	rkisp1_ism_compute(isp, &isp->scalercrop_regs);
+	spin_unlock_irq(&isp->config_lock);
+
+	mutex_unlock(&rkisp1->isp.crop_lock);
+}
+
+static void rkisp1_config_scaler_crop_both(struct rkisp1_device *rkisp1)
+{
+	bool has_self_path = rkisp1_has_feature(rkisp1, SELF_PATH);
+	struct v4l2_subdev_state *rsz_sd_state;
+
+	rsz_sd_state = v4l2_subdev_lock_and_get_active_state(&rkisp1->resizer_devs[0].sd);
+	rkisp1_config_scaler_crop_single(&rkisp1->resizer_devs[0], rsz_sd_state);
+	v4l2_subdev_unlock_state(rsz_sd_state);
+
+	if (!has_self_path)
+		return;
+
+	rsz_sd_state = v4l2_subdev_lock_and_get_active_state(&rkisp1->resizer_devs[1].sd);
+	rkisp1_config_scaler_crop_single(&rkisp1->resizer_devs[1], rsz_sd_state);
+	v4l2_subdev_unlock_state(rsz_sd_state);
 }
 
 /*
@@ -334,10 +419,14 @@ static void rkisp1_config_path(struct rkisp1_isp *isp,
 }
 
 /* Hardware configure Entry */
+/* Only called at s_stream time */
 static int rkisp1_config_cif(struct rkisp1_isp *isp,
 			     struct v4l2_subdev_state *sd_state,
 			     enum v4l2_mbus_type mbus_type, u32 mbus_flags)
 {
+	struct rkisp1_device *rkisp1 = isp->rkisp1;
+	struct rkisp1_resizer *mrsz = &rkisp1->resizer_devs[0];
+	struct rkisp1_resizer *srsz = &rkisp1->resizer_devs[1];
 	int ret;
 
 	ret = rkisp1_config_isp(isp, sd_state, mbus_type, mbus_flags);
@@ -345,7 +434,19 @@ static int rkisp1_config_cif(struct rkisp1_isp *isp,
 		return ret;
 
 	rkisp1_config_path(isp, mbus_type);
-	rkisp1_config_ism(isp, sd_state);
+
+	rkisp1_config_scaler_crop_both(rkisp1);
+
+	spin_lock_irq(&isp->config_lock);
+	rkisp1_ism_write_regs(isp, &isp->scalercrop_regs);
+
+	rkisp1_rsz_write_regs(mrsz, &isp->scalercrop_regs);
+	rkisp1_rsz_update_shadow(mrsz);
+	if (rkisp1_has_feature(rkisp1, SELF_PATH)) {
+		rkisp1_rsz_write_regs(srsz, &isp->scalercrop_regs);
+		rkisp1_rsz_update_shadow(srsz);
+	}
+	spin_unlock_irq(&isp->config_lock);
 
 	return 0;
 }
@@ -685,9 +786,16 @@ static void rkisp1_isp_set_src_crop(struct rkisp1_isp *isp,
 				    struct v4l2_subdev_state *sd_state,
 				    struct v4l2_rect *r)
 {
+	struct rkisp1_device *rkisp1 = isp->rkisp1;
+	struct rkisp1_capture *capture_main = &rkisp1->capture_devs[0];
+	struct rkisp1_capture *capture_self = &rkisp1->capture_devs[1];
 	struct v4l2_mbus_framefmt *src_fmt;
 	const struct v4l2_rect *sink_crop;
 	struct v4l2_rect *src_crop;
+	bool is_streaming = capture_main->is_streaming;
+
+	if (rkisp1_has_feature(rkisp1, SELF_PATH) && !is_streaming)
+		is_streaming = capture_self->is_streaming;
 
 	src_crop = v4l2_subdev_get_pad_crop(&isp->sd, sd_state,
 					    RKISP1_ISP_PAD_SOURCE_VIDEO);
@@ -699,6 +807,17 @@ static void rkisp1_isp_set_src_crop(struct rkisp1_isp *isp,
 	src_crop->top = r->top;
 	src_crop->height = r->height;
 	rkisp1_sd_adjust_crop_rect(src_crop, sink_crop);
+
+	mutex_lock(&rkisp1->isp.crop_lock);
+	rkisp1->isp.isp_crop = *src_crop;
+	mutex_unlock(&rkisp1->isp.crop_lock);
+
+	/*
+	 * If we're not streaming, this will hang as the ISP has not been
+	 * powered on yet. It'll be applied at s_stream time.
+	 */
+	if (is_streaming)
+		rkisp1_config_scaler_crop_both(isp->rkisp1);
 
 	*r = *src_crop;
 
@@ -905,6 +1024,7 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int enable)
 	struct media_pad *source_pad;
 	struct media_pad *sink_pad;
 	enum v4l2_mbus_type mbus_type;
+	struct v4l2_rect crop;
 	u32 mbus_flags;
 	int ret;
 
@@ -951,6 +1071,12 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int enable)
 	isp->frame_sequence = -1;
 
 	sd_state = v4l2_subdev_lock_and_get_active_state(sd);
+	crop = *v4l2_subdev_get_pad_crop(sd, sd_state,
+					 RKISP1_ISP_PAD_SOURCE_VIDEO);
+
+	mutex_lock(&rkisp1->isp.crop_lock);
+	rkisp1->isp.isp_crop = crop;
+	mutex_unlock(&rkisp1->isp.crop_lock);
 
 	ret = rkisp1_config_cif(isp, sd_state, mbus_type, mbus_flags);
 	if (ret)
@@ -1012,6 +1138,9 @@ int rkisp1_isp_register(struct rkisp1_device *rkisp1)
 
 	isp->rkisp1 = rkisp1;
 
+	mutex_init(&isp->crop_lock);
+	spin_lock_init(&rkisp1->isp.config_lock);
+
 	v4l2_subdev_init(sd, &rkisp1_isp_ops);
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE | V4L2_SUBDEV_FL_HAS_EVENTS;
 	sd->entity.ops = &rkisp1_isp_media_ops;
@@ -1024,6 +1153,12 @@ int rkisp1_isp_register(struct rkisp1_device *rkisp1)
 	pads[RKISP1_ISP_PAD_SINK_PARAMS].flags = MEDIA_PAD_FL_SINK;
 	pads[RKISP1_ISP_PAD_SOURCE_VIDEO].flags = MEDIA_PAD_FL_SOURCE;
 	pads[RKISP1_ISP_PAD_SOURCE_STATS].flags = MEDIA_PAD_FL_SOURCE;
+
+
+	mutex_lock(&rkisp1->isp.crop_lock);
+	isp->isp_crop = (struct v4l2_rect ){ 0, 0, 0, 0 };
+	isp->mrsz_crop = (struct v4l2_rect){ 0, 0, 0, 0 };
+	mutex_unlock(&rkisp1->isp.crop_lock);
 
 	ret = media_entity_pads_init(&sd->entity, RKISP1_ISP_PAD_MAX, pads);
 	if (ret)
@@ -1045,6 +1180,7 @@ err_subdev_cleanup:
 	v4l2_subdev_cleanup(sd);
 err_entity_cleanup:
 	media_entity_cleanup(&sd->entity);
+	mutex_destroy(&isp->crop_lock);
 	isp->sd.v4l2_dev = NULL;
 	return ret;
 }
@@ -1058,6 +1194,7 @@ void rkisp1_isp_unregister(struct rkisp1_device *rkisp1)
 
 	v4l2_device_unregister_subdev(&isp->sd);
 	media_entity_cleanup(&isp->sd.entity);
+	mutex_destroy(&isp->crop_lock);
 }
 
 /* ----------------------------------------------------------------------------
@@ -1090,6 +1227,12 @@ irqreturn_t rkisp1_isp_isr(int irq, void *ctx)
 	if (status & RKISP1_CIF_ISP_V_START) {
 		rkisp1->isp.frame_sequence++;
 		rkisp1_isp_queue_event_sof(&rkisp1->isp);
+
+		rkisp1_ism_write_regs(&rkisp1->isp, &rkisp1->isp.scalercrop_regs);
+		rkisp1_rsz_write_regs(&rkisp1->resizer_devs[0], &rkisp1->isp.scalercrop_regs);
+		if (rkisp1_has_feature(rkisp1, SELF_PATH))
+			rkisp1_rsz_write_regs(&rkisp1->resizer_devs[1], &rkisp1->isp.scalercrop_regs);
+
 		if (status & RKISP1_CIF_ISP_FRAME) {
 			WARN_ONCE(1, "irq delay is too long, buffers might not be in sync\n");
 			rkisp1->debug.irq_delay++;

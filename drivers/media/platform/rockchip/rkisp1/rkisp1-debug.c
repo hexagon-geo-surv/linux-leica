@@ -279,9 +279,12 @@ void rkisp1_debug_init(struct rkisp1_device *rkisp1)
 	debugfs_create_file("mrsz", 0444, regs_dir,
 			    &rkisp1->resizer_devs[RKISP1_MAINPATH],
 			    &rkisp1_debug_dump_rsz_regs_fops);
-	debugfs_create_file("srsz", 0444, regs_dir,
-			    &rkisp1->resizer_devs[RKISP1_SELFPATH],
-			    &rkisp1_debug_dump_rsz_regs_fops);
+
+	if (rkisp1_has_feature(rkisp1, SELF_PATH)) {
+		debugfs_create_file("srsz", 0444, regs_dir,
+				    &rkisp1->resizer_devs[RKISP1_SELFPATH],
+				    &rkisp1_debug_dump_rsz_regs_fops);
+	}
 
 	debugfs_create_file("mi_mp", 0444, regs_dir, rkisp1,
 			    &rkisp1_debug_dump_mi_mp_fops);

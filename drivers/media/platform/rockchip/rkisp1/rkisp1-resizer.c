@@ -8,6 +8,8 @@
  * Copyright (C) 2017 Rockchip Electronics Co., Ltd.
  */
 
+#include <media/v4l2-rect.h>
+
 #include "rkisp1-common.h"
 
 #define RKISP1_RSZ_SP_DEV_NAME	RKISP1_DRIVER_NAME "_resizer_selfpath"
@@ -465,7 +467,8 @@ static void rkisp1_rsz_set_sink_crop(struct rkisp1_resizer *rsz,
 {
 	struct rkisp1_device *rkisp1 = rsz->rkisp1;
 	const struct rkisp1_mbus_info *mbus_info;
-	struct v4l2_mbus_framefmt *sink_fmt;
+	struct v4l2_mbus_framefmt *sink_fmt, *src_fmt;
+	struct v4l2_rect min_crop;
 	struct v4l2_rect *sink_crop;
 	struct rkisp1_capture *capture = &rkisp1->capture_devs[rsz->id];
 
@@ -473,6 +476,8 @@ static void rkisp1_rsz_set_sink_crop(struct rkisp1_resizer *rsz,
 					      RKISP1_RSZ_PAD_SINK);
 	sink_crop = v4l2_subdev_get_pad_crop(&rsz->sd, sd_state,
 					     RKISP1_RSZ_PAD_SINK);
+	src_fmt = v4l2_subdev_get_pad_format(&rsz->sd, sd_state,
+					     RKISP1_RSZ_PAD_SRC);
 
 	/* Not crop for MP bayer raw data */
 	mbus_info = rkisp1_mbus_info_get_by_code(sink_fmt->code);
@@ -488,10 +493,20 @@ static void rkisp1_rsz_set_sink_crop(struct rkisp1_resizer *rsz,
 		return;
 	}
 
+	/*
+	 * TODO Confirm that this restriction also applies to other platforms
+	 */
+	min_crop.left = 0;
+	min_crop.top = 0;
+	min_crop.width = src_fmt->width > 1920 ? src_fmt->width : src_fmt->width / 2;
+	min_crop.height = src_fmt->height > 1080 ? src_fmt->height : src_fmt->height / 2;
+
 	sink_crop->left = ALIGN(r->left, 2);
 	sink_crop->width = ALIGN(r->width, 2);
 	sink_crop->top = r->top;
 	sink_crop->height = r->height;
+
+	v4l2_rect_set_min_size(sink_crop, &min_crop);
 	rkisp1_sd_adjust_crop(sink_crop, sink_fmt);
 
 	mutex_lock(&rkisp1->isp.crop_lock);

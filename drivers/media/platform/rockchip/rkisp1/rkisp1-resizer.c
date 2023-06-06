@@ -503,8 +503,9 @@ static void rkisp1_rsz_set_sink_crop(struct rkisp1_resizer *rsz,
 
 	sink_crop->left = ALIGN(r->left, 2);
 	sink_crop->width = ALIGN(r->width, 2);
-	sink_crop->top = r->top;
-	sink_crop->height = r->height;
+	/* TODO Confirm this limitation */
+	sink_crop->top = ALIGN(r->top, 2);
+	sink_crop->height = ALIGN(r->height, 2);
 
 	v4l2_rect_set_min_size(sink_crop, &min_crop);
 	rkisp1_sd_adjust_crop(sink_crop, sink_fmt);

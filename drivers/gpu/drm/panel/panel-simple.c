@@ -1553,6 +1553,31 @@ static const struct panel_desc dataimage_fg1001l0dsswmg01 = {
 	},
 };
 
+static const struct display_timing dataimage_lcx0500x54ggu01_timing = {
+	.pixelclock = { 23000000, 25000000, 27000000 },
+	.hactive = { 800, 800, 800 },
+	.hfront_porch = { 4, 8, 48 },
+	.hback_porch = { 4, 8, 48 },
+	.hsync_len = { 2, 4, 8 },
+	.vactive = { 480, 480, 480 },
+	.vfront_porch = { 6, 8, 12 },
+	.vback_porch = { 6, 8, 12 },
+	.vsync_len = { 2, 4, 8 },
+	.flags = DISPLAY_FLAGS_DE_HIGH,
+};
+
+static const struct panel_desc dataimage_lcx0500x54ggu01 = {
+	.timings = &dataimage_lcx0500x54ggu01_timing,
+	.num_timings = 1,
+	.bpc = 8,
+	.size = {
+		.width = 800,
+		.height = 480,
+	},
+	.bus_format = MEDIA_BUS_FMT_RGB888_1X7X4_SPWG,
+	.connector_type = DRM_MODE_CONNECTOR_LVDS,
+};
+
 static const struct drm_display_mode dataimage_scf0700c48ggu18_mode = {
 	.clock = 33260,
 	.hdisplay = 800,
@@ -4170,6 +4195,9 @@ static const struct of_device_id platform_of_match[] = {
 	}, {
 		.compatible = "dataimage,fg1001l0dsswmg01",
 		.data = &dataimage_fg1001l0dsswmg01,
+	}, {
+		.compatible = "dataimage,lcx0500x54ggu01",
+		.data = &dataimage_lcx0500x54ggu01,
 	}, {
 		.compatible = "dataimage,scf0700c48ggu18",
 		.data = &dataimage_scf0700c48ggu18,

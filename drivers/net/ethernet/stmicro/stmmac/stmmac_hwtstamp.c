@@ -71,6 +71,8 @@ static void hwtstamp_correct_latency(struct stmmac_priv *priv)
 	/* MAC-internal ingress latency */
 	scaled_ns = readl(ioaddr + PTP_TS_INGR_LAT);
 
+	scaled_ns += priv->phy_ingress_delay_ns << 16;
+
 	/* See section 11.7.2.5.3.1 "Ingress Correction" on page 4001 of
 	 * i.MX8MP Applications Processor Reference Manual Rev. 1, 06/2021
 	 */
@@ -94,6 +96,8 @@ static void hwtstamp_correct_latency(struct stmmac_priv *priv)
 
 	/* MAC-internal egress latency */
 	scaled_ns = readl(ioaddr + PTP_TS_EGR_LAT);
+
+	scaled_ns += priv->phy_egress_delay_ns << 16;
 
 	reg_tsec = scaled_ns >> 16;
 	reg_tsecsns = scaled_ns & 0xff00;

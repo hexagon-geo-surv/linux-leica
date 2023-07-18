@@ -6302,6 +6302,21 @@ done:
 	return NOTIFY_DONE;
 }
 
+static ssize_t trigger_correction(struct file *file, const char __user *buf, size_t nbytes, loff_t *ppos)
+{
+	struct stmmac_priv *priv = file->private_data;
+
+	stmmac_hwtstamp_correct_latency(priv, priv);
+
+	return nbytes;
+}
+
+static const struct file_operations trigger_latch_correction_fops = {
+	.open = simple_open,
+	.write = trigger_correction,
+	.llseek = generic_file_llseek,
+};
+
 static struct notifier_block stmmac_notifier = {
 	.notifier_call = stmmac_device_event,
 };
@@ -6322,6 +6337,13 @@ static void stmmac_init_fs(struct net_device *dev)
 	/* Entry to report the DMA HW features */
 	debugfs_create_file("dma_cap", 0444, priv->dbgfs_dir, dev,
 			    &stmmac_dma_cap_fops);
+
+	debugfs_create_u32("ingress_phy_delay_ns", 0666, priv->dbgfs_dir,
+			   &priv->phy_ingress_delay_ns);
+	debugfs_create_u32("egress_phy_delay_ns", 0666, priv->dbgfs_dir,
+			   &priv->phy_egress_delay_ns);
+	debugfs_create_file("latch_delay", 0222, priv->dbgfs_dir, priv,
+			    &trigger_latch_correction_fops);
 
 	rtnl_unlock();
 }

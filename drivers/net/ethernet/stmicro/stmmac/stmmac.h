@@ -273,6 +273,8 @@ struct stmmac_priv {
 	u32 sub_second_inc;
 	u32 systime_flags;
 	u32 adv_ts;
+	u32 phy_ingress_delay_ns;
+	u32 phy_egress_delay_ns;
 	int use_riwt;
 	int irq_wake;
 	rwlock_t ptp_lock;

@@ -204,6 +204,8 @@ struct dwmac4_addrs {
 	u32 mtl_low_cred_offset;
 };
 
+#define STMMAC_FLAG_HWTSTAMP_CORRECT_LATENCY	BIT(12)
+
 struct plat_stmmacenet_data {
 	int bus_id;
 	int phy_addr;
@@ -294,5 +296,6 @@ struct plat_stmmacenet_data {
 	bool serdes_up_after_phy_linkup;
 	const struct dwmac4_addrs *dwmac4_addrs;
 	bool has_integrated_pcs;
+	unsigned int flags;
 };
 #endif

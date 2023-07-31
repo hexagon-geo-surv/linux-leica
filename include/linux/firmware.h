@@ -95,15 +95,15 @@ static inline bool firmware_request_builtin(struct firmware *fw,
 #if IS_REACHABLE(CONFIG_FW_LOADER)
 int request_firmware(const struct firmware **fw, const char *name,
 		     struct device *device);
+int firmware_request_nowait_nowarn(
+	struct module *module, const char *name,
+	struct device *device, gfp_t gfp, void *context,
+	void (*cont)(const struct firmware *fw, void *context));
 int firmware_request_nowarn(const struct firmware **fw, const char *name,
 			    struct device *device);
 int firmware_request_platform(const struct firmware **fw, const char *name,
 			      struct device *device);
 int request_firmware_nowait(
-	struct module *module, bool uevent,
-	const char *name, struct device *device, gfp_t gfp, void *context,
-	void (*cont)(const struct firmware *fw, void *context));
-int request_firmware_nowait_nowarn(
 	struct module *module, bool uevent,
 	const char *name, struct device *device, gfp_t gfp, void *context,
 	void (*cont)(const struct firmware *fw, void *context));
@@ -124,6 +124,14 @@ static inline int request_firmware(const struct firmware **fw,
 	return -EINVAL;
 }
 
+static int firmware_request_nowait_nowarn(
+	struct module *module, const char *name,
+	struct device *device, gfp_t gfp, void *context,
+	void (*cont)(const struct firmware *fw, void *context))
+{
+	return -EINVAL;
+}
+
 static inline int firmware_request_nowarn(const struct firmware **fw,
 					  const char *name,
 					  struct device *device)
@@ -134,14 +142,6 @@ static inline int firmware_request_nowarn(const struct firmware **fw,
 static inline int firmware_request_platform(const struct firmware **fw,
 					    const char *name,
 					    struct device *device)
-{
-	return -EINVAL;
-}
-
-static inline int request_firmware_nowait(
-	struct module *module, bool uevent,
-	const char *name, struct device *device, gfp_t gfp, void *context,
-	void (*cont)(const struct firmware *fw, void *context))
 {
 	return -EINVAL;
 }

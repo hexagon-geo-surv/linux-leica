@@ -1245,10 +1245,8 @@ int request_firmware_nowait(
 EXPORT_SYMBOL(request_firmware_nowait);
 
 /**
- * request_firmware_nowait_nowarn() - async version of request_firmware_nowarn
+ * firmware_request_nowait_nowarn() - async version of request_firmware_nowarn
  * @module: module requesting the firmware
- * @uevent: sends uevent to copy the firmware image if this flag
- *	is non-zero else the firmware copy must be done manually.
  * @name: name of firmware file
  * @device: device for which firmware is being loaded
  * @gfp: allocation flags
@@ -1258,18 +1256,18 @@ EXPORT_SYMBOL(request_firmware_nowait);
  *	request is over.
  *
  * Similar in fucntion to request_firmware_nowait(), but doesn't print a warning
- * when the firmware file could not be found.
+ * when the firmware file could not be found and always send a uevent to copy
+ * the firmware image.
  */
-int request_firmware_nowait_nowarn(
-	struct module *module, bool uevent,
-	const char *name, struct device *device, gfp_t gfp, void *context,
+int firmware_request_nowait_nowarn(
+	struct module *module, const char *name,
+	struct device *device, gfp_t gfp, void *context,
 	void (*cont)(const struct firmware *fw, void *context))
 {
-	return _request_firmware_nowait(module, uevent, name, device, gfp,
-					context, cont, true);
-
+	return _request_firmware_nowait(module, FW_ACTION_UEVENT, name, device,
+					gfp, context, cont, true);
 }
-EXPORT_SYMBOL(request_firmware_nowait_nowarn);
+EXPORT_SYMBOL_GPL(firmware_request_nowait_nowarn);
 
 #ifdef CONFIG_FW_CACHE
 static ASYNC_DOMAIN_EXCLUSIVE(fw_cache_domain);

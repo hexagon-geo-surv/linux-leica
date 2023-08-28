@@ -115,6 +115,8 @@ properties:
       - dataimage,fg040346dsswbg04
         # DataImage, Inc. 10.1" WXGA (1280×800) TFT LCD panel
       - dataimage,fg1001l0dsswmg01
+        # DataImage, Inc. 5" WVGA (800x480) LVDS TFT LCD panel
+      - dataimage,lcx0500x54ggu01
         # DataImage, Inc. 7" WVGA (800x480) TFT LCD panel with 24-bit parallel interface.
       - dataimage,scf0700c48ggu18
         # DLC Display Co. DLC1010GIG 10.1" WXGA TFT LCD Panel

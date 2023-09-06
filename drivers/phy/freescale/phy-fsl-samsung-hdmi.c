@@ -96,10 +96,10 @@ const struct phy_config phy_pll_cfg[] = {
 	}, {
 		.pixclk = 23750000,
 		.pll_div_regs = { 0x50, 0xf1, 0x86, 0x85, 0x80, 0x40 },
-	},{
+	}, {
 		.pixclk = 24000000,
 		.pll_div_regs = { 0x50, 0xf0, 0x00, 0x00, 0x80, 0x00 },
-	},{
+	}, {
 		.pixclk = 24024000,
 		.pll_div_regs = { 0x50, 0xf1, 0x99, 0x02, 0x80, 0x40 },
 	}, {
@@ -502,22 +502,21 @@ static int fsl_samsung_hdmi_phy_configure(struct fsl_samsung_hdmi_phy *phy,
 	/* HDMI PHY init */
 	writeb(REG33_FIX_DA, phy->regs + PHY_REG_33);
 
-	/* Common PHY registers registers */
+	/* common PHY registers */
 	for (i = 0; i < ARRAY_SIZE(common_phy_cfg); i++)
 		writeb(common_phy_cfg[i].val, phy->regs + common_phy_cfg[i].reg);
 
-	/* Set individual PLL registers PHY_REG2 ... PHY_REG7 */
+	/* set individual PLL registers PHY_REG2 ... PHY_REG7 */
 	for (i = 0; i < PHY_PLL_DIV_REGS_NUM; i++)
 		writeb(cfg->pll_div_regs[i], phy->regs + PHY_REG_02 + i * 4);
 
 	fsl_samsung_hdmi_phy_configure_pixclk(phy, cfg);
 	fsl_samsung_hdmi_phy_configure_pll_lock_det(phy, cfg);
 
-	writeb(REG33_FIX_DA | REG33_MODE_SET_DONE , phy->regs + PHY_REG_33);
+	writeb(REG33_FIX_DA | REG33_MODE_SET_DONE, phy->regs + PHY_REG_33);
 
 	ret = readb_poll_timeout(phy->regs + PHY_REG_34, val,
-					 val & REG34_PLL_LOCK,
-					 50, 20000);
+				 val & REG34_PLL_LOCK, 50, 20000);
 	if (ret)
 		dev_err(phy->dev, "PLL failed to lock\n");
 
@@ -715,4 +714,4 @@ module_platform_driver(fsl_samsung_hdmi_phy_driver);
 
 MODULE_AUTHOR("Sandor Yu <Sandor.yu@nxp.com>");
 MODULE_DESCRIPTION("SAMSUNG HDMI 2.0 Transmitter PHY Driver");
-MODULE_LICENSE("GPL v2");
+MODULE_LICENSE("GPL");

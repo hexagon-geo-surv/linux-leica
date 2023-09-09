@@ -1104,11 +1104,12 @@ rkisp1_fill_pixfmt(struct v4l2_pix_format_mplane *pixm,
 
 	/*
 	 * The SP supports custom strides, expressed as a number of pixels for
-	 * the Y plane.
+	 * the Y plane. Clamp the stride to a reasonable value to avoid integer
+	 * overflows when calculating the bytesperline and sizeimage values.
 	 */
 	if (id == RKISP1_SELFPATH)
-		stride = min(DIV_ROUND_UP(plane_y->bytesperline, info->bpp[0]),
-			     pixm->width);
+		stride = clamp(DIV_ROUND_UP(plane_y->bytesperline, info->bpp[0]),
+			       pixm->width, 65536U);
 	else
 		stride = pixm->width;
 

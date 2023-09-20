@@ -15,8 +15,7 @@ description: |
 
 properties:
   compatible:
-    enum:
-      - fsl,imx8mp-hdmi-pvi
+    const: fsl,imx8mp-hdmi-pvi
 
   reg:
     maxItems: 1
@@ -34,7 +33,7 @@ properties:
 
       port@1:
         $ref: /schemas/graph.yaml#/properties/port
-        description: Output to the HDMI TX controller
+        description: Output to the HDMI TX controller.
 
     required:
       - port@0
@@ -43,6 +42,7 @@ properties:
 required:
   - compatible
   - reg
+  - interrupts
   - power-domains
   - ports
 
@@ -50,12 +50,13 @@ additionalProperties: false
 
 examples:
   - |
-    #include <dt-bindings/clock/imx8mp-clock.h>
+    #include <dt-bindings/interrupt-controller/irq.h>
     #include <dt-bindings/power/imx8mp-power.h>
 
     display-bridge@32fc4000 {
         compatible = "fsl,imx8mp-hdmi-pvi";
         reg = <0x32fc4000 0x40>;
+        interrupts = <12 IRQ_TYPE_LEVEL_HIGH>;
         power-domains = <&hdmi_blk_ctrl IMX8MP_HDMIBLK_PD_PVI>;
 
         ports {

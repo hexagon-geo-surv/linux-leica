@@ -7,20 +7,23 @@
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_bridge.h>
 #include <drm/drm_crtc.h>
+#include <linux/bitfield.h>
+#include <linux/io.h>
 #include <linux/module.h>
 #include <linux/of_device.h>
 #include <linux/of_graph.h>
 #include <linux/pm_runtime.h>
 
-#define HTX_PVI_CTL	0x0
-#define  PVI_CTL_OP_VSYNC_POL	BIT(18)
-#define  PVI_CTL_OP_HSYNC_POL	BIT(17)
-#define  PVI_CTL_OP_DE_POL	BIT(16)
-#define  PVI_CTL_INP_VSYNC_POL	BIT(14)
-#define  PVI_CTL_INP_HSYNC_POL	BIT(13)
-#define  PVI_CTL_INP_DE_POL	BIT(12)
-#define  PVI_CTL_INPUT_LCDIF	BIT(2)
-#define  PVI_CTL_EN		BIT(0)
+#define HTX_PVI_CTRL			0x0
+#define  PVI_CTRL_OP_VSYNC_POL		BIT(18)
+#define  PVI_CTRL_OP_HSYNC_POL		BIT(17)
+#define  PVI_CTRL_OP_DE_POL		BIT(16)
+#define  PVI_CTRL_INP_VSYNC_POL		BIT(14)
+#define  PVI_CTRL_INP_HSYNC_POL		BIT(13)
+#define  PVI_CTRL_INP_DE_POL		BIT(12)
+#define  PVI_CTRL_MODE_MASK		GENMASK(2, 1)
+#define  PVI_CTRL_MODE_LCDIF		2
+#define  PVI_CTRL_EN			BIT(0)
 
 struct imx8mp_hdmi_pvi {
 	struct drm_bridge	bridge;
@@ -64,13 +67,13 @@ static void imx8mp_hdmi_pvi_bridge_enable(struct drm_bridge *bridge,
 
 	mode = &crtc_state->adjusted_mode;
 
-	val = PVI_CTL_INPUT_LCDIF;
+	val = FIELD_PREP(PVI_CTRL_MODE_MASK, PVI_CTRL_MODE_LCDIF) | PVI_CTRL_EN;
 
 	if (mode->flags & DRM_MODE_FLAG_PVSYNC)
-		val |= PVI_CTL_OP_VSYNC_POL | PVI_CTL_INP_VSYNC_POL;
+		val |= PVI_CTRL_OP_VSYNC_POL | PVI_CTRL_INP_VSYNC_POL;
 
 	if (mode->flags & DRM_MODE_FLAG_PHSYNC)
-		val |= PVI_CTL_OP_HSYNC_POL | PVI_CTL_INP_HSYNC_POL;
+		val |= PVI_CTRL_OP_HSYNC_POL | PVI_CTRL_INP_HSYNC_POL;
 
 	if (pvi->next_bridge->timings)
 		bus_flags = pvi->next_bridge->timings->input_bus_flags;
@@ -78,11 +81,9 @@ static void imx8mp_hdmi_pvi_bridge_enable(struct drm_bridge *bridge,
 		bus_flags = bridge_state->input_bus_cfg.flags;
 
 	if (bus_flags & DRM_BUS_FLAG_DE_HIGH)
-		val |= PVI_CTL_OP_DE_POL | PVI_CTL_INP_DE_POL;
+		val |= PVI_CTRL_OP_DE_POL | PVI_CTRL_INP_DE_POL;
 
-	writel(val, pvi->regs + HTX_PVI_CTL);
-	val |= PVI_CTL_EN;
-	writel(val, pvi->regs + HTX_PVI_CTL);
+	writel(val, pvi->regs + HTX_PVI_CTRL);
 }
 
 static void imx8mp_hdmi_pvi_bridge_disable(struct drm_bridge *bridge,
@@ -90,17 +91,18 @@ static void imx8mp_hdmi_pvi_bridge_disable(struct drm_bridge *bridge,
 {
 	struct imx8mp_hdmi_pvi *pvi = to_imx8mp_hdmi_pvi(bridge);
 
-	writel(0x0, pvi->regs + HTX_PVI_CTL);
+	writel(0x0, pvi->regs + HTX_PVI_CTRL);
 
 	pm_runtime_put(pvi->dev);
 }
 
-static u32 *imx8mp_hdmi_pvi_bridge_get_input_bus_fmts(struct drm_bridge *bridge,
-					struct drm_bridge_state *bridge_state,
-					struct drm_crtc_state *crtc_state,
-					struct drm_connector_state *conn_state,
-					u32 output_fmt,
-					unsigned int *num_input_fmts)
+static u32 *
+imx8mp_hdmi_pvi_bridge_get_input_bus_fmts(struct drm_bridge *bridge,
+					  struct drm_bridge_state *bridge_state,
+					  struct drm_crtc_state *crtc_state,
+					  struct drm_connector_state *conn_state,
+					  u32 output_fmt,
+					  unsigned int *num_input_fmts)
 {
 	struct imx8mp_hdmi_pvi *pvi = to_imx8mp_hdmi_pvi(bridge);
 	struct drm_bridge *next_bridge = pvi->next_bridge;
@@ -174,6 +176,8 @@ static int imx8mp_hdmi_pvi_remove(struct platform_device *pdev)
 {
 	struct imx8mp_hdmi_pvi *pvi = platform_get_drvdata(pdev);
 
+	pm_runtime_disable(&pdev->dev);
+
 	drm_bridge_remove(&pvi->bridge);
 
 	return 0;
@@ -184,7 +188,7 @@ static const struct of_device_id imx8mp_hdmi_pvi_match[] = {
 		.compatible = "fsl,imx8mp-hdmi-pvi",
 	}, {
 		/* sentinel */
-	},
+	}
 };
 MODULE_DEVICE_TABLE(of, imx8mp_hdmi_pvi_match);
 

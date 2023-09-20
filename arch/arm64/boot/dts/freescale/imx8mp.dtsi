@@ -1881,6 +1881,7 @@
 			hdmi_pvi: display-bridge@32fc4000 {
 				compatible = "fsl,imx8mp-hdmi-pvi";
 				reg = <0x32fc4000 0x40>;
+				interrupts = <12 IRQ_TYPE_LEVEL_HIGH>;
 				power-domains = <&hdmi_blk_ctrl IMX8MP_HDMIBLK_PD_PVI>;
 				status = "disabled";
 

@@ -4,7 +4,7 @@
 #
 
 obj-$(CONFIG_NVMEM)		+= nvmem_core.o
-nvmem_core-y			:= core.o
+nvmem_core-y			:= core.o layouts.o
 obj-y				+= layouts/
 
 # Devices

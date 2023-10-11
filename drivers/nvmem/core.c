@@ -55,9 +55,6 @@ static LIST_HEAD(nvmem_lookup_list);
 
 static BLOCKING_NOTIFIER_HEAD(nvmem_notifier);
 
-static DEFINE_SPINLOCK(nvmem_layout_lock);
-static LIST_HEAD(nvmem_layouts);
-
 static int __nvmem_reg_read(struct nvmem_device *nvmem, unsigned int offset,
 			    void *val, size_t bytes)
 {
@@ -741,90 +738,21 @@ static int nvmem_add_cells_from_fixed_layout(struct nvmem_device *nvmem)
 	return err;
 }
 
-int __nvmem_layout_register(struct nvmem_layout *layout, struct module *owner)
+int nvmem_layout_register(struct nvmem_layout *layout)
 {
-	layout->owner = owner;
+	if (!layout->add_cells)
+		return -EINVAL;
 
-	spin_lock(&nvmem_layout_lock);
-	list_add(&layout->node, &nvmem_layouts);
-	spin_unlock(&nvmem_layout_lock);
-
-	blocking_notifier_call_chain(&nvmem_notifier, NVMEM_LAYOUT_ADD, layout);
-
-	return 0;
+	/* Populate the cells */
+	return layout->add_cells(&layout->nvmem->dev, layout->nvmem, layout);
 }
-EXPORT_SYMBOL_GPL(__nvmem_layout_register);
+EXPORT_SYMBOL_GPL(nvmem_layout_register);
 
 void nvmem_layout_unregister(struct nvmem_layout *layout)
 {
-	blocking_notifier_call_chain(&nvmem_notifier, NVMEM_LAYOUT_REMOVE, layout);
-
-	spin_lock(&nvmem_layout_lock);
-	list_del(&layout->node);
-	spin_unlock(&nvmem_layout_lock);
+	/* Keep the API even with an empty stub in case we need it later */
 }
 EXPORT_SYMBOL_GPL(nvmem_layout_unregister);
-
-static struct nvmem_layout *nvmem_layout_get(struct nvmem_device *nvmem)
-{
-	struct device_node *layout_np;
-	struct nvmem_layout *l, *layout = ERR_PTR(-EPROBE_DEFER);
-
-	layout_np = of_nvmem_layout_get_container(nvmem);
-	if (!layout_np)
-		return NULL;
-
-	/*
-	 * In case the nvmem device was built-in while the layout was built as a
-	 * module, we shall manually request the layout driver loading otherwise
-	 * we'll never have any match.
-	 */
-	of_request_module(layout_np);
-
-	spin_lock(&nvmem_layout_lock);
-
-	list_for_each_entry(l, &nvmem_layouts, node) {
-		if (of_match_node(l->of_match_table, layout_np)) {
-			if (try_module_get(l->owner))
-				layout = l;
-
-			break;
-		}
-	}
-
-	spin_unlock(&nvmem_layout_lock);
-	of_node_put(layout_np);
-
-	return layout;
-}
-
-static void nvmem_layout_put(struct nvmem_layout *layout)
-{
-	if (layout)
-		module_put(layout->owner);
-}
-
-static int nvmem_add_cells_from_layout(struct nvmem_device *nvmem)
-{
-	struct nvmem_layout *layout = nvmem->layout;
-	int ret;
-
-	if (layout && layout->add_cells) {
-		ret = layout->add_cells(&nvmem->dev, nvmem, layout);
-		if (ret)
-			return ret;
-	}
-
-	return 0;
-}
-
-#if IS_ENABLED(CONFIG_OF)
-struct device_node *of_nvmem_layout_get_container(struct nvmem_device *nvmem)
-{
-	return of_get_child_by_name(nvmem->dev.of_node, "nvmem-layout");
-}
-EXPORT_SYMBOL_GPL(of_nvmem_layout_get_container);
-#endif
 
 const void *nvmem_layout_get_match_data(struct nvmem_device *nvmem,
 					struct nvmem_layout *layout)
@@ -833,7 +761,7 @@ const void *nvmem_layout_get_match_data(struct nvmem_device *nvmem,
 	const struct of_device_id *match;
 
 	layout_np = of_nvmem_layout_get_container(nvmem);
-	match = of_match_node(layout->of_match_table, layout_np);
+	match = of_match_node(layout->dev.driver->of_match_table, layout_np);
 
 	return match ? match->data : NULL;
 }
@@ -944,19 +872,6 @@ struct nvmem_device *nvmem_register(const struct nvmem_config *config)
 			goto err_put_device;
 	}
 
-	/*
-	 * If the driver supplied a layout by config->layout, the module
-	 * pointer will be NULL and nvmem_layout_put() will be a noop.
-	 */
-	nvmem->layout = config->layout ?: nvmem_layout_get(nvmem);
-	if (IS_ERR(nvmem->layout)) {
-		rval = PTR_ERR(nvmem->layout);
-		nvmem->layout = NULL;
-
-		if (rval == -EPROBE_DEFER)
-			goto err_teardown_compat;
-	}
-
 	if (config->cells) {
 		rval = nvmem_add_cells(nvmem, config->cells, config->ncells);
 		if (rval)
@@ -975,7 +890,7 @@ struct nvmem_device *nvmem_register(const struct nvmem_config *config)
 	if (rval)
 		goto err_remove_cells;
 
-	rval = nvmem_add_cells_from_layout(nvmem);
+	rval = nvmem_populate_layout(nvmem);
 	if (rval)
 		goto err_remove_cells;
 
@@ -983,16 +898,17 @@ struct nvmem_device *nvmem_register(const struct nvmem_config *config)
 
 	rval = device_add(&nvmem->dev);
 	if (rval)
-		goto err_remove_cells;
+		goto err_destroy_layout;
+
 
 	blocking_notifier_call_chain(&nvmem_notifier, NVMEM_ADD, nvmem);
 
 	return nvmem;
 
+err_destroy_layout:
+	nvmem_destroy_layout(nvmem);
 err_remove_cells:
 	nvmem_device_remove_all_cells(nvmem);
-	nvmem_layout_put(nvmem->layout);
-err_teardown_compat:
 	if (config->compat)
 		nvmem_sysfs_remove_compat(nvmem, config);
 err_put_device:
@@ -1014,7 +930,7 @@ static void nvmem_device_release(struct kref *kref)
 		device_remove_bin_file(nvmem->base_dev, &nvmem->eeprom);
 
 	nvmem_device_remove_all_cells(nvmem);
-	nvmem_layout_put(nvmem->layout);
+	nvmem_destroy_layout(nvmem);
 	device_unregister(&nvmem->dev);
 }
 
@@ -1400,7 +1316,10 @@ struct nvmem_cell *of_nvmem_cell_get(struct device_node *np, const char *id)
 	of_node_put(cell_np);
 	if (!cell_entry) {
 		__nvmem_device_put(nvmem);
-		return ERR_PTR(-ENOENT);
+		if (nvmem->layout)
+			return ERR_PTR(-EAGAIN);
+		else
+			return ERR_PTR(-ENOENT);
 	}
 
 	cell = nvmem_create_cell(cell_entry, id, cell_index);
@@ -2096,11 +2015,22 @@ EXPORT_SYMBOL_GPL(nvmem_dev_name);
 
 static int __init nvmem_init(void)
 {
-	return bus_register(&nvmem_bus_type);
+	int ret;
+
+	ret = bus_register(&nvmem_bus_type);
+	if (ret)
+		return ret;
+
+	ret = nvmem_layout_bus_register();
+	if (ret)
+		bus_unregister(&nvmem_bus_type);
+
+	return ret;
 }
 
 static void __exit nvmem_exit(void)
 {
+	nvmem_layout_bus_unregister();
 	bus_unregister(&nvmem_bus_type);
 }
 

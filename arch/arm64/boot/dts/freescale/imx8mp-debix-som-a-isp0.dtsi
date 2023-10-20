@@ -1,0 +1,46 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright 2023 Ideas on Board Oy
+ */
+
+#include <dt-bindings/clock/imx8mp-clock.h>
+#include "imx8mp-pinfunc.h"
+
+/* Debix SOM-A Specific connections */
+&iomuxc {
+	pinctrl_csi0_pwdn: csi0_pwdn_grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD1_STROBE__GPIO2_IO11 0x19
+		>;
+	};
+
+	pinctrl_i2c2: i2c2grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_I2C2_SCL__I2C2_SCL		0x400001c2
+			MX8MP_IOMUXC_I2C2_SDA__I2C2_SDA		0x400001c2
+		>;
+	};
+
+	/* Pin-8 / CSI_MCLK on the Debix-SOM 24 pin connector */
+	pinctrl_csi_mclk: csi_mclk_grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_GPIO1_IO15__CCM_CLKO2	0x59
+		>;
+	};
+};
+
+&i2c2 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c2>;
+	status = "okay";
+};
+
+/*
+ * GPIO Connections:
+ * Use with:
+ *      reset-gpios = <CSI0_nRST(GPIO_ACTIVE_LOW)>;
+ *      powerdown-gpios = <CSI0_PWDN(GPIO_ACTIVE_HIGH)>;
+ */
+#define CSI0_nRST(flags) &expander0 3 flags
+#define CSI0_PWDN(flags) &expander0 4 flags

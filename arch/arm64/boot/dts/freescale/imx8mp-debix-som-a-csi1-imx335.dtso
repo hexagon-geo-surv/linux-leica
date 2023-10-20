@@ -1,0 +1,75 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright 2023 Ideas on Board Oy
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include "imx8mp-debix-som-a-csi1.dtsi"
+
+/* Arducam IMX335 Fixed 24 MHz crystal */
+&{/} {
+	/* 24 MHz Crystal on the camera module */
+	imx335_inclk_1: imx335_inclk_24m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		status = "okay";
+		clock-frequency = <24000000>;
+	};
+
+	reg_imx335_1_3v3: regulator-imx335_1-vdd3v3 {
+		compatible = "regulator-fixed";
+		pinctrl-names = "default";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-name = "IMX335_1_POWER_EN";
+		gpio = <&expander0 4 GPIO_ACTIVE_HIGH>;
+		vin-supply = <&reg_csi2_3v3>;
+		startup-delay-us = <300000>;
+		enable-active-high;
+	};
+};
+
+&i2c3 {
+	imx335_1: sensor@1a {
+		compatible = "sony,imx335";
+		reg = <0x1a>;
+
+		clocks = <&imx335_inclk_1>;
+		clock-names = "xclk";
+
+		rotation = <180>;
+		orientation = <0>;
+
+		status = "okay";
+
+		/* Arducam IMX335 module uses *only* the 3v3 line */
+		avdd-supply = <&reg_imx335_1_3v3>;
+		ovdd-supply = <&reg_imx335_1_3v3>;
+		dvdd-supply = <&reg_imx335_1_3v3>;
+
+		port {
+			sensor_1_out: endpoint {
+				remote-endpoint = <&mipi_csi_1_in>;
+				clock-lanes = <0>;
+				data-lanes = <1 2 3 4>;
+				link-frequencies = /bits/ 64 <594000000>;
+			};
+		};
+	};
+};
+
+&mipi_csi_1 {
+	status = "okay";
+
+	ports {
+		port@0 {
+			mipi_csi_1_in: endpoint {
+				remote-endpoint = <&sensor_1_out>;
+				clock-lanes = <0>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+	};
+};

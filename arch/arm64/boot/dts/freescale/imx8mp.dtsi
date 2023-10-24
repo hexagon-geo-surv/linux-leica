@@ -804,6 +804,7 @@
 						assigned-clock-rates = <800000000>,
 								       <800000000>,
 								       <300000000>;
+						resets = <&src IMX8MP_RESET_MLMIX_RESET>;
 					};
 
 					pgc_audio: power-domain@5 {

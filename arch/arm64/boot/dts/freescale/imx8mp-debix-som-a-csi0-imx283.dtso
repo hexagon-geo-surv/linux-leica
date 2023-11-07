@@ -1,0 +1,78 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright 2023 Ideas on Board Oy
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+
+#include "imx8mp-debix-som-a-csi0.dtsi"
+
+&{/} {
+	/* 12 MHz Crystal on the camera module */
+	imx283_inclk_0: imx283_inclk_12mm {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		status = "okay";
+		clock-frequency = <12000000>;
+	};
+
+	reg_imx283_0_3v3: regulator-imx283-0-vdd3v3 {
+		compatible = "regulator-fixed";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_csi0_pwdn>;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-name = "IMX283_0_POWER_EN";
+		gpio = <&gpio2 11 GPIO_ACTIVE_HIGH>;
+		vin-supply = <&reg_csi1_3v3>;
+		startup-delay-us = <300000>;
+		enable-active-high;
+	};
+};
+
+&i2c2 {
+	imx283_0: sensor@1a {
+		compatible = "sony,imx283";
+		reg = <0x1a>;
+
+		clocks = <&imx283_inclk_0>;
+		clock-names = "xclk";
+
+		rotation = <180>;
+		orientation = <0>;
+
+		status = "okay";
+
+		/* Arducam IMX283 module uses *only* the 3v3 line */
+		vadd-supply = <&reg_imx283_0_3v3>;
+		vdd1-supply = <&reg_imx283_0_3v3>;
+		vdd2-supply = <&reg_imx283_0_3v3>;
+
+		port {
+			sensor_0_out: endpoint {
+				remote-endpoint = <&mipi_csi_0_in>;
+				clock-lanes = <0>;
+				data-lanes = <1 2 3 4>;
+				link-frequencies = /bits/ 64 <360000000>;
+			};
+		};
+	};
+};
+
+&mipi_csi_0 {
+	status = "okay";
+
+	ports {
+		port@0 {
+			mipi_csi_0_in: endpoint {
+				remote-endpoint = <&sensor_0_out>;
+				clock-lanes = <0>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+	};
+};
+

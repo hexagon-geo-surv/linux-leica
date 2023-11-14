@@ -111,6 +111,7 @@ enum rkisp1_isp_pad {
  * @RKISP1_FEATURE_MI_OUTPUT_ALIGN: The ISP has the MI_OUTPUT_ALIGN_FORMAT register
  * @RKISP1_FEATURE_RSZ_CROP: The ISP supports cropping in the resizer
  * @RKISP1_FEATURE_TPG: The ISP has test pattern generator registers at base 0x0700
+ * @RKISP1_FEATURE_MP_OUTPUT_FORMAT: The ISP has mp_output_format field in the MI_INIT register
  *
  * The ISP features are stored in a bitmask in &rkisp1_info.features and allow
  * the driver to implement support for features present in some ISP versions
@@ -125,6 +126,7 @@ enum rkisp1_feature {
 	RKISP1_FEATURE_MI_OUTPUT_ALIGN = BIT(5),
 	RKISP1_FEATURE_RSZ_CROP = BIT(6),
 	RKISP1_FEATURE_TPG = BIT(7),
+	RKISP1_FEATURE_MP_OUTPUT_FORMAT = BIT(8),
 };
 
 #define rkisp1_has_feature(rkisp1, feature) \

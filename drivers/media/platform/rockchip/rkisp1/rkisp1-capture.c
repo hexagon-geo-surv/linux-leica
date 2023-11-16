@@ -1028,11 +1028,8 @@ static void rkisp1_cap_stream_enable(struct rkisp1_capture *cap)
 		/* force cfg update */
 		reg = rkisp1_read(rkisp1, RKISP1_CIF_MI_INIT);
 
-		if (rkisp1_has_feature(rkisp1, MP_OUTPUT_FORMAT)) {
-			dev_err(cap->rkisp1->dev, "WRITING TO MP OUTPUT FORMAT %x\n",
-				cap->pix.cfg->output_format_mp);
+		if (rkisp1_has_feature(rkisp1, MP_OUTPUT_FORMAT))
 			reg |= cap->pix.cfg->output_format_mp;
-		}
 
 		reg |= RKISP1_CIF_MI_INIT_SOFT_UPD;
 		rkisp1_write(rkisp1, RKISP1_CIF_MI_INIT, reg);

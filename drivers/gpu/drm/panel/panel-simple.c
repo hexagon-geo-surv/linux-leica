@@ -2655,13 +2655,13 @@ static const struct panel_desc innolux_zj070na_01p = {
 static const struct display_timing jiangsu_smartwin_smmt043480272a_a19_timing = {
 	.pixelclock = { 8000000, 9000000, 12000000 },
 	.hactive = { 480, 480, 480 },
-	.hback_porch = { 1, 39, 50 },
-	.hfront_porch = { 4, 8, 58 },
-	.hsync_len = { 2, 4, 10 },
+	.hback_porch = { 1, 43, 43 },
+	.hfront_porch = { 4, 8, 75 },
+	.hsync_len = { 2, 4, 75 },
 	.vactive = { 272, 272, 272 },
-	.vback_porch = { 1, 8, 19 },
-	.vfront_porch = { 1, 8, 19 },
-	.vsync_len = { 2, 4, 11 },
+	.vback_porch = { 2, 12, 12 },
+	.vfront_porch = { 2, 8, 37 },
+	.vsync_len = { 2, 4, 37 },
 	.flags = DISPLAY_FLAGS_HSYNC_LOW | DISPLAY_FLAGS_VSYNC_LOW |
 		 DISPLAY_FLAGS_DE_HIGH | DRM_BUS_FLAG_PIXDATA_DRIVE_POSEDGE |
 		 DRM_BUS_FLAG_SYNC_DRIVE_POSEDGE,

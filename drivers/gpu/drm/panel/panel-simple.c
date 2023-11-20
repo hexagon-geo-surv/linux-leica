@@ -2663,8 +2663,7 @@ static const struct display_timing jiangsu_smartwin_smmt043480272a_a19_timing = 
 	.vfront_porch = { 2, 8, 37 },
 	.vsync_len = { 2, 4, 37 },
 	.flags = DISPLAY_FLAGS_HSYNC_LOW | DISPLAY_FLAGS_VSYNC_LOW |
-		 DISPLAY_FLAGS_DE_HIGH | DRM_BUS_FLAG_PIXDATA_DRIVE_POSEDGE |
-		 DRM_BUS_FLAG_SYNC_DRIVE_POSEDGE,
+		 DISPLAY_FLAGS_DE_HIGH | DISPLAY_FLAGS_PIXDATA_NEGEDGE,
 };
 
 static const struct panel_desc jiangsu_smartwin_smmt043480272a_a19 = {

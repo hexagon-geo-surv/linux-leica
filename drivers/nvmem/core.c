@@ -336,6 +336,40 @@ destroy_cell:
 	return read_len;
 }
 
+static ssize_t nvmem_cell_attr_write(struct file *filp, struct kobject *kobj,
+				     struct bin_attribute *attr, char *buf,
+				     loff_t pos, size_t count)
+{
+	struct nvmem_cell_entry *entry;
+	struct nvmem_cell *cell;
+	int ret;
+
+	entry = attr->private;
+
+	if (!entry->nvmem->reg_write)
+		return -EPERM;
+
+	if (pos >= entry->bytes)
+		return -EFBIG;
+
+	if (pos + count > entry->bytes)
+		count = entry->bytes - pos;
+
+	cell = nvmem_create_cell(entry, entry->name, 0);
+	if (IS_ERR(cell))
+		return PTR_ERR(cell);
+
+	if (!cell)
+		return -EINVAL;
+
+	ret = nvmem_cell_write(cell, buf, count);
+
+	kfree_const(cell->id);
+	kfree(cell);
+
+	return ret;
+}
+
 /* default read/write permissions */
 static struct bin_attribute bin_attr_rw_nvmem = {
 	.attr	= {
@@ -457,14 +491,21 @@ static int nvmem_populate_sysfs_cells(struct nvmem_device *nvmem)
 
 	/* Initialize each attribute to take the name and size of the cell */
 	list_for_each_entry(entry, &nvmem->cells, node) {
+		umode_t mode = nvmem_bin_attr_get_umode(nvmem);
+
+		/* Limit cell-write support to EEPROMs at the moment */
+		if (entry->read_post_process || nvmem->type != NVMEM_TYPE_EEPROM)
+			mode &= ~0222;
+
 		sysfs_bin_attr_init(&attrs[i]);
 		attrs[i].attr.name = devm_kasprintf(&nvmem->dev, GFP_KERNEL,
 						    "%s@%x,%x", entry->name,
 						    entry->offset,
 						    entry->bit_offset);
-		attrs[i].attr.mode = 0444 & nvmem_bin_attr_get_umode(nvmem);
+		attrs[i].attr.mode = mode;
 		attrs[i].size = entry->bytes;
 		attrs[i].read = &nvmem_cell_attr_read;
+		attrs[i].write = &nvmem_cell_attr_write;
 		attrs[i].private = entry;
 		if (!attrs[i].attr.name) {
 			ret = -ENOMEM;

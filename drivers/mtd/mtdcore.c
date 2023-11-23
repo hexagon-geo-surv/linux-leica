@@ -544,6 +544,20 @@ static int mtd_nvmem_reg_read(void *priv, unsigned int offset,
 	return retlen == bytes ? 0 : -EIO;
 }
 
+static int mtd_nvmem_reg_write(void *priv, unsigned int offset,
+			       void *val, size_t bytes)
+{
+	struct mtd_info *mtd = priv;
+	size_t retlen;
+	int err;
+
+	err = mtd_write(mtd, offset, bytes, &retlen, val);
+	if (err && err != -EUCLEAN)
+		return err;
+
+	return retlen == bytes ? 0 : -EIO;
+}
+
 static int mtd_nvmem_add(struct mtd_info *mtd)
 {
 	struct device_node *node = mtd_get_of_node(mtd);
@@ -555,10 +569,11 @@ static int mtd_nvmem_add(struct mtd_info *mtd)
 	config.owner = THIS_MODULE;
 	config.add_legacy_fixed_of_cells = of_device_is_compatible(node, "nvmem-cells");
 	config.reg_read = mtd_nvmem_reg_read;
+	config.reg_write = mtd_nvmem_reg_write;
 	config.size = mtd->size;
 	config.word_size = 1;
 	config.stride = 1;
-	config.read_only = true;
+	config.read_only = !(mtd->flags & MTD_WRITEABLE);
 	config.root_only = true;
 	config.ignore_wp = true;
 	config.priv = mtd;

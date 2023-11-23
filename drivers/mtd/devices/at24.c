@@ -4,6 +4,7 @@
  *
  * Copyright (C) 2005-2007 David Brownell
  * Copyright (C) 2008 Wolfram Sang, Pengutronix
+ * Copyright (C) 2024 Pengutronix, Marco Felsch <kernel@pengutronix.de>
  */
 
 #include <linux/acpi.h>
@@ -16,8 +17,8 @@
 #include <linux/kernel.h>
 #include <linux/mod_devicetable.h>
 #include <linux/module.h>
+#include <linux/mtd/mtd.h>
 #include <linux/mutex.h>
-#include <linux/nvmem-provider.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/pm_runtime.h>
@@ -84,8 +85,9 @@ struct at24_data {
 	u16 page_size;
 	u8 flags;
 
-	struct nvmem_device *nvmem;
+	struct mtd_info mtd;
 	struct regulator *vcc_reg;
+	struct gpio_desc *wp_gpio;
 	void (*read_post)(unsigned int off, char *buf, size_t count);
 
 	/*
@@ -95,6 +97,11 @@ struct at24_data {
 	u8 bank_addr_shift;
 	struct regmap *client_regmaps[] __counted_by(num_addresses);
 };
+
+static struct at24_data *mtd_to_at24(struct mtd_info *mtd)
+{
+	return container_of(mtd, struct at24_data, mtd);
+}
 
 /*
  * This parameter is to help this driver avoid blocking other drivers out
@@ -424,20 +431,19 @@ static ssize_t at24_regmap_write(struct at24_data *at24, const char *buf,
 	return -ETIMEDOUT;
 }
 
-static int at24_read(void *priv, unsigned int off, void *val, size_t count)
+static int at24_read(struct mtd_info *mtd, loff_t from, size_t len,
+		     size_t *retlen, u_char *buf)
 {
-	struct at24_data *at24;
+	struct at24_data *at24 = mtd_to_at24(mtd);
 	struct device *dev;
-	char *buf = val;
 	int i, ret;
 
-	at24 = priv;
 	dev = at24_base_client_dev(at24);
 
-	if (unlikely(!count))
-		return count;
+	if (unlikely(!len))
+		return len;
 
-	if (off + count > at24->byte_len)
+	if (from + len > at24->byte_len)
 		return -EINVAL;
 
 	ret = pm_runtime_resume_and_get(dev);
@@ -449,13 +455,14 @@ static int at24_read(void *priv, unsigned int off, void *val, size_t count)
 	 */
 	mutex_lock(&at24->lock);
 
-	for (i = 0; count; i += ret, count -= ret) {
-		ret = at24_regmap_read(at24, buf + i, off + i, count);
+	for (i = 0; len; i += ret, len -= ret) {
+		ret = at24_regmap_read(at24, buf + i, from + i, len);
 		if (ret < 0) {
 			mutex_unlock(&at24->lock);
 			pm_runtime_put(dev);
 			return ret;
 		}
+		*retlen += ret;
 	}
 
 	mutex_unlock(&at24->lock);
@@ -463,25 +470,24 @@ static int at24_read(void *priv, unsigned int off, void *val, size_t count)
 	pm_runtime_put(dev);
 
 	if (unlikely(at24->read_post))
-		at24->read_post(off, buf, i);
+		at24->read_post(from, buf, i);
 
 	return 0;
 }
 
-static int at24_write(void *priv, unsigned int off, void *val, size_t count)
+static int at24_write(struct mtd_info *mtd, loff_t to, size_t len,
+		      size_t *retlen, const u_char *buf)
 {
-	struct at24_data *at24;
+	struct at24_data *at24 = mtd_to_at24(mtd);
 	struct device *dev;
-	char *buf = val;
 	int ret;
 
-	at24 = priv;
 	dev = at24_base_client_dev(at24);
 
-	if (unlikely(!count))
+	if (unlikely(!len))
 		return -EINVAL;
 
-	if (off + count > at24->byte_len)
+	if (to + len > at24->byte_len)
 		return -EINVAL;
 
 	ret = pm_runtime_resume_and_get(dev);
@@ -493,17 +499,22 @@ static int at24_write(void *priv, unsigned int off, void *val, size_t count)
 	 */
 	mutex_lock(&at24->lock);
 
-	while (count) {
-		ret = at24_regmap_write(at24, buf, off, count);
+	gpiod_set_value_cansleep(at24->wp_gpio, 0);
+
+	while (len) {
+		ret = at24_regmap_write(at24, buf, to, len);
 		if (ret < 0) {
 			mutex_unlock(&at24->lock);
 			pm_runtime_put(dev);
 			return ret;
 		}
 		buf += ret;
-		off += ret;
-		count -= ret;
+		to += ret;
+		len -= ret;
+		*retlen += ret;
 	}
+
+	gpiod_set_value_cansleep(at24->wp_gpio, 1);
 
 	mutex_unlock(&at24->lock);
 
@@ -562,6 +573,8 @@ static void at24_probe_temp_sensor(struct i2c_client *client)
 {
 	struct at24_data *at24 = i2c_get_clientdata(client);
 	struct i2c_board_info info = { .type = "jc42" };
+	struct mtd_info *mtd = &at24->mtd;
+	size_t len;
 	int ret;
 	u8 val;
 
@@ -569,12 +582,12 @@ static void at24_probe_temp_sensor(struct i2c_client *client)
 	 * Byte 2 has value 11 for DDR3, earlier versions don't
 	 * support the thermal sensor present flag
 	 */
-	ret = at24_read(at24, 2, &val, 1);
+	ret = at24_read(mtd, 2, 1, &len, &val);
 	if (ret || val != 11)
 		return;
 
 	/* Byte 32, bit 7 is set if temp sensor is present */
-	ret = at24_read(at24, 32, &val, 1);
+	ret = at24_read(mtd, 32, 1, &len, &val);
 	if (ret || !(val & BIT(7)))
 		return;
 
@@ -586,17 +599,19 @@ static void at24_probe_temp_sensor(struct i2c_client *client)
 static int at24_probe(struct i2c_client *client)
 {
 	struct regmap_config regmap_config = { };
-	struct nvmem_config nvmem_config = { };
 	u32 byte_len, page_size, flags, addrw;
 	const struct at24_chip_data *cdata;
 	struct device *dev = &client->dev;
 	bool i2c_fn_i2c, i2c_fn_block;
 	unsigned int i, num_addresses;
 	struct at24_data *at24;
+	struct device_node *np;
+	struct mtd_info *mtd;
 	bool full_power;
 	struct regmap *regmap;
 	bool writable;
 	u8 test_byte;
+	size_t len;
 	int err;
 
 	i2c_fn_i2c = i2c_check_functionality(client->adapter, I2C_FUNC_I2C);
@@ -703,6 +718,10 @@ static int at24_probe(struct i2c_client *client)
 					page_size, at24_io_limit);
 		if (!i2c_fn_i2c && at24->write_max > I2C_SMBUS_BLOCK_MAX)
 			at24->write_max = I2C_SMBUS_BLOCK_MAX;
+
+		at24->wp_gpio = gpiod_get_optional(dev, "wp", GPIOD_OUT_HIGH);
+		if (IS_ERR(at24->wp_gpio))
+			return PTR_ERR(at24->wp_gpio);
 	}
 
 	/* use dummy devices for multiple-address chips */
@@ -712,37 +731,31 @@ static int at24_probe(struct i2c_client *client)
 			return err;
 	}
 
-	/*
-	 * We initialize nvmem_config.id to NVMEM_DEVID_AUTO even if the
-	 * label property is set as some platform can have multiple eeproms
-	 * with same label and we can not register each of those with same
-	 * label. Failing to register those eeproms trigger cascade failure
-	 * on such platform.
-	 */
-	nvmem_config.id = NVMEM_DEVID_AUTO;
-
+	mtd = &at24->mtd;
 	if (device_property_present(dev, "label")) {
 		err = device_property_read_string(dev, "label",
-						  &nvmem_config.name);
+						  &mtd->name);
 		if (err)
 			return err;
 	} else {
-		nvmem_config.name = dev_name(dev);
+		mtd->name = dev_name(dev);
 	}
+	mtd->dev.parent = dev;
+	mtd->type = MTD_EEPROM;
+	mtd->flags = MTD_CAP_EEPROM;
+	if (!writable)
+		mtd->flags = MTD_CAP_ROM;
 
-	nvmem_config.type = NVMEM_TYPE_EEPROM;
-	nvmem_config.dev = dev;
-	nvmem_config.read_only = !writable;
-	nvmem_config.root_only = !(flags & AT24_FLAG_IRUGO);
-	nvmem_config.owner = THIS_MODULE;
-	nvmem_config.compat = true;
-	nvmem_config.base_dev = dev;
-	nvmem_config.reg_read = at24_read;
-	nvmem_config.reg_write = at24_write;
-	nvmem_config.priv = at24;
-	nvmem_config.stride = 1;
-	nvmem_config.word_size = 1;
-	nvmem_config.size = byte_len;
+	mtd->writesize = 1;
+	mtd->writebufsize = 1;
+	mtd->size = byte_len;
+	mtd->_read = at24_read;
+	mtd->_write = at24_write;
+
+	/* Fixed partitions are only supported on OF plaforms */
+	np = to_of_node(dev_fwnode(dev));
+	if (np)
+		mtd_set_of_node(mtd, np);
 
 	i2c_set_clientdata(client, at24);
 
@@ -764,7 +777,7 @@ static int at24_probe(struct i2c_client *client)
 	 * it's powered off right now).
 	 */
 	if (full_power) {
-		err = at24_read(at24, 0, &test_byte, 1);
+		err = at24_read(mtd, 0, 1, &len, &test_byte);
 		if (err) {
 			pm_runtime_disable(dev);
 			if (!pm_runtime_status_suspended(dev))
@@ -773,13 +786,12 @@ static int at24_probe(struct i2c_client *client)
 		}
 	}
 
-	at24->nvmem = devm_nvmem_register(dev, &nvmem_config);
-	if (IS_ERR(at24->nvmem)) {
+	err = mtd_device_register(mtd, NULL, 0);
+	if (err) {
 		pm_runtime_disable(dev);
 		if (!pm_runtime_status_suspended(dev))
 			regulator_disable(at24->vcc_reg);
-		return dev_err_probe(dev, PTR_ERR(at24->nvmem),
-				     "failed to register nvmem\n");
+		return dev_err_probe(dev, err, "failed to register mtd\n");
 	}
 
 	/* If this a SPD EEPROM, probe for DDR3 thermal sensor */

@@ -4,6 +4,7 @@
 #
 
 obj-$(CONFIG_MTD_DOCG3)		+= docg3.o
+obj-$(CONFIG_MTD_EEPROM_AT24)	+= at24.o
 obj-$(CONFIG_MTD_SLRAM)		+= slram.o
 obj-$(CONFIG_MTD_PHRAM)		+= phram.o
 obj-$(CONFIG_MTD_PMC551)	+= pmc551.o

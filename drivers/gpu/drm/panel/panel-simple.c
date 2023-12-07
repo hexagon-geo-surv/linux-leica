@@ -2663,7 +2663,8 @@ static const struct display_timing jiangsu_smartwin_smmt043480272a_a19_timing = 
 	.vfront_porch = { 2, 8, 37 },
 	.vsync_len = { 2, 4, 37 },
 	.flags = DISPLAY_FLAGS_HSYNC_LOW | DISPLAY_FLAGS_VSYNC_LOW |
-		 DISPLAY_FLAGS_DE_HIGH | DISPLAY_FLAGS_PIXDATA_NEGEDGE,
+		 DISPLAY_FLAGS_DE_HIGH | DISPLAY_FLAGS_PIXDATA_POSEDGE |
+		 DISPLAY_FLAGS_SYNC_POSEDGE,
 };
 
 static const struct panel_desc jiangsu_smartwin_smmt043480272a_a19 = {
@@ -2675,6 +2676,9 @@ static const struct panel_desc jiangsu_smartwin_smmt043480272a_a19 = {
 		.height = 54,
 	},
 	.bus_format = MEDIA_BUS_FMT_RGB888_1X24,
+	.bus_flags = DRM_BUS_FLAG_DE_HIGH |
+		     DRM_BUS_FLAG_PIXDATA_SAMPLE_NEGEDGE |
+		     DRM_BUS_FLAG_SYNC_SAMPLE_NEGEDGE,
 };
 
 static const struct display_timing koe_tx14d24vm1bpa_timing = {

@@ -150,6 +150,11 @@
 		regulator-name = "VDD_5V";
 		gpio = <&expander0 8 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
+		/*
+		 * Used by (at least) USB & HDMI.
+		 * TODO: handle it correctly...
+		 */
+		regulator-always-on;
 	};
 };
 

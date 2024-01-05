@@ -434,6 +434,32 @@ static const struct imx283_mode supported_modes_12bit[] = {
 		.vertical_ob = 16,
 		.crop = CENTERED_RECTANGLE(imx283_active_area, 5472, 450),
 	},
+	{
+		/* Custom 1080p Crop Mode : readout mode 0 */
+		.mode = IMX283_MODE_0,
+		.bpp = 12,
+		.width = 1920, /* Horizontal OB included */
+		.height = 1080, /* Vertical OB included */
+		.min_hmax = 4500, /* Pixels */
+		.min_vmax = 1500, /* Lines */
+
+		/* 20.00 FPS */
+		.default_hmax = 6000, /* 900 @ 480MHz/72MHz */
+		.default_vmax = 4000,
+
+		.min_shr = 11,
+		.horizontal_ob = 96,
+		.vertical_ob = 16,
+		/*
+		 * Subtract the HOB and VOB from the crop, as they are added
+		 * by the sensor to produce a 1080p output frame size.
+		 * Black regions will be in the visible space. These could be
+		 * cropped out by increasing the stride and offset start
+		 * position by buffer consumers.
+		 */
+		.crop = CENTERED_RECTANGLE(imx283_active_area, 1920 - 96, 1080 - 16),
+	},
+
 };
 
 static const struct imx283_mode supported_modes_10bit[] = {

@@ -459,6 +459,33 @@ static const struct imx283_mode supported_modes_12bit[] = {
 		 */
 		.crop = CENTERED_RECTANGLE(imx283_active_area, 1920 - 96, 1080 - 16),
 	},
+	{
+		/*
+		 * readout mode 2 (2736x1824)
+		 */
+		.mode = IMX283_MODE_2,
+		.bpp = 12,
+		.width = 2736, /* Horizontal OB included */
+		.height = 1824, /* Vertical OB included */
+		.min_hmax = 1870, /* Pixels (362 * 360/72 + padding) */
+		.min_vmax = 3840, /* Lines */
+
+		/* 50.00 FPS */
+		.default_hmax = 1870, /* 362 @ 360MHz/72MHz */
+		.default_vmax = 3960,
+
+		.min_shr = 12,
+		.horizontal_ob = 48,
+		.vertical_ob = 4,
+		/*
+		 * Subtract the HOB and VOB from the crop, as they are added
+		 * by the sensor to produce a 1080p output frame size.
+		 * Black regions will be in the visible space. These could be
+		 * cropped out by increasing the stride and offset start
+		 * position by buffer consumers.
+		 */
+		.crop = CENTERED_RECTANGLE(imx283_active_area, 5472 - 96, 3648 - 16),
+	},
 
 	{
 		/*

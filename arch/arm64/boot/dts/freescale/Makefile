@@ -181,6 +181,7 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mp-dhcom-picoitx.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-evk.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-icore-mx8mp-edimm2.2.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-iota2-lumpy.dtb
+dtb-$(CONFIG_ARCH_MXC) += imx8mp-isi.dtbo
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-isp1.dtbo
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-isp2.dtbo
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-kontron-bl-osm-s.dtb

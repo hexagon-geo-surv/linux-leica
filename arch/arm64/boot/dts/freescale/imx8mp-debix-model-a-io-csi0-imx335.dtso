@@ -1,0 +1,90 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright 2024 Ideas on Board Oy
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include "imx8mp-pinfunc.h"
+
+#include "imx8mp-debix-model-a-csi0.dtsi"
+
+&{/} {
+	/* 24 MHz Crystal on the camera module */
+	imx335_inclk_0: imx335_inclk_24m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		status = "okay";
+		clock-frequency = <24000000>;
+	};
+
+	reg_imx335_3v3: regulator-imx335-vdd3v3 {
+		compatible = "regulator-fixed";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_csi0_pwdn>;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-name = "IMX335_POWER_EN";
+		gpio = <&gpio1 6 GPIO_ACTIVE_HIGH>;
+		vin-supply = <&reg_vdd5v0>;
+		startup-delay-us = <300000>;
+		enable-active-high;
+	};
+};
+
+&i2c2 {
+	camera: imx335@1a {
+		compatible = "sony,imx335";
+		reg = <0x1a>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_csi0_rst>;
+
+		clocks = <&imx335_inclk_0>;
+		clock-names = "xclk";
+
+		rotation = <0>;
+		orientation = <2>;
+
+		status = "okay";
+
+		/* Arducam IMX335 module uses *only* the 3v3 line */
+		avdd-supply = <&reg_imx335_3v3>;
+		ovdd-supply = <&reg_imx335_3v3>;
+		dvdd-supply = <&reg_imx335_3v3>;
+
+		port {
+			imx335_out: endpoint {
+				remote-endpoint = <&mipi_csi_0_in>;
+				clock-lanes = <0>;
+				/*
+				 * imx335 supports 4 lanes but
+				 * model A I/O only supports 2 lanes
+				 */
+				data-lanes = <1 2>;
+				link-frequencies = /bits/ 64 <594000000>;
+			};
+		};
+	};
+
+};
+
+&mipi_csi_0 {
+	status = "okay";
+
+	ports {
+		port@0 {
+			mipi_csi_0_in: endpoint {
+				remote-endpoint = <&imx335_out>;
+				clock-lanes = <0>;
+				/*
+				 * imx335 supports 4 lanes but
+				 * model A I/O board only supports 2 lanes
+				 */
+				data-lanes = <1 2>;
+			};
+		};
+	};
+};

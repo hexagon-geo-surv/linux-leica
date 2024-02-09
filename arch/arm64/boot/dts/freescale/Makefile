@@ -174,6 +174,7 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mp-beacon-kit.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-data-modul-edm-sbc.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-debix-model-a.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-debix-model-a-io-imx219.dtbo
+dtb-$(CONFIG_ARCH_MXC) += imx8mp-debix-model-a-io-csi0-imx335.dtbo
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-debix-model-a-io-ov5640.dtbo
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-debix-som-a-bmb-08.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-dhcom-drc02.dtb

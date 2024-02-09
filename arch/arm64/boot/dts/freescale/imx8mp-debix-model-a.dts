@@ -66,6 +66,15 @@
 		gpio = <&gpio4 26 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 	};
+
+	reg_vdd5v0: regulator-vdd5v0 {
+		compatible = "regulator-fixed";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-name = "VDD5V";
+		enable-active-high;
+		regulator-always-on;
+	};
 };
 
 &A53_0 {

@@ -456,7 +456,7 @@ static int at24_read(struct mtd_info *mtd, loff_t from, size_t len,
 			pm_runtime_put(dev);
 			return ret;
 		}
-		*retlen = ret;
+		*retlen += ret;
 	}
 
 	mutex_unlock(&at24->lock);

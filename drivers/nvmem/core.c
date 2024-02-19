@@ -494,7 +494,8 @@ static int nvmem_populate_sysfs_cells(struct nvmem_device *nvmem)
 	list_for_each_entry(entry, &nvmem->cells, node) {
 		umode_t mode = nvmem_bin_attr_get_umode(nvmem);
 
-		if (entry->read_post_process)
+		/* Limit cell-write support to EEPROMs at the moment */
+		if (entry->read_post_process || nvmem->type != NVMEM_TYPE_EEPROM)
 			mode &= ~0222;
 
 		sysfs_bin_attr_init(&attrs[i]);

@@ -510,6 +510,8 @@ static const struct rkisp1_info px30_isp_info = {
 	.features = RKISP1_FEATURE_MIPI_CSI2
 		  | RKISP1_FEATURE_SELF_PATH
 		  | RKISP1_FEATURE_DUAL_CROP,
+	.max_width = 3264,
+	.max_height = 2448,
 };
 
 static const char * const rk3399_isp_clks[] = {
@@ -531,6 +533,8 @@ static const struct rkisp1_info rk3399_isp_info = {
 	.features = RKISP1_FEATURE_MIPI_CSI2
 		  | RKISP1_FEATURE_SELF_PATH
 		  | RKISP1_FEATURE_DUAL_CROP,
+	.max_width = 4416,
+	.max_height = 3312,
 };
 
 static const char * const imx8mp_isp_clks[] = {

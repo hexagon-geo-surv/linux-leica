@@ -611,6 +611,8 @@ patternProperties:
     description: Hardkernel Co., Ltd
   "^hechuang,.*":
     description: Shenzhen Hechuang Intelligent Co.
+  "^hgs,.*":
+    description: Hexagon Geosystems
   "^hideep,.*":
     description: HiDeep Inc.
   "^himax,.*":

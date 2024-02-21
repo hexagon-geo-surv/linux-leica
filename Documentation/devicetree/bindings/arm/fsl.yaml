@@ -977,6 +977,14 @@ properties:
           - const: engicam,icore-mx8mm             # i.MX8MM Engicam i.Core MX8M Mini SoM
           - const: fsl,imx8mm
 
+      - description: Hexagon Geosystems GS05
+        items:
+          - enum:
+              - hgs,gs05-rev-c        # i.MX8MM Hexagon Geosystems GS05 Rev.C
+              - hgs,gs05-rev-d        # i.MX8MM Hexagon Geosystems GS05 Rev.D
+          - const: hgs,gs05           # i.MX8MM Hexagon Geosystems GS05
+          - const: fsl,imx8mm
+
       - description: Kontron BL i.MX8MM (N801X S) Board
         items:
           - const: kontron,imx8mm-bl

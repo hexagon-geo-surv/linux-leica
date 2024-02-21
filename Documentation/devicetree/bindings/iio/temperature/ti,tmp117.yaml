@@ -27,6 +27,10 @@ properties:
   vcc-supply:
     description: provide VCC power to the sensor.
 
+  label:
+    $ref: /schemas/types.yaml#/definitions/string
+    description: Unique name to identify which device this is.
+
 required:
   - compatible
   - reg

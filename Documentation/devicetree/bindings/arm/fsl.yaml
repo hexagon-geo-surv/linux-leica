@@ -1120,6 +1120,13 @@ properties:
           - const: engicam,icore-mx8mp             # i.MX8MP Engicam i.Core MX8M Plus SoM
           - const: fsl,imx8mp
 
+      - description: Hexagon Geosystems TS20
+        items:
+          - enum:
+              - hgs,ts20-rev-a        # i.MX8MP Hexagon Geosystems TS20 Rev.A
+          - const: hgs,ts20           # i.MX8MP Hexagon Geosystems TS20
+          - const: fsl,imx8mp
+
       - description: PHYTEC phyCORE-i.MX8MP SoM based boards
         items:
           - const: phytec,imx8mp-phyboard-pollux-rdk # phyBOARD-Pollux RDK

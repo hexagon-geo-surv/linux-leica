@@ -1947,6 +1947,7 @@
 				interrupt-parent = <&irqsteer_hdmi>;
 				interrupts = <12>;
 				power-domains = <&hdmi_blk_ctrl IMX8MP_HDMIBLK_PD_PVI>;
+				status = "disabled";
 
 				ports {
 					#address-cells = <1>;
@@ -1978,6 +1979,7 @@
 					 <&clk IMX8MP_CLK_HDMI_ROOT>;
 				clock-names = "pix", "axi", "disp_axi";
 				power-domains = <&hdmi_blk_ctrl IMX8MP_HDMIBLK_PD_LCDIF>;
+				status = "disabled";
 
 				port {
 					lcdif3_to_pvi: endpoint {

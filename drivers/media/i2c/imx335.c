@@ -246,13 +246,13 @@ static const int imx335_tpg_val[] = {
 };
 
 /* Sensor mode registers */
-static const struct cci_reg_sequence mode_2592x1940_regs[] = {
+static const struct cci_reg_sequence mode_2592x1944_regs[] = {
 	{IMX335_REG_MODE_SELECT, 0x01},
 	{IMX335_REG_MASTER_MODE, 0x00},
-	{IMX335_REG_WINMODE, 0x04},
-	{IMX335_REG_HTRIMMING_START, 384},
+	{IMX335_REG_WINMODE, 0x00},
+	{IMX335_REG_HTRIMMING_START, 48},
 	{IMX335_REG_HNUM, 2592},
-	{IMX335_REG_Y_OUT_SIZE, 1940},
+	{IMX335_REG_Y_OUT_SIZE, 1944},
 	{IMX335_REG_AREA3_ST_ADR_1, 176},
 	{IMX335_REG_AREA3_WIDTH_1, 3928},
 	{IMX335_REG_OPB_SIZE_V, 0},
@@ -403,15 +403,15 @@ static const u32 imx335_mbus_codes[] = {
 /* Supported sensor mode configurations */
 static const struct imx335_mode supported_mode = {
 	.width = 2592,
-	.height = 1940,
+	.height = 1944,
 	.hblank = 342,
-	.vblank = 2560,
-	.vblank_min = 2560,
+	.vblank = 2556,
+	.vblank_min = 2556,
 	.vblank_max = 133060,
 	.pclk = 396000000,
 	.reg_list = {
-		.num_of_regs = ARRAY_SIZE(mode_2592x1940_regs),
-		.regs = mode_2592x1940_regs,
+		.num_of_regs = ARRAY_SIZE(mode_2592x1944_regs),
+		.regs = mode_2592x1944_regs,
 	},
 };
 

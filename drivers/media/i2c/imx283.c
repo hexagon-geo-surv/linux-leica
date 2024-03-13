@@ -527,6 +527,32 @@ static const struct imx283_mode supported_modes_12bit[] = {
 		.vertical_ob = 16,
 		.crop = CENTERED_RECTANGLE(imx283_active_area, 5472, 450),
 	},
+	{
+		/* Custom Crop Mode 4096x450: readout mode 0 */
+		.mode = IMX283_MODE_0,
+		.bpp = 12,
+		.width = 4096,
+		.height = 450,
+		.min_hmax = 5914, /* 887 @ 480MHz/72MHz */
+		.min_vmax = 3793, /* Lines */
+
+		.veff = 3694,
+		.vst = 0,
+		.vct = 0,
+
+		.hbin_ratio = 1,
+		.vbin_ratio = 1,
+
+		/* 20.00 FPS */
+		.default_hmax = 6000, /* 900 @ 480MHz/72MHz */
+		.default_vmax = 4000,
+
+		.min_shr = 11,
+		.horizontal_ob = 96,
+		.vertical_ob = 16,
+		.crop = CENTERED_RECTANGLE(imx283_active_area, 4096, 450),
+	},
+
 };
 
 static const struct imx283_mode supported_modes_10bit[] = {

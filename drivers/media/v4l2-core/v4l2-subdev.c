@@ -2115,8 +2115,10 @@ int v4l2_subdev_enable_streams(struct v4l2_subdev *sd, u32 pad,
 	if (pad >= sd->entity.num_pads)
 		return -EINVAL;
 
-	if (!streams_mask)
-		return 0;
+	if (!streams_mask) {
+		dev_err(sd->dev, "no streams mask, returning ....\n");
+		//return 0;
+	}
 
 	/* Fallback on .s_stream() if .enable_streams() isn't available. */
 	if (!sd->ops->pad || !sd->ops->pad->enable_streams)

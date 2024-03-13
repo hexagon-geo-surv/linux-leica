@@ -638,6 +638,23 @@ static const struct imx283_mode supported_modes_12bit[] = {
 
 		.crop = CENTERED_RECTANGLE(imx283_recommended_area, 5472, 3648, 6),
 	},
+
+	/* Leica specific modes */
+
+	{
+		/* Custom Crop Mode 5472x450: readout mode 0 */
+		.scan = &imx283_scan_modes[IMX283_MODE_0],
+		.width = 5472,
+		.height = 450,
+		.min_hmax = 5914, /* 887 @ 480MHz/72MHz */
+		.min_vmax = 600, /* Lines */
+
+		/* 123.07 FPS */
+		.default_hmax = 6000, /* 900 @ 480MHz/72MHz */
+		.default_vmax = 650,
+
+		.crop = CENTERED_RECTANGLE(imx283_recommended_area, 5472, 450, 6),
+	},
 };
 
 static const struct imx283_mode supported_modes_10bit[] = {

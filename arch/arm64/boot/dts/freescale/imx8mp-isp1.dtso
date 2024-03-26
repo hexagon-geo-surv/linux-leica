@@ -12,25 +12,25 @@
 	status = "disabled";
 
 	ports {
-		port@0 {
+		port@1 {
 			/delete-node/ endpoint;
 		};
 	};
 };
 
-&isp_0 {
+&isp_1 {
 	status = "okay";
 
 	ports {
 		port@1 {
-			isp0_in: endpoint {
+			isp1_in: endpoint {
 				bus-type = <MEDIA_BUS_TYPE_PARALLEL>;
-				remote-endpoint = <&mipi_csi_0_out>;
+				remote-endpoint = <&mipi_csi_1_out>;
 			};
 		};
 	};
 };
 
-&mipi_csi_0_out {
-	remote-endpoint = <&isp0_in>;
+&mipi_csi_1_out {
+	remote-endpoint = <&isp1_in>;
 };

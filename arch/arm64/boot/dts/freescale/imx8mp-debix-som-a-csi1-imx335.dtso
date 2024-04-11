@@ -53,7 +53,7 @@
 			sensor_1_out: endpoint {
 				remote-endpoint = <&mipi_csi_1_in>;
 				clock-lanes = <0>;
-				data-lanes = <1 2 3 4>;
+				data-lanes = <1 2>;
 				link-frequencies = /bits/ 64 <594000000>;
 			};
 		};
@@ -68,7 +68,7 @@
 			mipi_csi_1_in: endpoint {
 				remote-endpoint = <&sensor_1_out>;
 				clock-lanes = <0>;
-				data-lanes = <1 2 3 4>;
+				data-lanes = <1 2>;
 			};
 		};
 	};

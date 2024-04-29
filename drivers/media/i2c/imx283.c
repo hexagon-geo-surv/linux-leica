@@ -442,6 +442,31 @@ static const struct imx283_mode supported_modes_12bit[] = {
 		.crop = CENTERED_RECTANGLE(imx283_active_area, 5472, 3648),
 	},
 	{
+		/* 20MPix 21.40 fps readout mode 0 */
+		.mode = IMX283_MODE_0,
+		.bpp = 12,
+		.width = 1920,
+		.height = 1080,
+		.min_hmax = 5914, /* 887 @ 480MHz/72MHz */
+		.min_vmax = 3793, /* Lines */
+
+		.veff = 3694,
+		.vst = 0,
+		.vct = 0,
+
+		.hbin_ratio = 1,
+		.vbin_ratio = 1,
+
+		/* 20.00 FPS */
+		.default_hmax = 6000, /* 900 @ 480MHz/72MHz */
+		.default_vmax = 4000,
+
+		.min_shr = 11,
+		.horizontal_ob = 96,
+		.vertical_ob = 16,
+		.crop = CENTERED_RECTANGLE(imx283_active_area, 1920, 1080),
+	},
+	{
 		/*
 		 * Readout mode 2 : 2/2 binned mode (2736x1824)
 		 */

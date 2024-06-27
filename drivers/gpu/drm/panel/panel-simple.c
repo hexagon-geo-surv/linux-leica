@@ -1744,12 +1744,12 @@ static const struct display_timing dataimage_lcx0500x54ggu01_timing = {
 	.pixelclock = { 23000000, 25000000, 27000000 },
 	.hactive = { 800, 800, 800 },
 	.hfront_porch = { 4, 8, 48 },
-	.hback_porch = { 4, 8, 48 },
-	.hsync_len = { 2, 4, 8 },
+	.hback_porch = { 2, 6, 46 },
+	.hsync_len = { 2, 2, 2 },
 	.vactive = { 480, 480, 480 },
-	.vfront_porch = { 6, 8, 12 },
-	.vback_porch = { 6, 8, 12 },
-	.vsync_len = { 2, 4, 8 },
+	.vfront_porch = { 4, 8, 12 },
+	.vback_porch = { 2, 6, 10 },
+	.vsync_len = { 2, 2, 2 },
 	.flags = DISPLAY_FLAGS_DE_HIGH,
 };
 

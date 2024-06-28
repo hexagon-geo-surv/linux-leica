@@ -1,13 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0-only
 menu "EEPROM support"
 
-config EEPROM_AT24
-	tristate "I2C EEPROMs / RAMs / ROMs from most vendors"
-	select MTD_EEPROM_AT24
-	help
-	  Deprecated config option to get read/write support to most I2C
-	  EEPROMs. Please use MTD_EEPROM_AT24 instead.
-
 config EEPROM_AT25
 	tristate "SPI EEPROMs (FRAMs) from most vendors"
 	depends on SPI && SYSFS

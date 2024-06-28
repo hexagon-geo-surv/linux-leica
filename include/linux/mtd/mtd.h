@@ -408,6 +408,11 @@ static inline struct mtd_info *mtd_get_master(struct mtd_info *mtd)
 	return mtd;
 }
 
+static inline bool mtd_is_master(struct mtd_info *mtd)
+{
+	return mtd->parent ? false : true;
+}
+
 static inline u64 mtd_get_master_ofs(struct mtd_info *mtd, u64 ofs)
 {
 	while (mtd->parent) {

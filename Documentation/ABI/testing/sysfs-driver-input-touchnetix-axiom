@@ -1,0 +1,74 @@
+What:		/sys/bus/i2c/devices/xxx/fw_major
+Date:		May 2025
+Contact:	linux-input@vger.kernel.org
+Description:    Reports the firmware major version provided by the touchscreen.
+
+		Access: Read
+
+		Valid values: Represented as string
+
+What:		/sys/bus/i2c/devices/xxx/fw_minor
+Date:		May 2025
+Contact:	linux-input@vger.kernel.org
+Description:    Reports the firmware minor version provided by the touchscreen.
+
+		Access: Read
+
+		Valid values: Represented as string
+
+What:		/sys/bus/i2c/devices/xxx/fw_rc
+Date:		May 2025
+Contact:	linux-input@vger.kernel.org
+Description:    Reports the firmware release canidate version provided by the touchscreen.
+
+		Access: Read
+
+		Valid values: Represented as string
+
+What:		/sys/bus/i2c/devices/xxx/fw_status
+Date:		May 2025
+Contact:	linux-input@vger.kernel.org
+Description:    Reports the firmware status provided by the touchscreen. It may
+		be either "release" or "engineering".
+
+		Access: Read
+
+		Valid values: Represented as string
+
+What:		/sys/bus/i2c/devices/xxx/fw_variant
+Date:		May 2025
+Contact:	linux-input@vger.kernel.org
+Description:    Reports the firmware variant provided by the touchscreen. It may
+		be either: "3d", "2d", "force" or "unknown".
+
+		Access: Read
+
+		Valid values: Represented as string
+
+What:		/sys/bus/i2c/devices/xxx/device_id
+Date:		May 2025
+Contact:	linux-input@vger.kernel.org
+Description:    Reports the touchscreen device id, for example: "54" for the AX54A.
+
+		Access: Read
+
+		Valid values: Represented as string
+
+What:		/sys/bus/i2c/devices/xxx/device_state
+Date:		May 2025
+Contact:	linux-input@vger.kernel.org
+Description:    Reports the touchscreen device current runtime state. The
+		following values are reported:
+
+		discovery: Device is in discovery mode.
+		tcp:  Device is in touch-control-protocol (tcp) mode. This is
+		      the normal working mode.
+		th2cfg-update: Device is in configuration update mode.
+		bootloader-pre: Device bootloader mode enter was triggered
+		bootloader: Device is in bootloader mode, used for firmware
+			    updates.
+		unknown: Device mode is unknown.
+
+		Access: Read
+
+		Valid values: Represented as string

@@ -103,11 +103,14 @@ static int ttyport_write_room(struct serdev_controller *ctrl)
 static int ttyport_open(struct serdev_controller *ctrl)
 {
 	struct serport *serport = serdev_controller_get_drvdata(ctrl);
+	struct tty_driver *tty_drv = serport->tty_drv;
 	struct tty_struct *tty;
 	struct ktermios ktermios;
+	dev_t dev;
 	int ret;
 
-	tty = tty_init_dev(serport->tty_drv, serport->tty_idx);
+	dev = MKDEV(tty_drv->major, tty_drv->minor_start + serport->tty_idx);
+	tty = tty_kopen_exclusive(dev);
 	if (IS_ERR(tty))
 		return PTR_ERR(tty);
 	serport->tty = tty;
@@ -144,7 +147,7 @@ err_close:
 	tty->ops->close(tty, NULL);
 err_unlock:
 	tty_unlock(tty);
-	tty_release_struct(tty, serport->tty_idx);
+	tty_kclose(tty);
 
 	return ret;
 }
@@ -161,7 +164,7 @@ static void ttyport_close(struct serdev_controller *ctrl)
 		tty->ops->close(tty, NULL);
 	tty_unlock(tty);
 
-	tty_release_struct(tty, serport->tty_idx);
+	tty_kclose(tty);
 }
 
 static unsigned int ttyport_set_baudrate(struct serdev_controller *ctrl, unsigned int speed)

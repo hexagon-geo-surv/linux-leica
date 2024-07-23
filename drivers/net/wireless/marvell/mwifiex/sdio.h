@@ -29,6 +29,9 @@
 #define SD8987_DEFAULT_FW_NAME "mrvl/sd8987_uapsta.bin"
 #define SD8997_DEFAULT_FW_NAME "mrvl/sdsd8997_combo_v4.bin"
 #define SD8997_SDIOUART_FW_NAME "mrvl/sdiouart8997_combo_v4.bin"
+#define IW612_DEFAULT_FW_NAME "nxp/sdsd_nw61x.bin"
+#define IW612_SDIOUART_FW_NAME "nxp/sd_w61x.bin"
+
 
 #define BLOCK_MODE	1
 #define BYTE_MODE	0

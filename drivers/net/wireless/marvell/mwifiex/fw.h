@@ -406,6 +406,7 @@ enum MWIFIEX_802_11_PRIVACY_FILTER {
 #define HostCmd_CMD_FW_DUMP_EVENT		      0x0125
 #define HostCmd_CMD_SDIO_SP_RX_AGGR_CFG               0x0223
 #define HostCmd_CMD_STA_CONFIGURE		      0x023f
+#define HostCmd_CMD_VDLL			      0x0240
 #define HostCmd_CMD_CHAN_REGION_CFG		      0x0242
 #define HostCmd_CMD_PACKET_AGGR_CTRL		      0x0251
 #define HostCmd_CMD_ADD_NEW_STATION		      0x025f
@@ -584,6 +585,7 @@ enum mwifiex_channel_flags {
 #define EVENT_FW_DUMP_INFO		0x00000073
 #define EVENT_TX_STATUS_REPORT		0x00000074
 #define EVENT_BT_COEX_WLAN_PARA_CHANGE	0X00000076
+#define EVENT_VDLL_IND			0x00000081
 
 #define EVENT_ID_MASK                   0xffff
 #define BSS_NUM_MASK                    0xf
@@ -2447,6 +2449,20 @@ struct hw_spec_max_conn {
 	struct mwifiex_ie_types_header header;
 	u8 max_p2p_conn;
 	u8 max_sta_conn;
+} __packed;
+
+#define VDLL_IND_TYPE_REQ		0 /* req host side download vdll block */
+#define VDLL_IND_TYPE_OFFSET		1 /* notify vdll start offset in firmware image */
+#define VDLL_IND_TYPE_ERR_SIG		2 /* notify vdll download error: signature error */
+#define VDLL_IND_TYPE_ERR_ID		3 /* notify vdll download error: ID error */
+#define VDLL_IND_TYPE_SEC_ERR_ID	4 /* notify vdll download error: Secure error */
+#define VDLL_IND_TYPE_INTF_RESET	5 /* req host side interface reset */
+
+struct mwifiex_vdll_ind {
+	__le16 type;
+	__le16 vdllId;
+	__le32 offset;
+	__le16 block_len;
 } __packed;
 
 #endif /* !_MWIFIEX_FW_H_ */

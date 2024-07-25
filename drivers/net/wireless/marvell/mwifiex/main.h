@@ -132,6 +132,7 @@ enum {
 #define MWIFIEX_TYPE_DATA				0
 #define MWIFIEX_TYPE_AGGR_DATA				10
 #define MWIFIEX_TYPE_EVENT				3
+#define MWIFIEX_TYPE_VDLL				4
 
 #define MAX_BITMAP_RATES_SIZE			18
 
@@ -1041,6 +1042,8 @@ struct mwifiex_adapter {
 	struct delayed_work devdump_work;
 
 	bool ignore_btcoex_events;
+
+	u32 vdll_len;
 };
 
 void mwifiex_process_tx_queue(struct mwifiex_adapter *adapter);
@@ -1250,6 +1253,7 @@ int mwifiex_cmd_802_11_bg_scan_config(struct mwifiex_private *priv,
 				      struct host_cmd_ds_command *cmd,
 				      void *data_buf);
 int mwifiex_stop_bg_scan(struct mwifiex_private *priv);
+int mwifiex_process_vdll_event(struct mwifiex_private *priv, struct sk_buff *event_skb);
 
 /*
  * This function checks if the queuing is RA based or not.

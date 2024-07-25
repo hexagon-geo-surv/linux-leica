@@ -317,6 +317,10 @@ int mwifiex_process_uap_event(struct mwifiex_private *priv)
 		memset(&priv->roc_cfg, 0x00, sizeof(struct mwifiex_roc_cfg));
 		break;
 
+	case EVENT_VDLL_IND:
+		mwifiex_dbg(adapter, EVENT, "event: handle VDLL event...\n");
+		mwifiex_process_vdll_event(priv, adapter->event_skb);
+		break;
 	default:
 		mwifiex_dbg(adapter, EVENT,
 			    "event: unknown event id: %#x\n", eventcause);

@@ -1688,3 +1688,89 @@ int mwifiex_ret_wakeup_reason(struct mwifiex_private *priv,
 
 	return 0;
 }
+
+static int mwifiex_download_vdll_block(struct mwifiex_adapter *adapter, u32 offset,
+				       u16 block_len)
+{
+	int ret;
+	struct host_cmd_ds_gen *cmd_hdr = NULL;
+	u16 msg_len = block_len + sizeof(*cmd_hdr);
+	struct sk_buff *skb;
+	u32 fw_offset;
+
+	block_len = min(block_len, adapter->vdll_len - offset);
+
+	if (offset > adapter->vdll_len)
+		return -EINVAL;
+
+	if (adapter->cmd_sent) {
+		mwifiex_dbg(adapter, MSG, "%s: adapter is busy\n", __func__);
+		return -EBUSY;
+	}
+
+	skb = dev_alloc_skb(msg_len + MWIFIEX_TYPE_LEN);
+	if (!skb) {
+		mwifiex_dbg(adapter, ERROR,
+				"SLEEP_CFM: dev_alloc_skb failed\n");
+		return -ENOMEM;
+	}
+
+	skb_put(skb, msg_len);
+
+	cmd_hdr = (void *)skb->data;
+	cmd_hdr->command = cpu_to_le16(HostCmd_CMD_VDLL);
+	cmd_hdr->seq_num = cpu_to_le16(0xFF00);
+	cmd_hdr->size = cpu_to_le16(msg_len);
+
+	fw_offset = adapter->firmware->size - adapter->vdll_len + offset;
+	memcpy(skb->data + sizeof(*cmd_hdr), adapter->firmware->data + fw_offset, block_len);
+
+	skb_push(skb, adapter->intf_hdr_len);
+
+	ret = adapter->if_ops.host_to_card(adapter, MWIFIEX_TYPE_VDLL, skb, NULL);
+	if (ret < 0)
+		mwifiex_dbg(adapter, MSG, "DNLD_VDLL: Host to Card Failed\n");
+
+	dev_kfree_skb_any(skb);
+
+	return ret;
+
+}
+
+int mwifiex_process_vdll_event(struct mwifiex_private *priv, struct sk_buff *event_skb)
+{
+	int status = 0;
+	struct mwifiex_vdll_ind *ind;
+	struct mwifiex_adapter *adapter = priv->adapter;
+
+	ind = (struct mwifiex_vdll_ind *)(event_skb->data + sizeof(u32));
+
+	switch (le16_to_cpu(ind->type)) {
+	case VDLL_IND_TYPE_REQ:
+		mwifiex_download_vdll_block(adapter, le32_to_cpu(ind->offset),
+					    le16_to_cpu(ind->block_len));
+		break;
+	case VDLL_IND_TYPE_OFFSET:
+		adapter->vdll_len = le32_to_cpu(ind->offset);
+		mwifiex_dbg(adapter, MSG, "VDLL_IND (OFFSET): offset=0x%x\n",
+			    adapter->vdll_len);
+		break;
+	case VDLL_IND_TYPE_ERR_SIG:
+		mwifiex_dbg(adapter, MSG, "VDLL_IND (SIG ERR).\n");
+		break;
+	case VDLL_IND_TYPE_ERR_ID:
+		mwifiex_dbg(adapter, MSG, "VDLL_IND (ID ERR).\n");
+		break;
+	case VDLL_IND_TYPE_SEC_ERR_ID:
+		mwifiex_dbg(adapter, MSG, "VDLL_IND (SECURE ERR).\n");
+		break;
+	case VDLL_IND_TYPE_INTF_RESET:
+		mwifiex_dbg(adapter, MSG, "VDLL_IND (INTF_RESET)\n");
+		break;
+	default:
+		mwifiex_dbg(adapter, MSG, "unknown vdll ind type=%d\n", ind->type);
+		break;
+	}
+
+	return status;
+}

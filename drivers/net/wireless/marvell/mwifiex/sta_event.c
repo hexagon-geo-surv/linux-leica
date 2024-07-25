@@ -1088,6 +1088,10 @@ int mwifiex_process_sta_event(struct mwifiex_private *priv)
 		mwifiex_dbg(adapter, EVENT, "event: firmware debug info\n");
 		mwifiex_fw_dump_info_event(priv, adapter->event_skb);
 		break;
+	case EVENT_VDLL_IND:
+		mwifiex_dbg(adapter, EVENT, "event: VDLL event\n");
+		mwifiex_process_vdll_event(priv, adapter->event_skb);
+		break;
 	/* Debugging event; not used, but let's not print an ERROR for it. */
 	case EVENT_UNKNOWN_DEBUG:
 		mwifiex_dbg(adapter, EVENT, "event: debug\n");

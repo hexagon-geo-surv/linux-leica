@@ -603,6 +603,19 @@ static struct usb_device_driver onboard_dev_usbdev_driver = {
 	.id_table = onboard_dev_id_table,
 };
 
+/************************** USB control **************************/
+
+int onboard_dev_port_feature(struct usb_device *udev, bool set,
+			     int feature, int port1)
+{
+	switch (feature) {
+	default:
+		return 0;
+	}
+}
+
+/************************** Kernel module ************************/
+
 static int __init onboard_dev_init(void)
 {
 	int ret;

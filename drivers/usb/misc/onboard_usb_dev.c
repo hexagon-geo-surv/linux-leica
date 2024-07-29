@@ -48,6 +48,8 @@ static DECLARE_WORK(attach_usb_driver_work, onboard_dev_attach_usb_driver);
 
 /************************** Platform driver **************************/
 
+#define MAX_DOWNSTREAM_PORTS	7
+
 struct usbdev_node {
 	struct usb_device *udev;
 	struct list_head list;
@@ -64,6 +66,7 @@ struct onboard_dev {
 	struct list_head udev_list;
 	struct mutex lock;
 	struct clk *clk;
+	struct regulator *ext_vbus_supplies[MAX_DOWNSTREAM_PORTS];
 };
 
 static int onboard_dev_get_regulators(struct onboard_dev *onboard_dev)
@@ -225,6 +228,53 @@ error:
 	return err;
 }
 
+static int onboard_dev_port_power(struct onboard_dev *onboard_dev, int port1,
+				  bool enable)
+{
+	struct regulator *vbus_supply;
+	unsigned int port = port1 - 1;
+
+	if (WARN_ON(port >= MAX_DOWNSTREAM_PORTS))
+		return -EINVAL;
+
+	vbus_supply = onboard_dev->ext_vbus_supplies[port];
+
+	/* External supplies are optional */
+	if (!vbus_supply)
+		return 0;
+
+	if (enable)
+		return regulator_enable(vbus_supply);
+
+	return regulator_disable(vbus_supply);
+}
+
+static int onboard_dev_add_ext_vbus_supplies(struct onboard_dev *onboard_dev)
+{
+	struct device *dev = onboard_dev->dev;
+	unsigned int i;
+
+	if (!onboard_dev->pdata->support_ext_vbus_supplies)
+		return 0;
+
+	for (i = 0; i < MAX_DOWNSTREAM_PORTS; i++) {
+		char supply_name[] = "portX-vbus";
+		struct regulator *reg;
+
+		sprintf(supply_name, "port%u-vbus", i + 1);
+		reg = devm_regulator_get_optional(dev, supply_name);
+		if (!IS_ERR(reg)) {
+			onboard_dev->ext_vbus_supplies[i] = reg;
+		} else {
+			if (PTR_ERR(reg) != -ENODEV)
+				return dev_err_probe(dev, PTR_ERR(reg),
+						     "failed to get %s-supply\n", supply_name);
+		}
+	}
+
+	return 0;
+}
+
 static void onboard_dev_remove_usbdev(struct onboard_dev *onboard_dev,
 				      const struct usb_device *udev)
 {
@@ -383,6 +433,10 @@ static int onboard_dev_probe(struct platform_device *pdev)
 		return dev_err_probe(dev, PTR_ERR(onboard_dev->reset_gpio),
 				     "failed to get reset GPIO\n");
 
+	err = onboard_dev_add_ext_vbus_supplies(onboard_dev);
+	if (err)
+		return err;
+
 	mutex_init(&onboard_dev->lock);
 	INIT_LIST_HEAD(&onboard_dev->udev_list);
 
@@ -495,6 +549,44 @@ static struct platform_driver onboard_dev_driver = {
 #define VENDOR_ID_VIA		0x2109
 #define VENDOR_ID_XMOS		0x20B1
 
+static int onboard_dev_port_feature(struct usb_device *udev, bool set,
+				    int feature, int port1)
+{
+	struct device *dev = &udev->dev;
+	struct onboard_dev *onboard_dev = dev_get_drvdata(dev);
+
+	/*
+	 * Check usb_hub_register_port_feature_hooks() if you want to extent
+	 * the list of handled features. At the moment only power is synced
+	 * after adding the hook.
+	 */
+	switch (feature) {
+	case USB_PORT_FEAT_POWER:
+		return onboard_dev_port_power(onboard_dev, port1, set);
+	default:
+		return 0;
+	}
+}
+
+static int
+onboard_dev_set_port_feature(struct usb_device *udev, int feature, int port1)
+{
+	return onboard_dev_port_feature(udev, true, feature, port1);
+}
+
+static int
+onboard_dev_clear_port_feature(struct usb_device *udev, int feature, int port1)
+{
+	return onboard_dev_port_feature(udev, false, feature, port1);
+}
+
+static void
+onboard_dev_register_hub_hooks(struct usb_device *udev)
+{
+	usb_hub_register_port_feature_hooks(udev, onboard_dev_set_port_feature,
+					    onboard_dev_clear_port_feature);
+}
+
 /*
  * Returns the onboard_dev platform device that is associated with the USB
  * device passed as parameter.
@@ -553,6 +645,9 @@ static int onboard_dev_usbdev_probe(struct usb_device *udev)
 		return PTR_ERR(onboard_dev);
 
 	dev_set_drvdata(dev, onboard_dev);
+
+	if (onboard_dev->pdata->is_hub)
+		onboard_dev_register_hub_hooks(udev);
 
 	err = onboard_dev_add_usbdev(onboard_dev, udev);
 	if (err)

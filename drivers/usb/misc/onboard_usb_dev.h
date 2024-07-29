@@ -14,6 +14,7 @@ struct onboard_dev_pdata {
 	unsigned int num_supplies;	/* number of supplies */
 	const char * const supply_names[MAX_SUPPLIES];
 	bool is_hub;
+	bool support_ext_vbus_supplies;
 };
 
 static const struct onboard_dev_pdata microchip_usb424_data = {
@@ -21,6 +22,7 @@ static const struct onboard_dev_pdata microchip_usb424_data = {
 	.num_supplies = 1,
 	.supply_names = { "vdd" },
 	.is_hub = true,
+	.support_ext_vbus_supplies = true,
 };
 
 static const struct onboard_dev_pdata microchip_usb5744_data = {

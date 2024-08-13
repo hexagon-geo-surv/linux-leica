@@ -66,7 +66,6 @@
 #define IMX283_REG_HTRIMMING		CCI_REG8(0x300b)
 #define   IMX283_MDVREV			BIT(0) /* VFLIP */
 #define   IMX283_HTRIMMING_EN		BIT(4)
-#define   IMX283_HOB_EN			BIT(5)
 
 #define IMX283_REG_VWINPOS		CCI_REG16_LE(0x300f)
 #define IMX283_REG_VWIDCUT		CCI_REG16_LE(0x3011)
@@ -697,16 +696,10 @@ struct imx283 {
 	struct v4l2_ctrl *hblank;
 	struct v4l2_ctrl *vflip;
 
-	struct v4l2_ctrl *hob_ctrl;
-	struct v4l2_ctrl *vob_ctrl;
-
 	unsigned long link_freq_bitmap;
 
 	u16 hmax;
 	u32 vmax;
-	/* htrim */
-	u32 htrim;
-
 };
 
 static inline struct imx283 *to_imx283(struct v4l2_subdev *sd)
@@ -962,28 +955,18 @@ static int imx283_set_ctrl(struct v4l2_ctrl *ctrl)
 		ret = cci_write(imx283->cci, IMX283_REG_DIGITAL_GAIN, ctrl->val, NULL);
 		break;
 
-	case V4L2_CID_IMX283_HOB:
-		dev_info(imx283->dev, "HOB set to : %d", ctrl->val);
-		break;
-
-	case V4L2_CID_IMX283_VOB:
-		dev_info(imx283->dev, "VOB set to : %d", ctrl->val);
-		break;
-
 	case V4L2_CID_VFLIP:
 		/*
 		 * VFLIP is managed by BIT(0) of IMX283_REG_HTRIMMING address, hence
 		 * both need to be set simultaneously.
 		 */
-		if (ctrl->val)
-			imx283->htrim = IMX283_HTRIMMING_EN | IMX283_MDVREV;
-		else
-			imx283->htrim = IMX283_HTRIMMING_EN;
-
-		if (imx283->hob_ctrl->val)
-			imx283->htrim = imx283->htrim | IMX283_HOB_EN;
-
-		cci_write(imx283->cci, IMX283_REG_HTRIMMING, imx283->htrim, &ret);
+		if (ctrl->val) {
+			cci_write(imx283->cci, IMX283_REG_HTRIMMING,
+				  IMX283_HTRIMMING_EN | IMX283_MDVREV, &ret);
+		} else {
+			cci_write(imx283->cci, IMX283_REG_HTRIMMING,
+				  IMX283_HTRIMMING_EN, &ret);
+		}
 		break;
 
 	case V4L2_CID_TEST_PATTERN:
@@ -1190,10 +1173,7 @@ static int imx283_start_streaming(struct imx283 *imx283,
 	s32 v_pos;
 	u32 write_v_size;
 	u32 y_out_size;
-	u32 ob_size_v = 0;
 	int ret = 0;
-	u32 htrim_start;
-	u32 htrim_end;
 
 	fmt = v4l2_subdev_state_get_format(state, 0);
 	get_mode_table(fmt->code, &mode_list, &num_modes);
@@ -1240,17 +1220,7 @@ static int imx283_start_streaming(struct imx283 *imx283,
 		mode->crop.height);
 
 	y_out_size = mode->crop.height / mode->vbin_ratio;
-	write_v_size = y_out_size;
-
-	/*
-	 * When VOB is enabled, increase the total output lines and set the
-	 * Optical Black region.
-	 */
-	if (imx283->vob_ctrl->val) {
-		write_v_size += mode->vertical_ob;
-		ob_size_v = mode->vertical_ob;
-	}
-
+	write_v_size = y_out_size + mode->vertical_ob;
 	/*
 	 * cropping start position = (VWINPOS – Vst) × 2
 	 * cropping width = Veff – (VWIDCUT – Vct) × 2
@@ -1262,27 +1232,15 @@ static int imx283_start_streaming(struct imx283 *imx283,
 
 	cci_write(imx283->cci, IMX283_REG_Y_OUT_SIZE, y_out_size, &ret);
 	cci_write(imx283->cci, IMX283_REG_WRITE_VSIZE, write_v_size, &ret);
-	cci_write(imx283->cci, IMX283_REG_OB_SIZE_V, ob_size_v, &ret);
 	cci_write(imx283->cci, IMX283_REG_VWIDCUT, v_widcut, &ret);
 	cci_write(imx283->cci, IMX283_REG_VWINPOS, v_pos, &ret);
 
-
-	/* minimum htrim start is 120 */
-	htrim_start = mode->crop.left < 120 ? 120 : mode->crop.left;
-
-	if (imx283->hob_ctrl->val)
-		htrim_end = mode->crop.left + mode->crop.width - (mode->horizontal_ob * mode->hbin_ratio);
-	else
-		htrim_end = mode->crop.left + mode->crop.width;
+	cci_write(imx283->cci, IMX283_REG_OB_SIZE_V, mode->vertical_ob, &ret);
 
 	/* TODO: Validate mode->crop is fully contained within imx283_native_area */
 	cci_write(imx283->cci, IMX283_REG_HTRIMMING_START, mode->crop.left, &ret);
-	cci_write(imx283->cci, IMX283_REG_HTRIMMING_END, htrim_end, &ret);
-
-	dev_info(imx283->dev, "HTRIMMING_START:  %d\n", htrim_start);
-	dev_info(imx283->dev, "HTRIMMING_END:    %d\n", htrim_end);
-	dev_info(imx283->dev, "Y_OUT_SIZE:       %d\n", y_out_size);
-	dev_info(imx283->dev, "WRITE_V_SIZE:     %d\n", write_v_size);
+	cci_write(imx283->cci, IMX283_REG_HTRIMMING_END,
+		  mode->crop.left + mode->crop.width, &ret);
 
 	/* Disable embedded data */
 	cci_write(imx283->cci, IMX283_REG_EBD_X_OUT_SIZE, 0, &ret);
@@ -1497,7 +1455,7 @@ static int imx283_init_controls(struct imx283 *imx283)
 	int ret;
 
 	ctrl_hdlr = &imx283->ctrl_handler;
-	ret = v4l2_ctrl_handler_init(ctrl_hdlr, 18);
+	ret = v4l2_ctrl_handler_init(ctrl_hdlr, 16);
 	if (ret)
 		return ret;
 
@@ -1553,12 +1511,6 @@ static int imx283_init_controls(struct imx283 *imx283)
 					  0, 1, 1, 0);
 	if (imx283->vflip)
 		imx283->vflip->flags |= V4L2_CTRL_FLAG_MODIFY_LAYOUT;
-
-	imx283->hob_ctrl = v4l2_ctrl_new_std(ctrl_hdlr, &imx283_ctrl_ops, V4L2_CID_IMX283_HOB,
-					  0, 1, 1, 0);
-
-	imx283->vob_ctrl = v4l2_ctrl_new_std(ctrl_hdlr, &imx283_ctrl_ops, V4L2_CID_IMX283_VOB,
-					  0, 1, 1, 0);
 
 	v4l2_ctrl_new_std_menu_items(ctrl_hdlr, &imx283_ctrl_ops,
 				     V4L2_CID_TEST_PATTERN,

@@ -65,6 +65,7 @@
 #define IMX283_REG_HTRIMMING		CCI_REG8(0x300b)
 #define   IMX283_MDVREV			BIT(0) /* VFLIP */
 #define   IMX283_HTRIMMING_EN		BIT(4)
+#define   IMX283_HOB_EN			BIT(5)
 
 #define IMX283_REG_VWINPOS		CCI_REG16_LE(0x300f)
 #define IMX283_REG_VWIDCUT		CCI_REG16_LE(0x3011)
@@ -305,6 +306,7 @@ static const struct imx283_input_frequency imx283_frequencies[] = {
 
 enum imx283_modes {
 	IMX283_MODE_0,
+	IMX283_MODE_0_OB,
 	IMX283_MODE_1,
 	IMX283_MODE_1A,
 	IMX283_MODE_1S,
@@ -326,6 +328,7 @@ struct imx283_readout_mode {
 static const struct imx283_readout_mode imx283_readout_modes[] = {
 	/* All pixel scan modes */
 	[IMX283_MODE_0] = { 0x04, 0x03, 0x10, 0x00 }, /* 12 bit */
+	[IMX283_MODE_0_OB] = { 0x04, 0x03, 0x10, 0x00 }, /* 12 bit */
 	[IMX283_MODE_1] = { 0x04, 0x01, 0x00, 0x00 }, /* 10 bit */
 	[IMX283_MODE_1A] = { 0x04, 0x01, 0x20, 0x50 }, /* 10 bit */
 	[IMX283_MODE_1S] = { 0x04, 0x41, 0x20, 0x50 }, /* 10 bit */
@@ -440,6 +443,36 @@ static const struct imx283_mode supported_modes_12bit[] = {
 		.horizontal_ob = 96,
 		.vertical_ob = 16,
 		.crop = CENTERED_RECTANGLE(imx283_active_area, 5472, 3648),
+	},
+	{
+		/* 20MPix 21.40 fps readout mode 0 with optical blacks enabled */
+		.mode = IMX283_MODE_0_OB,
+		.bpp = 12,
+		.width = 5472 + 96, /* width + Horizontal optical black */
+		.height = 3648 + 16, /* height + Vertical optical black */
+		.min_hmax = 5914, /* 887 @ 480MHz/72MHz */
+		.min_vmax = 3793, /* Lines */
+
+		.veff = 3694,
+		.vst = 0,
+		.vct = 0,
+
+		.hbin_ratio = 1,
+		.vbin_ratio = 1,
+
+		/* 20.00 FPS */
+		.default_hmax = 6000, /* 900 @ 480MHz/72MHz */
+		.default_vmax = 4000,
+
+		.min_shr = 11,
+		.horizontal_ob = 96,
+		.vertical_ob = 16,
+		.crop = {
+			.top = 40,
+			.left = 108,
+			.width = 5472 + 96,
+			.height = 3648 + 16,
+		},
 	},
 	{
 		/* 20MPix 21.40 fps readout mode 0 */
@@ -946,17 +979,20 @@ static int imx283_set_ctrl(struct v4l2_ctrl *ctrl)
 		break;
 
 	case V4L2_CID_VFLIP:
+		u32 htrim = IMX283_HTRIMMING_EN;
+
 		/*
 		 * VFLIP is managed by BIT(0) of IMX283_REG_HTRIMMING address, hence
 		 * both need to be set simultaneously.
 		 */
-		if (ctrl->val) {
-			cci_write(imx283->cci, IMX283_REG_HTRIMMING,
-				  IMX283_HTRIMMING_EN | IMX283_MDVREV, &ret);
-		} else {
-			cci_write(imx283->cci, IMX283_REG_HTRIMMING,
-				  IMX283_HTRIMMING_EN, &ret);
-		}
+		if (ctrl->val)
+			htrim = IMX283_HTRIMMING_EN | IMX283_MDVREV;
+
+		if (mode->mode == IMX283_MODE_0_OB)
+			htrim |= IMX283_HOB_EN;
+
+		cci_write(imx283->cci, IMX283_REG_HTRIMMING, htrim, &ret);
+
 		break;
 
 	case V4L2_CID_TEST_PATTERN:
@@ -1163,6 +1199,8 @@ static int imx283_start_streaming(struct imx283 *imx283,
 	s32 v_pos;
 	u32 write_v_size;
 	u32 y_out_size;
+	u32 htrim_end;
+	u32 ob_size_v = 0;
 	int ret = 0;
 
 	fmt = v4l2_subdev_state_get_format(state, 0);
@@ -1210,6 +1248,12 @@ static int imx283_start_streaming(struct imx283 *imx283,
 		mode->crop.height);
 
 	y_out_size = mode->crop.height / mode->vbin_ratio;
+
+	if (mode->mode == IMX283_MODE_0_OB) {
+		y_out_size -= mode->vertical_ob;
+		ob_size_v = mode->vertical_ob;
+	}
+
 	write_v_size = y_out_size + mode->vertical_ob;
 	/*
 	 * cropping start position = (VWINPOS – Vst) × 2
@@ -1225,12 +1269,16 @@ static int imx283_start_streaming(struct imx283 *imx283,
 	cci_write(imx283->cci, IMX283_REG_VWIDCUT, v_widcut, &ret);
 	cci_write(imx283->cci, IMX283_REG_VWINPOS, v_pos, &ret);
 
-	cci_write(imx283->cci, IMX283_REG_OB_SIZE_V, mode->vertical_ob, &ret);
+	cci_write(imx283->cci, IMX283_REG_OB_SIZE_V, ob_size_v, &ret);
+
+	htrim_end = mode->crop.left + mode->crop.width;
+
+	if (mode->mode == IMX283_MODE_0_OB)
+		htrim_end -= mode->horizontal_ob * mode->hbin_ratio;
 
 	/* TODO: Validate mode->crop is fully contained within imx283_native_area */
 	cci_write(imx283->cci, IMX283_REG_HTRIMMING_START, mode->crop.left, &ret);
-	cci_write(imx283->cci, IMX283_REG_HTRIMMING_END,
-		  mode->crop.left + mode->crop.width, &ret);
+	cci_write(imx283->cci, IMX283_REG_HTRIMMING_END, htrim_end, &ret);
 
 	/* Disable embedded data */
 	cci_write(imx283->cci, IMX283_REG_EBD_X_OUT_SIZE, 0, &ret);

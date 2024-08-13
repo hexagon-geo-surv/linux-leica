@@ -811,8 +811,6 @@ const char *v4l2_ctrl_get_name(u32 id)
 	case V4L2_CID_GAIN:			return "Gain";
 	case V4L2_CID_HFLIP:			return "Horizontal Flip";
 	case V4L2_CID_VFLIP:			return "Vertical Flip";
-	case V4L2_CID_IMX283_HOB:		return "Enable HOB";
-	case V4L2_CID_IMX283_VOB:		return "Enable VOB";
 	case V4L2_CID_POWER_LINE_FREQUENCY:	return "Power Line Frequency";
 	case V4L2_CID_HUE_AUTO:			return "Hue, Automatic";
 	case V4L2_CID_WHITE_BALANCE_TEMPERATURE: return "White Balance Temperature";
@@ -1263,8 +1261,6 @@ void v4l2_ctrl_fill(u32 id, const char **name, enum v4l2_ctrl_type *type,
 	case V4L2_CID_AUTOGAIN:
 	case V4L2_CID_HFLIP:
 	case V4L2_CID_VFLIP:
-	case V4L2_CID_IMX283_HOB:
-	case V4L2_CID_IMX283_VOB:
 	case V4L2_CID_HUE_AUTO:
 	case V4L2_CID_CHROMA_AGC:
 	case V4L2_CID_COLOR_KILLER:

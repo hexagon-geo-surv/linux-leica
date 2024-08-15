@@ -31,8 +31,7 @@ int mwifiex_handle_rx_packet(struct mwifiex_adapter *adapter,
 
 	local_rx_pd = (struct rxpd *) (skb->data);
 	/* Get the BSS number from rxpd, get corresponding priv */
-	priv = mwifiex_get_priv_by_id(adapter, local_rx_pd->bss_num &
-				      BSS_NUM_MASK, local_rx_pd->bss_type);
+	priv = mwifiex_get_priv_by_id(adapter, local_rx_pd->bss_num & BSS_NUM_MASK);
 	if (!priv)
 		priv = mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_ANY);
 
@@ -165,8 +164,7 @@ static int mwifiex_host_to_card(struct mwifiex_adapter *adapter,
 	struct mwifiex_txinfo *tx_info;
 
 	tx_info = MWIFIEX_SKB_TXCB(skb);
-	priv = mwifiex_get_priv_by_id(adapter, tx_info->bss_num,
-				      tx_info->bss_type);
+	priv = mwifiex_get_priv_by_id(adapter, tx_info->bss_num);
 	if (!priv) {
 		mwifiex_dbg(adapter, ERROR,
 			    "data: priv not found. Drop TX packet\n");
@@ -281,8 +279,7 @@ int mwifiex_write_data_complete(struct mwifiex_adapter *adapter,
 		return 0;
 
 	tx_info = MWIFIEX_SKB_TXCB(skb);
-	priv = mwifiex_get_priv_by_id(adapter, tx_info->bss_num,
-				      tx_info->bss_type);
+	priv = mwifiex_get_priv_by_id(adapter, tx_info->bss_num);
 	if (!priv)
 		goto done;
 

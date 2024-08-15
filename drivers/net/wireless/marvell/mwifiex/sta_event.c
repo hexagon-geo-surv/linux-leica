@@ -456,8 +456,7 @@ void mwifiex_process_multi_chan_event(struct mwifiex_private *priv,
 		for (i = 0; i < intf_num; i++) {
 			bss_type = grp_info->bss_type_numlist[i] >> 4;
 			bss_num = grp_info->bss_type_numlist[i] & BSS_NUM_MASK;
-			intf_priv = mwifiex_get_priv_by_id(adapter, bss_num,
-							   bss_type);
+			intf_priv = mwifiex_get_priv_by_id(adapter, bss_num);
 			if (!intf_priv) {
 				mwifiex_dbg(adapter, ERROR,
 					    "Invalid bss_type bss_num\t"

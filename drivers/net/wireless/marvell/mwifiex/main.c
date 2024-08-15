@@ -85,6 +85,7 @@ static int mwifiex_register(void *card, struct device *dev,
 		if (!adapter->priv[i])
 			goto error;
 
+		adapter->priv[i]->bss_num = i;
 		adapter->priv[i]->adapter = adapter;
 		adapter->priv_num++;
 	}

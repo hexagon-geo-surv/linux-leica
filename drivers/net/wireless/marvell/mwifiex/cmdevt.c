@@ -496,8 +496,7 @@ int mwifiex_process_event(struct mwifiex_adapter *adapter)
 							(u16) eventcause;
 
 	/* Get BSS number and corresponding priv */
-	priv = mwifiex_get_priv_by_id(adapter, EVENT_GET_BSS_NUM(eventcause),
-				      EVENT_GET_BSS_TYPE(eventcause));
+	priv = mwifiex_get_priv_by_id(adapter, EVENT_GET_BSS_NUM(eventcause));
 	if (!priv)
 		priv = mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_ANY);
 
@@ -847,8 +846,7 @@ int mwifiex_process_cmdresp(struct mwifiex_adapter *adapter)
 
 	/* Get BSS number and corresponding priv */
 	priv = mwifiex_get_priv_by_id(adapter,
-			     HostCmd_GET_BSS_NO(le16_to_cpu(resp->seq_num)),
-			     HostCmd_GET_BSS_TYPE(le16_to_cpu(resp->seq_num)));
+			     HostCmd_GET_BSS_NO(le16_to_cpu(resp->seq_num)));
 	if (!priv)
 		priv = mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_ANY);
 	/* Clear RET_BIT from HostCmd */

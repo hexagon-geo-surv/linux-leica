@@ -952,8 +952,6 @@ mwifiex_init_new_priv_params(struct mwifiex_private *priv,
 		return -EOPNOTSUPP;
 	}
 
-	priv->bss_num = mwifiex_get_unused_bss_num(adapter, priv->bss_type);
-
 	spin_lock_irqsave(&adapter->main_proc_lock, flags);
 	adapter->main_locked = false;
 	spin_unlock_irqrestore(&adapter->main_proc_lock, flags);
@@ -2999,8 +2997,7 @@ struct wireless_dev *mwifiex_add_virtual_intf(struct wiphy *wiphy,
 			return ERR_PTR(-EINVAL);
 		}
 
-		priv = mwifiex_get_unused_priv_by_bss_type(
-						adapter, MWIFIEX_BSS_TYPE_STA);
+		priv = mwifiex_get_unused_priv(adapter);
 		if (!priv) {
 			mwifiex_dbg(adapter, ERROR,
 				    "could not get free private struct\n");
@@ -3029,8 +3026,7 @@ struct wireless_dev *mwifiex_add_virtual_intf(struct wiphy *wiphy,
 			return ERR_PTR(-EINVAL);
 		}
 
-		priv = mwifiex_get_unused_priv_by_bss_type(
-						adapter, MWIFIEX_BSS_TYPE_UAP);
+		priv = mwifiex_get_unused_priv(adapter);
 		if (!priv) {
 			mwifiex_dbg(adapter, ERROR,
 				    "could not get free private struct\n");
@@ -3056,8 +3052,7 @@ struct wireless_dev *mwifiex_add_virtual_intf(struct wiphy *wiphy,
 			return ERR_PTR(-EINVAL);
 		}
 
-		priv = mwifiex_get_unused_priv_by_bss_type(
-						adapter, MWIFIEX_BSS_TYPE_P2P);
+		priv = mwifiex_get_unused_priv(adapter);
 		if (!priv) {
 			mwifiex_dbg(adapter, ERROR,
 				    "could not get free private struct\n");

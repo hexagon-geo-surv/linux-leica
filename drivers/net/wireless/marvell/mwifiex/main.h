@@ -856,8 +856,6 @@ struct mwifiex_if_ops {
 struct mwifiex_adapter {
 	u8 iface_type;
 	unsigned int debug_mask;
-	struct mwifiex_iface_comb iface_limit;
-	struct mwifiex_iface_comb curr_iface_comb;
 	struct mwifiex_private *priv[MWIFIEX_MAX_BSS_NUM];
 	u8 priv_num;
 	const struct firmware *firmware;

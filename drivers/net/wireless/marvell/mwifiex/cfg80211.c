@@ -1014,117 +1014,6 @@ mwifiex_init_new_priv_params(struct mwifiex_private *priv,
 	return 0;
 }
 
-static bool
-is_vif_type_change_allowed(struct mwifiex_adapter *adapter,
-			   enum nl80211_iftype old_iftype,
-			   enum nl80211_iftype new_iftype)
-{
-	switch (old_iftype) {
-	case NL80211_IFTYPE_ADHOC:
-		switch (new_iftype) {
-		case NL80211_IFTYPE_STATION:
-			return true;
-		case NL80211_IFTYPE_P2P_CLIENT:
-		case NL80211_IFTYPE_P2P_GO:
-			return adapter->curr_iface_comb.p2p_intf !=
-			       adapter->iface_limit.p2p_intf;
-		case NL80211_IFTYPE_AP:
-			return adapter->curr_iface_comb.uap_intf !=
-			       adapter->iface_limit.uap_intf;
-		default:
-			return false;
-		}
-
-	case NL80211_IFTYPE_STATION:
-		switch (new_iftype) {
-		case NL80211_IFTYPE_ADHOC:
-			return true;
-		case NL80211_IFTYPE_P2P_CLIENT:
-		case NL80211_IFTYPE_P2P_GO:
-			return adapter->curr_iface_comb.p2p_intf !=
-			       adapter->iface_limit.p2p_intf;
-		case NL80211_IFTYPE_AP:
-			return adapter->curr_iface_comb.uap_intf !=
-			       adapter->iface_limit.uap_intf;
-		default:
-			return false;
-		}
-
-	case NL80211_IFTYPE_AP:
-		switch (new_iftype) {
-		case NL80211_IFTYPE_ADHOC:
-		case NL80211_IFTYPE_STATION:
-			return adapter->curr_iface_comb.sta_intf !=
-			       adapter->iface_limit.sta_intf;
-		case NL80211_IFTYPE_P2P_CLIENT:
-		case NL80211_IFTYPE_P2P_GO:
-			return adapter->curr_iface_comb.p2p_intf !=
-			       adapter->iface_limit.p2p_intf;
-		default:
-			return false;
-		}
-
-	case NL80211_IFTYPE_P2P_CLIENT:
-		switch (new_iftype) {
-		case NL80211_IFTYPE_ADHOC:
-		case NL80211_IFTYPE_STATION:
-			return true;
-		case NL80211_IFTYPE_P2P_GO:
-			return true;
-		case NL80211_IFTYPE_AP:
-			return adapter->curr_iface_comb.uap_intf !=
-			       adapter->iface_limit.uap_intf;
-		default:
-			return false;
-		}
-
-	case NL80211_IFTYPE_P2P_GO:
-		switch (new_iftype) {
-		case NL80211_IFTYPE_ADHOC:
-		case NL80211_IFTYPE_STATION:
-			return true;
-		case NL80211_IFTYPE_P2P_CLIENT:
-			return true;
-		case NL80211_IFTYPE_AP:
-			return adapter->curr_iface_comb.uap_intf !=
-			       adapter->iface_limit.uap_intf;
-		default:
-			return false;
-		}
-
-	default:
-		break;
-	}
-
-	return false;
-}
-
-static void
-update_vif_type_counter(struct mwifiex_adapter *adapter,
-			enum nl80211_iftype iftype,
-			int change)
-{
-	switch (iftype) {
-	case NL80211_IFTYPE_UNSPECIFIED:
-	case NL80211_IFTYPE_ADHOC:
-	case NL80211_IFTYPE_STATION:
-		adapter->curr_iface_comb.sta_intf += change;
-		break;
-	case NL80211_IFTYPE_AP:
-		adapter->curr_iface_comb.uap_intf += change;
-		break;
-	case NL80211_IFTYPE_P2P_CLIENT:
-	case NL80211_IFTYPE_P2P_GO:
-		adapter->curr_iface_comb.p2p_intf += change;
-		break;
-	default:
-		mwifiex_dbg(adapter, ERROR,
-			    "%s: Unsupported iftype passed: %d\n",
-			    __func__, iftype);
-		break;
-	}
-}
-
 static int
 mwifiex_change_vif_to_p2p(struct net_device *dev,
 			  enum nl80211_iftype curr_iftype,
@@ -1149,8 +1038,6 @@ mwifiex_change_vif_to_p2p(struct net_device *dev,
 	if (mwifiex_init_new_priv_params(priv, dev, type))
 		return -1;
 
-	update_vif_type_counter(adapter, curr_iftype, -1);
-	update_vif_type_counter(adapter, type, +1);
 	dev->ieee80211_ptr->iftype = type;
 
 	switch (type) {
@@ -1207,8 +1094,6 @@ mwifiex_change_vif_to_sta_adhoc(struct net_device *dev,
 	if (mwifiex_init_new_priv_params(priv, dev, type))
 		return -1;
 
-	update_vif_type_counter(adapter, curr_iftype, -1);
-	update_vif_type_counter(adapter, type, +1);
 	dev->ieee80211_ptr->iftype = type;
 
 	if (mwifiex_send_cmd(priv, HostCmd_CMD_SET_BSS_MODE,
@@ -1244,8 +1129,6 @@ mwifiex_change_vif_to_ap(struct net_device *dev,
 	if (mwifiex_init_new_priv_params(priv, dev, type))
 		return -1;
 
-	update_vif_type_counter(adapter, curr_iftype, -1);
-	update_vif_type_counter(adapter, type, +1);
 	dev->ieee80211_ptr->iftype = type;
 
 	if (mwifiex_send_cmd(priv, HostCmd_CMD_SET_BSS_MODE,
@@ -1286,13 +1169,6 @@ mwifiex_cfg80211_change_virtual_intf(struct wiphy *wiphy,
 			    "%s: interface already is of type %d\n",
 			    dev->name, curr_iftype);
 		return 0;
-	}
-
-	if (!is_vif_type_change_allowed(priv->adapter, curr_iftype, type)) {
-		mwifiex_dbg(priv->adapter, ERROR,
-			    "%s: change from type %d to %d is not allowed\n",
-			    dev->name, curr_iftype, type);
-		return -EOPNOTSUPP;
 	}
 
 	switch (curr_iftype) {
@@ -3094,13 +2970,6 @@ struct wireless_dev *mwifiex_add_virtual_intf(struct wiphy *wiphy,
 	case NL80211_IFTYPE_UNSPECIFIED:
 	case NL80211_IFTYPE_STATION:
 	case NL80211_IFTYPE_ADHOC:
-		if (adapter->curr_iface_comb.sta_intf ==
-		    adapter->iface_limit.sta_intf) {
-			mwifiex_dbg(adapter, ERROR,
-				    "cannot create multiple sta/adhoc ifaces\n");
-			return ERR_PTR(-EINVAL);
-		}
-
 		priv = mwifiex_get_unused_priv_by_bss_type(
 						adapter, MWIFIEX_BSS_TYPE_STA);
 		if (!priv) {
@@ -3121,13 +2990,6 @@ struct wireless_dev *mwifiex_add_virtual_intf(struct wiphy *wiphy,
 
 		break;
 	case NL80211_IFTYPE_AP:
-		if (adapter->curr_iface_comb.uap_intf ==
-		    adapter->iface_limit.uap_intf) {
-			mwifiex_dbg(adapter, ERROR,
-				    "cannot create multiple AP ifaces\n");
-			return ERR_PTR(-EINVAL);
-		}
-
 		priv = mwifiex_get_unused_priv_by_bss_type(
 						adapter, MWIFIEX_BSS_TYPE_UAP);
 		if (!priv) {
@@ -3144,13 +3006,6 @@ struct wireless_dev *mwifiex_add_virtual_intf(struct wiphy *wiphy,
 
 		break;
 	case NL80211_IFTYPE_P2P_CLIENT:
-		if (adapter->curr_iface_comb.p2p_intf ==
-		    adapter->iface_limit.p2p_intf) {
-			mwifiex_dbg(adapter, ERROR,
-				    "cannot create multiple P2P ifaces\n");
-			return ERR_PTR(-EINVAL);
-		}
-
 		priv = mwifiex_get_unused_priv_by_bss_type(
 						adapter, MWIFIEX_BSS_TYPE_P2P);
 		if (!priv) {
@@ -3285,8 +3140,6 @@ struct wireless_dev *mwifiex_add_virtual_intf(struct wiphy *wiphy,
 	mwifiex_dev_debugfs_init(priv);
 #endif
 
-	update_vif_type_counter(adapter, type, +1);
-
 	return &priv->wdev;
 
 err_reg_netdev:
@@ -3348,8 +3201,6 @@ int mwifiex_del_virtual_intf(struct wiphy *wiphy, struct wireless_dev *wdev)
 	}
 	/* Clear the priv in adapter */
 	priv->netdev = NULL;
-
-	update_vif_type_counter(adapter, priv->bss_mode, -1);
 
 	priv->bss_mode = NL80211_IFTYPE_UNSPECIFIED;
 

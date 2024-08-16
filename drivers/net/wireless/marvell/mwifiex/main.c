@@ -971,34 +971,16 @@ mwifiex_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 }
 
 int mwifiex_set_mac_address(struct mwifiex_private *priv,
-			    struct net_device *dev, bool external,
-			    u8 *new_mac)
+			    struct net_device *dev, u8 *new_mac)
 {
 	int ret;
-	u64 mac_addr, old_mac_addr;
+	u64 old_mac_addr;
+
+	netdev_info(dev, "%s: old: %pM new: %pM\n", __func__, priv->curr_addr, new_mac);
 
 	old_mac_addr = ether_addr_to_u64(priv->curr_addr);
 
-	if (external) {
-		mac_addr = ether_addr_to_u64(new_mac);
-	} else {
-		/* Internal mac address change */
-		if (priv->bss_type == MWIFIEX_BSS_TYPE_ANY)
-			return -EOPNOTSUPP;
-
-		mac_addr = old_mac_addr;
-
-		if (priv->bss_type == MWIFIEX_BSS_TYPE_P2P) {
-			mac_addr |= BIT_ULL(MWIFIEX_MAC_LOCAL_ADMIN_BIT);
-			mac_addr += priv->bss_num;
-		} else if (priv->adapter->priv[0] != priv) {
-			/* Set mac address based on bss_type/bss_num */
-			mac_addr ^= BIT_ULL(priv->bss_type + 8);
-			mac_addr += priv->bss_num;
-		}
-	}
-
-	u64_to_ether_addr(mac_addr, priv->curr_addr);
+	ether_addr_copy(priv->curr_addr, new_mac);
 
 	/* Send request to firmware */
 	ret = mwifiex_send_cmd(priv, HostCmd_CMD_802_11_MAC_ADDRESS,
@@ -1015,6 +997,26 @@ int mwifiex_set_mac_address(struct mwifiex_private *priv,
 	return 0;
 }
 
+int mwifiex_set_default_mac_address(struct mwifiex_private *priv,
+				    struct net_device *dev)
+{
+	int priv_num;
+	u8 mac[ETH_ALEN];
+
+	ether_addr_copy(mac, priv->adapter->perm_addr);
+
+	for (priv_num = 0; priv_num < priv->adapter->priv_num; priv_num++)
+		if (priv == priv->adapter->priv[priv_num])
+			break;
+
+	if (priv_num) {
+		eth_addr_add(mac, priv_num);
+		mac[0] |= 0x2;
+	}
+
+	return mwifiex_set_mac_address(priv, dev, mac);
+}
+
 /* CFG802.11 network device handler for setting MAC address.
  */
 static int
@@ -1023,7 +1025,7 @@ mwifiex_ndo_set_mac_address(struct net_device *dev, void *addr)
 	struct mwifiex_private *priv = mwifiex_netdev_get_priv(dev);
 	struct sockaddr *hw_addr = addr;
 
-	return mwifiex_set_mac_address(priv, dev, true, hw_addr->sa_data);
+	return mwifiex_set_mac_address(priv, dev, hw_addr->sa_data);
 }
 
 /*
@@ -1364,10 +1366,6 @@ void mwifiex_init_priv_params(struct mwifiex_private *priv,
 	priv->assocresp_idx = MWIFIEX_AUTO_IDX_MASK;
 	priv->gen_idx = MWIFIEX_AUTO_IDX_MASK;
 	priv->num_tx_timeout = 0;
-	if (is_valid_ether_addr(dev->dev_addr))
-		ether_addr_copy(priv->curr_addr, dev->dev_addr);
-	else
-		ether_addr_copy(priv->curr_addr, priv->adapter->perm_addr);
 
 	if (GET_BSS_ROLE(priv) == MWIFIEX_BSS_ROLE_STA ||
 	    GET_BSS_ROLE(priv) == MWIFIEX_BSS_ROLE_UAP) {

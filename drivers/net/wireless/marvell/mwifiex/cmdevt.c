@@ -911,10 +911,15 @@ void mwifiex_process_assoc_resp(struct mwifiex_adapter *adapter)
 	struct cfg80211_rx_assoc_resp_data assoc_resp = {
 		.uapsd_queues = -1,
 	};
-	struct mwifiex_private *priv =
-		mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_STA);
+	struct mwifiex_private *priv;
+	int i;
 
-	if (priv->assoc_rsp_size) {
+	for (i = 0; i < adapter->priv_num; i++) {
+		priv = adapter->priv[i];
+
+		if (!priv->assoc_rsp_size)
+			continue;
+
 		assoc_resp.links[0].bss = priv->req_bss;
 		assoc_resp.buf = priv->assoc_rsp_buf;
 		assoc_resp.len = priv->assoc_rsp_size;

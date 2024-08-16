@@ -307,9 +307,6 @@ static void mwifiex_init_adapter(struct mwifiex_adapter *adapter)
 	adapter->key_api_major_ver = 0;
 	adapter->key_api_minor_ver = 0;
 	eth_broadcast_addr(adapter->perm_addr);
-	adapter->iface_limit.sta_intf = MWIFIEX_MAX_STA_NUM;
-	adapter->iface_limit.uap_intf = MWIFIEX_MAX_UAP_NUM;
-	adapter->iface_limit.p2p_intf = MWIFIEX_MAX_P2P_NUM;
 	adapter->active_scan_triggered = false;
 	timer_setup(&adapter->wakeup_timer, wakeup_timer_fn, 0);
 	adapter->devdump_len = 0;

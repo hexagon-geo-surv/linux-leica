@@ -71,7 +71,6 @@ int mwifiex_init_priv(struct mwifiex_private *priv)
 	u32 i;
 
 	priv->media_connected = false;
-	eth_broadcast_addr(priv->curr_addr);
 	priv->port_open = false;
 	priv->usb_port = MWIFIEX_USB_EP_DATA;
 	priv->pkt_tx_ctrl = 0;

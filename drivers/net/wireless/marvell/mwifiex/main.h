@@ -1694,8 +1694,9 @@ void mwifiex_process_multi_chan_event(struct mwifiex_private *priv,
 				      struct sk_buff *event_skb);
 void mwifiex_multi_chan_resync(struct mwifiex_adapter *adapter);
 int mwifiex_set_mac_address(struct mwifiex_private *priv,
-			    struct net_device *dev,
-			    bool external, u8 *new_mac);
+			    struct net_device *dev, u8 *new_mac);
+int mwifiex_set_default_mac_address(struct mwifiex_private *priv,
+				    struct net_device *dev);
 void mwifiex_devdump_tmo_func(unsigned long function_context);
 
 #ifdef CONFIG_DEBUG_FS

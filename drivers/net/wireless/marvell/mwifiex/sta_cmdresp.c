@@ -474,25 +474,6 @@ static int mwifiex_ret_rf_antenna(struct mwifiex_private *priv,
 }
 
 /*
- * This function handles the command response of set/get MAC address.
- *
- * Handling includes saving the MAC address in driver.
- */
-static int mwifiex_ret_802_11_mac_address(struct mwifiex_private *priv,
-					  struct host_cmd_ds_command *resp)
-{
-	struct host_cmd_ds_802_11_mac_address *cmd_mac_addr =
-							&resp->params.mac_addr;
-
-	memcpy(priv->curr_addr, cmd_mac_addr->mac_addr, ETH_ALEN);
-
-	mwifiex_dbg(priv->adapter, INFO,
-		    "info: set mac address: %pM\n", priv->curr_addr);
-
-	return 0;
-}
-
-/*
  * This function handles the command response of set/get MAC multicast
  * address.
  */
@@ -1232,7 +1213,6 @@ int mwifiex_process_sta_cmdresp(struct mwifiex_private *priv, u16 cmdresp_no,
 	case HostCmd_CMD_MAC_CONTROL:
 		break;
 	case HostCmd_CMD_802_11_MAC_ADDRESS:
-		ret = mwifiex_ret_802_11_mac_address(priv, resp);
 		break;
 	case HostCmd_CMD_MAC_MULTICAST_ADR:
 		ret = mwifiex_ret_mac_multicast_adr(priv, resp);

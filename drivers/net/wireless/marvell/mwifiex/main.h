@@ -1427,7 +1427,7 @@ static inline void mwifiex_enable_wake(struct mwifiex_adapter *adapter)
 	}
 }
 
-int mwifiex_init_shutdown_fw(struct mwifiex_private *priv,
+int mwifiex_init_shutdown_fw(struct mwifiex_adapter *adapter,
 			     u32 func_init_shutdown);
 
 int mwifiex_add_card(void *card, struct completion *fw_done,

@@ -656,9 +656,7 @@ static void mwifiex_usb_disconnect(struct usb_interface *intf)
 	if (card->udev->state != USB_STATE_NOTATTACHED && !adapter->mfg_mode) {
 		mwifiex_deauthenticate_all(adapter);
 
-		mwifiex_init_shutdown_fw(mwifiex_get_priv(adapter,
-							  MWIFIEX_BSS_ROLE_ANY),
-					 MWIFIEX_FUNC_SHUTDOWN);
+		mwifiex_init_shutdown_fw(adapter, MWIFIEX_FUNC_SHUTDOWN);
 	}
 
 	mwifiex_dbg(adapter, FATAL,

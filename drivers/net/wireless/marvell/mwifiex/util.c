@@ -119,7 +119,7 @@ static int num_of_items = ARRAY_SIZE(items);
  * This function sends init/shutdown command
  * to firmware.
  */
-int mwifiex_init_shutdown_fw(struct mwifiex_private *priv,
+int mwifiex_init_shutdown_fw(struct mwifiex_adapter *adapter,
 			     u32 func_init_shutdown)
 {
 	u16 cmd;
@@ -129,12 +129,12 @@ int mwifiex_init_shutdown_fw(struct mwifiex_private *priv,
 	} else if (func_init_shutdown == MWIFIEX_FUNC_SHUTDOWN) {
 		cmd = HostCmd_CMD_FUNC_SHUTDOWN;
 	} else {
-		mwifiex_dbg(priv->adapter, ERROR,
+		mwifiex_dbg(adapter, ERROR,
 			    "unsupported parameter\n");
 		return -1;
 	}
 
-	return mwifiex_send_cmd(priv, cmd, HostCmd_ACT_GEN_SET, 0, NULL, true);
+	return mwifiex_adapter_send_cmd(adapter, cmd, HostCmd_ACT_GEN_SET, 0, NULL, true);
 }
 EXPORT_SYMBOL_GPL(mwifiex_init_shutdown_fw);
 

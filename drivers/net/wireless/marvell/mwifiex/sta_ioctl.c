@@ -507,9 +507,12 @@ int mwifiex_enable_hs(struct mwifiex_adapter *adapter)
 		}
 	}
 
-	priv = mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_STA);
+	for (i = 0; i < adapter->priv_num; i++) {
+		priv = adapter->priv[i];
 
-	if (priv && priv->sched_scanning) {
+		if (!priv->sched_scanning)
+			continue;
+
 #ifdef CONFIG_PM
 		if (priv->wdev.wiphy->wowlan_config &&
 		    !priv->wdev.wiphy->wowlan_config->nd_config) {

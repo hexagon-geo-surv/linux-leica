@@ -671,8 +671,7 @@ static void mwifiex_usb_coredump(struct device *dev)
 	struct usb_interface *intf = to_usb_interface(dev);
 	struct usb_card_rec *card = usb_get_intfdata(intf);
 
-	mwifiex_fw_dump_event(mwifiex_get_priv(card->adapter,
-					       MWIFIEX_BSS_ROLE_ANY));
+	mwifiex_fw_dump_event(card->adapter);
 }
 
 static struct usb_driver mwifiex_usb_driver = {

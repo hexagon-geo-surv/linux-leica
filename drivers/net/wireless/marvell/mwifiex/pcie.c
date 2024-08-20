@@ -359,8 +359,7 @@ static int mwifiex_pcie_resume(struct device *dev)
 
 	clear_bit(MWIFIEX_IS_SUSPENDED, &adapter->work_flags);
 
-	mwifiex_cancel_hs(mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_STA),
-			  MWIFIEX_ASYNC_CMD);
+	mwifiex_cancel_hs(adapter, MWIFIEX_ASYNC_CMD);
 	mwifiex_disable_wake(adapter);
 
 	return 0;

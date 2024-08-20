@@ -1455,7 +1455,7 @@ static u32 mwifiex_parse_cal_cfg(u8 *src, size_t len, u8 *dst)
 	return d - dst;
 }
 
-int mwifiex_dnld_dt_cfgdata(struct mwifiex_private *priv,
+int mwifiex_dnld_dt_cfgdata(struct mwifiex_adapter *adapter,
 			    struct device_node *node, const char *prefix)
 {
 #ifdef CONFIG_OF
@@ -1472,9 +1472,9 @@ int mwifiex_dnld_dt_cfgdata(struct mwifiex_private *priv,
 		/* property header is 6 bytes, data must fit in cmd buffer */
 		if (prop->value && prop->length > 6 &&
 		    prop->length <= MWIFIEX_SIZE_OF_CMD_BUFFER - S_DS_GEN) {
-			ret = mwifiex_send_cmd(priv, HostCmd_CMD_CFG_DATA,
-					       HostCmd_ACT_GEN_SET, 0,
-					       prop, true);
+			ret = mwifiex_adapter_send_cmd(adapter, HostCmd_CMD_CFG_DATA,
+						       HostCmd_ACT_GEN_SET, 0,
+						       prop, true);
 			if (ret)
 				return ret;
 		}
@@ -1506,14 +1506,13 @@ static int mwifiex_rgpower_table_advance_to_content(u8 **pos, const u8 *data,
 	return 0;
 }
 
-int mwifiex_send_rgpower_table(struct mwifiex_private *priv, const u8 *data,
-				const size_t size)
+int mwifiex_send_rgpower_table(struct mwifiex_adapter *adapter, const u8 *data,
+			       const size_t size)
 {
 	int ret = 0;
 	bool start_raw = false;
 	u8 *ptr, *token, *pos = NULL;
 	u8 *_data __free(kfree) = NULL;
-	struct mwifiex_adapter *adapter = priv->adapter;
 	struct mwifiex_ds_misc_cmd *hostcmd __free(kfree) = NULL;
 
 	hostcmd = kzalloc(sizeof(*hostcmd), GFP_KERNEL);
@@ -1540,7 +1539,8 @@ int mwifiex_send_rgpower_table(struct mwifiex_private *priv, const u8 *data,
 
 		if (*pos == '}' && start_raw) {
 			memcpy(&hostcmd->len, &hostcmd->cmd[2], sizeof(u16));
-			ret = mwifiex_send_cmd(priv, 0, 0, 0, hostcmd, false);
+			ret = mwifiex_adapter_send_cmd(adapter, 0, 0, 0,
+						       hostcmd, false);
 			if (ret) {
 				mwifiex_dbg(adapter, ERROR,
 					    "%s: failed to send hostcmd %d\n",
@@ -2397,7 +2397,7 @@ int mwifiex_sta_init_cmd(struct mwifiex_private *priv, u8 first_sta)
 				adapter->hs_cfg.gpio = data;
 			}
 
-			mwifiex_dnld_dt_cfgdata(priv, adapter->dt_node,
+			mwifiex_dnld_dt_cfgdata(adapter, adapter->dt_node,
 						"marvell,caldata");
 		}
 

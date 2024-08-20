@@ -321,7 +321,7 @@ static int mwifiex_ret_tx_rate_cfg(struct mwifiex_private *priv,
  * Handling includes saving the maximum and minimum Tx power levels
  * in driver, as well as sending the values to user.
  */
-static int mwifiex_get_power_level(struct mwifiex_private *priv, void *data_buf)
+static int mwifiex_get_power_level(struct mwifiex_adapter *adapter, void *data_buf)
 {
 	int length, max_power = -1, min_power = -1;
 	struct mwifiex_types_power_group *pg_tlv_hdr;
@@ -353,8 +353,8 @@ static int mwifiex_get_power_level(struct mwifiex_private *priv, void *data_buf)
 
 		length -= sizeof(struct mwifiex_power_group);
 	}
-	priv->min_tx_power_level = (u8) min_power;
-	priv->max_tx_power_level = (u8) max_power;
+	adapter->min_tx_power_level = (u8) min_power;
+	adapter->max_tx_power_level = (u8) max_power;
 
 	return 0;
 }
@@ -366,10 +366,9 @@ static int mwifiex_get_power_level(struct mwifiex_private *priv, void *data_buf)
  * Handling includes changing the header fields into CPU format
  * and saving the current Tx power level in driver.
  */
-static int mwifiex_ret_tx_power_cfg(struct mwifiex_private *priv,
+static int mwifiex_ret_tx_power_cfg(struct mwifiex_adapter *adapter,
 				    struct host_cmd_ds_command *resp)
 {
-	struct mwifiex_adapter *adapter = priv->adapter;
 	struct host_cmd_ds_txpwr_cfg *txp_cfg = &resp->params.txp_cfg;
 	struct mwifiex_types_power_group *pg_tlv_hdr;
 	struct mwifiex_power_group *pg;
@@ -392,9 +391,9 @@ static int mwifiex_ret_tx_power_cfg(struct mwifiex_private *priv,
 	switch (action) {
 	case HostCmd_ACT_GEN_GET:
 		if (adapter->hw_status == MWIFIEX_HW_STATUS_INITIALIZING)
-			mwifiex_get_power_level(priv, pg_tlv_hdr);
+			mwifiex_get_power_level(adapter, pg_tlv_hdr);
 
-		priv->tx_power_level = (u16) pg->power_min;
+		adapter->tx_power_level = (u16) pg->power_min;
 		break;
 
 	case HostCmd_ACT_GEN_SET:
@@ -402,7 +401,7 @@ static int mwifiex_ret_tx_power_cfg(struct mwifiex_private *priv,
 			break;
 
 		if (pg->power_max == pg->power_min)
-			priv->tx_power_level = (u16) pg->power_min;
+			adapter->tx_power_level = (u16) pg->power_min;
 		break;
 	default:
 		mwifiex_dbg(adapter, ERROR,
@@ -412,8 +411,8 @@ static int mwifiex_ret_tx_power_cfg(struct mwifiex_private *priv,
 	}
 	mwifiex_dbg(adapter, INFO,
 		    "info: Current TxPower Level = %d, Max Power=%d, Min Power=%d\n",
-		    priv->tx_power_level, priv->max_tx_power_level,
-		    priv->min_tx_power_level);
+		    adapter->tx_power_level, adapter->max_tx_power_level,
+		    adapter->min_tx_power_level);
 
 	return 0;
 }
@@ -421,23 +420,23 @@ static int mwifiex_ret_tx_power_cfg(struct mwifiex_private *priv,
 /*
  * This function handles the command response of get RF Tx power.
  */
-static int mwifiex_ret_rf_tx_power(struct mwifiex_private *priv,
+static int mwifiex_ret_rf_tx_power(struct mwifiex_adapter *adapter,
 				   struct host_cmd_ds_command *resp)
 {
 	struct host_cmd_ds_rf_tx_pwr *txp = &resp->params.txp;
 	u16 action = le16_to_cpu(txp->action);
 
-	priv->tx_power_level = le16_to_cpu(txp->cur_level);
+	adapter->tx_power_level = le16_to_cpu(txp->cur_level);
 
 	if (action == HostCmd_ACT_GEN_GET) {
-		priv->max_tx_power_level = txp->max_power;
-		priv->min_tx_power_level = txp->min_power;
+		adapter->max_tx_power_level = txp->max_power;
+		adapter->min_tx_power_level = txp->min_power;
 	}
 
-	mwifiex_dbg(priv->adapter, INFO,
+	mwifiex_dbg(adapter, INFO,
 		    "Current TxPower Level=%d, Max Power=%d, Min Power=%d\n",
-		    priv->tx_power_level, priv->max_tx_power_level,
-		    priv->min_tx_power_level);
+		    adapter->tx_power_level, adapter->max_tx_power_level,
+		    adapter->min_tx_power_level);
 
 	return 0;
 }
@@ -1257,10 +1256,10 @@ int mwifiex_process_sta_cmdresp(struct mwifiex_private *priv, u16 cmdresp_no,
 	case HostCmd_CMD_802_11_BG_SCAN_CONFIG:
 		break;
 	case HostCmd_CMD_TXPWR_CFG:
-		ret = mwifiex_ret_tx_power_cfg(priv, resp);
+		ret = mwifiex_ret_tx_power_cfg(adapter, resp);
 		break;
 	case HostCmd_CMD_RF_TX_PWR:
-		ret = mwifiex_ret_rf_tx_power(priv, resp);
+		ret = mwifiex_ret_rf_tx_power(adapter, resp);
 		break;
 	case HostCmd_CMD_RF_ANTENNA:
 		ret = mwifiex_ret_rf_antenna(priv, resp);

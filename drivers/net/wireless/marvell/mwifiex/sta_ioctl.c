@@ -180,20 +180,19 @@ int mwifiex_fill_new_bss_desc(struct mwifiex_private *priv,
 	return mwifiex_update_bss_desc_with_ie(priv->adapter, bss_desc);
 }
 
-static void mwifiex_dnld_dt_txpwr_table(struct mwifiex_private *priv)
+static void mwifiex_dnld_dt_txpwr_table(struct mwifiex_adapter *adapter)
 {
-	if (priv->adapter->dt_node) {
+	if (adapter->dt_node) {
 		char txpwr[] = {"marvell,00_txpwrlimit"};
 
-		memcpy(&txpwr[8], priv->adapter->country_code, 2);
-		mwifiex_dnld_dt_cfgdata(priv, priv->adapter->dt_node, txpwr);
+		memcpy(&txpwr[8], adapter->country_code, 2);
+		mwifiex_dnld_dt_cfgdata(adapter, adapter->dt_node, txpwr);
 	}
 }
 
-static int mwifiex_request_rgpower_table(struct mwifiex_private *priv)
+static int mwifiex_request_rgpower_table(struct mwifiex_adapter *adapter)
 {
-	struct mwifiex_802_11d_domain_reg *domain_info = &priv->adapter->domain_reg;
-	struct mwifiex_adapter *adapter = priv->adapter;
+	struct mwifiex_802_11d_domain_reg *domain_info = &adapter->domain_reg;
 	char rgpower_table_name[30];
 	char country_code[3];
 
@@ -226,24 +225,24 @@ static int mwifiex_request_rgpower_table(struct mwifiex_private *priv)
 	return 0;
 }
 
-static int mwifiex_dnld_rgpower_table(struct mwifiex_private *priv)
+static int mwifiex_dnld_rgpower_table(struct mwifiex_adapter *adapter)
 {
 	int ret;
 
-	ret = mwifiex_request_rgpower_table(priv);
+	ret = mwifiex_request_rgpower_table(adapter);
 	if (ret)
 		return ret;
 
-	return mwifiex_send_rgpower_table(priv, priv->adapter->rgpower_data->data,
-					  priv->adapter->rgpower_data->size);
+	return mwifiex_send_rgpower_table(adapter, adapter->rgpower_data->data,
+					   adapter->rgpower_data->size);
 }
 
-void mwifiex_dnld_txpwr_table(struct mwifiex_private *priv)
+void mwifiex_dnld_txpwr_table(struct mwifiex_adapter *adapter)
 {
-	if (mwifiex_dnld_rgpower_table(priv) == 0)
+	if (mwifiex_dnld_rgpower_table(adapter) == 0)
 		return;
 
-	mwifiex_dnld_dt_txpwr_table(priv);
+	mwifiex_dnld_dt_txpwr_table(adapter);
 }
 
 static int mwifiex_process_country_ie(struct mwifiex_private *priv,
@@ -305,7 +304,7 @@ static int mwifiex_process_country_ie(struct mwifiex_private *priv,
 		return -1;
 	}
 
-	mwifiex_dnld_txpwr_table(priv);
+	mwifiex_dnld_txpwr_table(priv->adapter);
 
 	return 0;
 }

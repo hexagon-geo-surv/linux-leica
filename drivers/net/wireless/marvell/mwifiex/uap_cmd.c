@@ -1029,7 +1029,7 @@ void mwifiex_uap_set_channel(struct mwifiex_private *priv,
 
 	if (old_bands != config_bands) {
 		mwifiex_send_domain_info_cmd_fw(priv->adapter->wiphy);
-		mwifiex_dnld_txpwr_table(priv);
+		mwifiex_dnld_txpwr_table(priv->adapter);
 	}
 }
 

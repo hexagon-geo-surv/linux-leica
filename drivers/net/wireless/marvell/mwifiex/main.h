@@ -542,8 +542,6 @@ struct mwifiex_private {
 	u32 curr_pkt_filter;
 	u32 bss_mode;
 	u32 pkt_tx_ctrl;
-	u32 tx_ant;
-	u32 rx_ant;
 	u8 tx_rate;
 	u8 tx_htinfo;
 	u8 rxpd_htinfo;
@@ -947,6 +945,8 @@ struct mwifiex_adapter {
 	u8 max_tx_power_level;
 	u8 min_tx_power_level;
 	u16 tx_power_level;
+	u32 tx_ant;
+	u32 rx_ant;
 	u16 ps_mode;
 	u32 ps_state;
 	u8 need_to_wakeup;

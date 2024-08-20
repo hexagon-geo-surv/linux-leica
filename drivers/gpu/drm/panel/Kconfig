@@ -154,6 +154,15 @@ config DRM_PANEL_LVDS
 	  handling of power supplies or control signals. It implements automatic
 	  backlight handling if the panel is attached to a backlight controller.
 
+config DRM_PANEL_HGS_KDU
+	tristate "Hexagon KDU panel driver"
+	depends on OF
+	depends on BACKLIGHT_CLASS_DEVICE
+	select VIDEOMODE_HELPERS
+	help
+	  This driver supports Hexagon KDU LVDS panels. It implements automatic
+	  backlight handling if the panel is attached to a backlight controller.
+
 config DRM_PANEL_HIMAX_HX83102
 	tristate "Himax HX83102-based panels"
 	depends on OF

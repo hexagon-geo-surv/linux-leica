@@ -398,11 +398,10 @@ done:
  * This function prepares the correct firmware command and
  * issues it.
  */
-int mwifiex_set_hs_params(struct mwifiex_private *priv, u16 action,
+int mwifiex_set_hs_params(struct mwifiex_adapter *adapter, u16 action,
 			  int cmd_type, struct mwifiex_ds_hs_cfg *hs_cfg)
 
 {
-	struct mwifiex_adapter *adapter = priv->adapter;
 	int status = 0;
 	u32 prev_cond = 0;
 
@@ -443,7 +442,7 @@ int mwifiex_set_hs_params(struct mwifiex_private *priv, u16 action,
 				break;
 			}
 
-			status = mwifiex_send_cmd(priv,
+			status = mwifiex_adapter_send_cmd(adapter,
 						  HostCmd_CMD_802_11_HS_CFG_ENH,
 						  HostCmd_ACT_GEN_SET, 0,
 						  &adapter->hs_cfg,
@@ -479,14 +478,14 @@ int mwifiex_set_hs_params(struct mwifiex_private *priv, u16 action,
  * This function allocates the IOCTL request buffer, fills it
  * with requisite parameters and calls the IOCTL handler.
  */
-int mwifiex_cancel_hs(struct mwifiex_private *priv, int cmd_type)
+int mwifiex_cancel_hs(struct mwifiex_adapter *adapter, int cmd_type)
 {
 	struct mwifiex_ds_hs_cfg hscfg;
 
 	hscfg.conditions = HS_CFG_CANCEL;
 	hscfg.is_invoke_hostcmd = true;
 
-	return mwifiex_set_hs_params(priv, HostCmd_ACT_GEN_SET,
+	return mwifiex_set_hs_params(adapter, HostCmd_ACT_GEN_SET,
 				    cmd_type, &hscfg);
 }
 EXPORT_SYMBOL_GPL(mwifiex_cancel_hs);
@@ -539,8 +538,7 @@ int mwifiex_enable_hs(struct mwifiex_adapter *adapter)
 	set_bit(MWIFIEX_IS_HS_ENABLING, &adapter->work_flags);
 	mwifiex_cancel_all_pending_cmd(adapter);
 
-	if (mwifiex_set_hs_params(mwifiex_get_priv(adapter,
-						   MWIFIEX_BSS_ROLE_STA),
+	if (mwifiex_set_hs_params(adapter,
 				  HostCmd_ACT_GEN_SET, MWIFIEX_SYNC_CMD,
 				  &hscfg)) {
 		mwifiex_dbg(adapter, ERROR,

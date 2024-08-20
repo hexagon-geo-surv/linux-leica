@@ -592,10 +592,10 @@ int mwifiex_send_cmd(struct mwifiex_private *priv, u16 cmd_no,
 		return -1;
 	}
 
-	if (priv->adapter->hs_activated_manually &&
+	if (adapter->hs_activated_manually &&
 	    cmd_no != HostCmd_CMD_802_11_HS_CFG_ENH) {
-		mwifiex_cancel_hs(priv, MWIFIEX_ASYNC_CMD);
-		priv->adapter->hs_activated_manually = false;
+		mwifiex_cancel_hs(adapter, MWIFIEX_ASYNC_CMD);
+		adapter->hs_activated_manually = false;
 	}
 
 	/* Get a new command node */
@@ -1237,8 +1237,7 @@ mwifiex_process_hs_config(struct mwifiex_adapter *adapter)
 	adapter->if_ops.wakeup(adapter);
 
 	if (adapter->hs_activated_manually) {
-		mwifiex_cancel_hs(mwifiex_get_priv (adapter, MWIFIEX_BSS_ROLE_ANY),
-				  MWIFIEX_ASYNC_CMD);
+		mwifiex_cancel_hs(adapter, MWIFIEX_ASYNC_CMD);
 		adapter->hs_activated_manually = false;
 	}
 

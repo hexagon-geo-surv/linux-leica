@@ -379,7 +379,6 @@ mwifiex_cfg80211_set_tx_power(struct wiphy *wiphy,
 			      int mbm)
 {
 	struct mwifiex_adapter *adapter = mwifiex_cfg80211_get_adapter(wiphy);
-	struct mwifiex_private *priv;
 	struct mwifiex_power_cfg power_cfg;
 	int dbm = MBM_TO_DBM(mbm);
 
@@ -399,9 +398,7 @@ mwifiex_cfg80211_set_tx_power(struct wiphy *wiphy,
 		break;
 	}
 
-	priv = mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_ANY);
-
-	return mwifiex_set_tx_power(priv, &power_cfg);
+	return mwifiex_set_tx_power(adapter, &power_cfg);
 }
 
 /*
@@ -413,16 +410,15 @@ mwifiex_cfg80211_get_tx_power(struct wiphy *wiphy,
 			      int *dbm)
 {
 	struct mwifiex_adapter *adapter = mwifiex_cfg80211_get_adapter(wiphy);
-	struct mwifiex_private *priv = mwifiex_get_priv(adapter,
-							MWIFIEX_BSS_ROLE_ANY);
-	int ret = mwifiex_send_cmd(priv, HostCmd_CMD_RF_TX_PWR,
-				   HostCmd_ACT_GEN_GET, 0, NULL, true);
+
+	int ret = mwifiex_adapter_send_cmd(adapter, HostCmd_CMD_RF_TX_PWR,
+					   HostCmd_ACT_GEN_GET, 0, NULL, true);
 
 	if (ret < 0)
 		return ret;
 
 	/* tx_power_level is set in HostCmd_CMD_RF_TX_PWR command handler */
-	*dbm = priv->tx_power_level;
+	*dbm = adapter->tx_power_level;
 
 	return 0;
 }

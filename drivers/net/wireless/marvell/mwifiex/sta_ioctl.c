@@ -588,8 +588,8 @@ int mwifiex_get_bss_info(struct mwifiex_private *priv,
 
 	info->media_connected = priv->media_connected;
 
-	info->max_power_level = priv->max_tx_power_level;
-	info->min_power_level = priv->min_tx_power_level;
+	info->max_power_level = adapter->max_tx_power_level;
+	info->min_power_level = adapter->min_tx_power_level;
 
 	info->adhoc_state = priv->adhoc_state;
 
@@ -657,7 +657,7 @@ int mwifiex_drv_get_data_rate(struct mwifiex_private *priv, u32 *rate)
  *      - Modulation class HTBW20
  *      - Modulation class HTBW40
  */
-int mwifiex_set_tx_power(struct mwifiex_private *priv,
+int mwifiex_set_tx_power(struct mwifiex_adapter *adapter,
 			 struct mwifiex_power_cfg *power_cfg)
 {
 	int ret;
@@ -669,13 +669,13 @@ int mwifiex_set_tx_power(struct mwifiex_private *priv,
 
 	if (!power_cfg->is_power_auto) {
 		dbm = (u16) power_cfg->power_level;
-		if ((dbm < priv->min_tx_power_level) ||
-		    (dbm > priv->max_tx_power_level)) {
-			mwifiex_dbg(priv->adapter, ERROR,
+		if ((dbm < adapter->min_tx_power_level) ||
+		    (dbm > adapter->max_tx_power_level)) {
+			mwifiex_dbg(adapter, ERROR,
 				    "txpower value %d dBm\t"
 				    "is out of range (%d dBm-%d dBm)\n",
-				    dbm, priv->min_tx_power_level,
-				    priv->max_tx_power_level);
+				    dbm, adapter->min_tx_power_level,
+				    adapter->max_tx_power_level);
 			return -1;
 		}
 	}
@@ -687,7 +687,7 @@ int mwifiex_set_tx_power(struct mwifiex_private *priv,
 	txp_cfg->action = cpu_to_le16(HostCmd_ACT_GEN_SET);
 	if (!power_cfg->is_power_auto) {
 		u16 dbm_min = power_cfg->is_power_fixed ?
-			      dbm : priv->min_tx_power_level;
+			      dbm : adapter->min_tx_power_level;
 
 		txp_cfg->mode = cpu_to_le32(1);
 		pg_tlv = (struct mwifiex_types_power_group *)
@@ -732,8 +732,8 @@ int mwifiex_set_tx_power(struct mwifiex_private *priv,
 		pg->power_max = (s8) dbm;
 		pg->ht_bandwidth = HT_BW_40;
 	}
-	ret = mwifiex_send_cmd(priv, HostCmd_CMD_TXPWR_CFG,
-			       HostCmd_ACT_GEN_SET, 0, buf, true);
+	ret = mwifiex_adapter_send_cmd(adapter, HostCmd_CMD_TXPWR_CFG,
+				       HostCmd_ACT_GEN_SET, 0, buf, true);
 
 	kfree(buf);
 	return ret;

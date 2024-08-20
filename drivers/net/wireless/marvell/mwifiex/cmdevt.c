@@ -298,19 +298,15 @@ static int mwifiex_dnld_cmd_to_fw(struct mwifiex_adapter *adapter,
 static int mwifiex_dnld_sleep_confirm_cmd(struct mwifiex_adapter *adapter)
 {
 	int ret;
-	struct mwifiex_private *priv;
 	struct mwifiex_opt_sleep_confirm *sleep_cfm_buf =
 				(struct mwifiex_opt_sleep_confirm *)
 						adapter->sleep_cfm->data;
 	struct sk_buff *sleep_cfm_tmp;
 
-	priv = mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_ANY);
-
 	adapter->seq_num++;
 	sleep_cfm_buf->seq_num =
 		cpu_to_le16(HostCmd_SET_SEQ_NO_BSS_INFO
-					(adapter->seq_num, priv->bss_num,
-					 priv->bss_type));
+					(adapter->seq_num, 0, 0));
 
 	mwifiex_dbg(adapter, CMD,
 		    "cmd: DNLD_CMD: %#x, act %#x, len %d, seqno %#x\n",

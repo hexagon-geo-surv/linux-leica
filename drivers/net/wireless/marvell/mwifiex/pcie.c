@@ -427,7 +427,6 @@ static void mwifiex_pcie_remove(struct pci_dev *pdev)
 {
 	struct pcie_service_card *card;
 	struct mwifiex_adapter *adapter;
-	struct mwifiex_private *priv;
 	const struct mwifiex_pcie_card_reg *reg;
 	u32 fw_status;
 
@@ -448,9 +447,7 @@ static void mwifiex_pcie_remove(struct pci_dev *pdev)
 	if (fw_status == FIRMWARE_READY_PCIE && !adapter->mfg_mode) {
 		mwifiex_deauthenticate_all(adapter);
 
-		priv = mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_ANY);
-
-		mwifiex_disable_auto_ds(priv);
+		mwifiex_disable_auto_ds(adapter);
 
 		mwifiex_init_shutdown_fw(adapter, MWIFIEX_FUNC_SHUTDOWN);
 	}

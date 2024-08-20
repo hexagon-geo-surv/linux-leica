@@ -3620,7 +3620,7 @@ static int mwifiex_get_coalesce_pkt_type(u8 *byte_seq)
 }
 
 static int
-mwifiex_fill_coalesce_rule_info(struct mwifiex_private *priv,
+mwifiex_fill_coalesce_rule_info(struct mwifiex_adapter *adapter,
 				struct cfg80211_coalesce_rules *crule,
 				struct mwifiex_coalesce_rule *mrule)
 {
@@ -3637,7 +3637,7 @@ mwifiex_fill_coalesce_rule_info(struct mwifiex_private *priv,
 		if (!mwifiex_is_pattern_supported(&crule->patterns[i],
 						  byte_seq,
 						MWIFIEX_COALESCE_MAX_BYTESEQ)) {
-			mwifiex_dbg(priv->adapter, ERROR,
+			mwifiex_dbg(adapter, ERROR,
 				    "Pattern not supported\n");
 			return -EOPNOTSUPP;
 		}
@@ -3647,7 +3647,7 @@ mwifiex_fill_coalesce_rule_info(struct mwifiex_private *priv,
 
 			pkt_type = mwifiex_get_coalesce_pkt_type(byte_seq);
 			if (pkt_type && mrule->pkt_type) {
-				mwifiex_dbg(priv->adapter, ERROR,
+				mwifiex_dbg(adapter, ERROR,
 					    "Multiple packet types not allowed\n");
 				return -EOPNOTSUPP;
 			} else if (pkt_type) {
@@ -3671,7 +3671,7 @@ mwifiex_fill_coalesce_rule_info(struct mwifiex_private *priv,
 	}
 
 	if (!mrule->pkt_type) {
-		mwifiex_dbg(priv->adapter, ERROR,
+		mwifiex_dbg(adapter, ERROR,
 			    "Packet type can not be determined\n");
 		return -EOPNOTSUPP;
 	}
@@ -3685,21 +3685,19 @@ static int mwifiex_cfg80211_set_coalesce(struct wiphy *wiphy,
 	struct mwifiex_adapter *adapter = mwifiex_cfg80211_get_adapter(wiphy);
 	int i, ret;
 	struct mwifiex_ds_coalesce_cfg coalesce_cfg;
-	struct mwifiex_private *priv =
-			mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_STA);
 
 	memset(&coalesce_cfg, 0, sizeof(coalesce_cfg));
 	if (!coalesce) {
 		mwifiex_dbg(adapter, WARN,
 			    "Disable coalesce and reset all previous rules\n");
-		return mwifiex_send_cmd(priv, HostCmd_CMD_COALESCE_CFG,
-					HostCmd_ACT_GEN_SET, 0,
-					&coalesce_cfg, true);
+		return mwifiex_adapter_send_cmd(adapter, HostCmd_CMD_COALESCE_CFG,
+						HostCmd_ACT_GEN_SET, 0,
+						&coalesce_cfg, true);
 	}
 
 	coalesce_cfg.num_of_rules = coalesce->n_rules;
 	for (i = 0; i < coalesce->n_rules; i++) {
-		ret = mwifiex_fill_coalesce_rule_info(priv, &coalesce->rules[i],
+		ret = mwifiex_fill_coalesce_rule_info(adapter, &coalesce->rules[i],
 						      &coalesce_cfg.rule[i]);
 		if (ret) {
 			mwifiex_dbg(adapter, ERROR,
@@ -3709,8 +3707,8 @@ static int mwifiex_cfg80211_set_coalesce(struct wiphy *wiphy,
 		}
 	}
 
-	return mwifiex_send_cmd(priv, HostCmd_CMD_COALESCE_CFG,
-				HostCmd_ACT_GEN_SET, 0, &coalesce_cfg, true);
+	return mwifiex_adapter_send_cmd(adapter, HostCmd_CMD_COALESCE_CFG,
+					HostCmd_ACT_GEN_SET, 0, &coalesce_cfg, true);
 }
 
 /* cfg80211 ops handler for tdls_mgmt.

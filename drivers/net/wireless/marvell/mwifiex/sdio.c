@@ -919,7 +919,6 @@ mwifiex_sdio_remove(struct sdio_func *func)
 {
 	struct sdio_mmc_card *card;
 	struct mwifiex_adapter *adapter;
-	struct mwifiex_private *priv;
 	int ret = 0;
 	u16 firmware_stat;
 
@@ -940,8 +939,7 @@ mwifiex_sdio_remove(struct sdio_func *func)
 	    !adapter->mfg_mode) {
 		mwifiex_deauthenticate_all(adapter);
 
-		priv = mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_ANY);
-		mwifiex_disable_auto_ds(priv);
+		mwifiex_disable_auto_ds(adapter);
 		mwifiex_init_shutdown_fw(adapter, MWIFIEX_FUNC_SHUTDOWN);
 	}
 

@@ -444,16 +444,15 @@ static int mwifiex_ret_rf_tx_power(struct mwifiex_adapter *adapter,
 /*
  * This function handles the command response of set rf antenna
  */
-static int mwifiex_ret_rf_antenna(struct mwifiex_private *priv,
+static int mwifiex_ret_rf_antenna(struct mwifiex_adapter *adapter,
 				  struct host_cmd_ds_command *resp)
 {
 	struct host_cmd_ds_rf_ant_mimo *ant_mimo = &resp->params.ant_mimo;
 	struct host_cmd_ds_rf_ant_siso *ant_siso = &resp->params.ant_siso;
-	struct mwifiex_adapter *adapter = priv->adapter;
 
 	if (adapter->hw_dev_mcs_support == HT_STREAM_2X2) {
-		priv->tx_ant = le16_to_cpu(ant_mimo->tx_ant_mode);
-		priv->rx_ant = le16_to_cpu(ant_mimo->rx_ant_mode);
+		adapter->tx_ant = le16_to_cpu(ant_mimo->tx_ant_mode);
+		adapter->rx_ant = le16_to_cpu(ant_mimo->rx_ant_mode);
 		mwifiex_dbg(adapter, INFO,
 			    "RF_ANT_RESP: Tx action = 0x%x, Tx Mode = 0x%04x\t"
 			    "Rx action = 0x%x, Rx Mode = 0x%04x\n",
@@ -462,8 +461,8 @@ static int mwifiex_ret_rf_antenna(struct mwifiex_private *priv,
 			    le16_to_cpu(ant_mimo->action_rx),
 			    le16_to_cpu(ant_mimo->rx_ant_mode));
 	} else {
-		priv->tx_ant = le16_to_cpu(ant_siso->ant_mode);
-		priv->rx_ant = le16_to_cpu(ant_siso->ant_mode);
+		adapter->tx_ant = le16_to_cpu(ant_siso->ant_mode);
+		adapter->rx_ant = le16_to_cpu(ant_siso->ant_mode);
 		mwifiex_dbg(adapter, INFO,
 			    "RF_ANT_RESP: action = 0x%x, Mode = 0x%04x\n",
 			    le16_to_cpu(ant_siso->action),
@@ -1262,7 +1261,7 @@ int mwifiex_process_sta_cmdresp(struct mwifiex_private *priv, u16 cmdresp_no,
 		ret = mwifiex_ret_rf_tx_power(adapter, resp);
 		break;
 	case HostCmd_CMD_RF_ANTENNA:
-		ret = mwifiex_ret_rf_antenna(priv, resp);
+		ret = mwifiex_ret_rf_antenna(adapter, resp);
 		break;
 	case HostCmd_CMD_802_11_PS_MODE_ENH:
 		ret = mwifiex_ret_enh_power_mode(priv, resp, data_buf);

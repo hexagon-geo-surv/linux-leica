@@ -729,8 +729,7 @@ static int mwifiex_sdio_resume(struct device *dev)
 	clear_bit(MWIFIEX_IS_SUSPENDED, &adapter->work_flags);
 
 	/* Disable Host Sleep */
-	mwifiex_cancel_hs(mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_STA),
-			  MWIFIEX_SYNC_CMD);
+	mwifiex_cancel_hs(adapter, MWIFIEX_SYNC_CMD);
 
 	mwifiex_disable_wake(adapter);
 

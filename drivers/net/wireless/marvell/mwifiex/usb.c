@@ -637,9 +637,7 @@ static int mwifiex_usb_resume(struct usb_interface *intf)
 
 	/* Disable Host Sleep */
 	if (adapter->hs_activated)
-		mwifiex_cancel_hs(mwifiex_get_priv(adapter,
-						   MWIFIEX_BSS_ROLE_ANY),
-				  MWIFIEX_ASYNC_CMD);
+		mwifiex_cancel_hs(adapter, MWIFIEX_ASYNC_CMD);
 
 	return 0;
 }

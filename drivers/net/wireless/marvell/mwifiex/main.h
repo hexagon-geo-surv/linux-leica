@@ -542,9 +542,6 @@ struct mwifiex_private {
 	u32 curr_pkt_filter;
 	u32 bss_mode;
 	u32 pkt_tx_ctrl;
-	u16 tx_power_level;
-	u8 max_tx_power_level;
-	u8 min_tx_power_level;
 	u32 tx_ant;
 	u32 rx_ant;
 	u8 tx_rate;
@@ -947,6 +944,9 @@ struct mwifiex_adapter {
 	u8 config_bands;
 	u8 tx_lock_flag;
 	struct mwifiex_sleep_period sleep_period;
+	u8 max_tx_power_level;
+	u8 min_tx_power_level;
+	u16 tx_power_level;
 	u16 ps_mode;
 	u32 ps_state;
 	u8 need_to_wakeup;
@@ -1492,7 +1492,7 @@ int mwifiex_drv_set_power(struct mwifiex_private *priv, u32 *ps_mode);
 int mwifiex_drv_get_driver_version(struct mwifiex_adapter *adapter,
 				   char *version, int max_len);
 
-int mwifiex_set_tx_power(struct mwifiex_private *priv,
+int mwifiex_set_tx_power(struct mwifiex_adapter *adapter,
 			 struct mwifiex_power_cfg *power_cfg);
 
 int mwifiex_main_process(struct mwifiex_adapter *);

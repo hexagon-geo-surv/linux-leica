@@ -1918,13 +1918,12 @@ static int
 mwifiex_cfg80211_get_antenna(struct wiphy *wiphy, u32 *tx_ant, u32 *rx_ant)
 {
 	struct mwifiex_adapter *adapter = mwifiex_cfg80211_get_adapter(wiphy);
-	struct mwifiex_private *priv = mwifiex_get_priv(adapter,
-							MWIFIEX_BSS_ROLE_ANY);
-	mwifiex_send_cmd(priv, HostCmd_CMD_RF_ANTENNA,
-			 HostCmd_ACT_GEN_GET, 0, NULL, true);
 
-	*tx_ant = priv->tx_ant;
-	*rx_ant = priv->rx_ant;
+	mwifiex_adapter_send_cmd(adapter, HostCmd_CMD_RF_ANTENNA,
+				 HostCmd_ACT_GEN_GET, 0, NULL, true);
+
+	*tx_ant = adapter->tx_ant;
+	*rx_ant = adapter->rx_ant;
 
 	return 0;
 }

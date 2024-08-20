@@ -105,8 +105,6 @@ int mwifiex_init_priv(struct mwifiex_private *priv)
 	priv->adhoc_channel = DEFAULT_AD_HOC_CHANNEL;
 	priv->atim_window = 0;
 	priv->adhoc_state = ADHOC_IDLE;
-	priv->tx_ant = 0;
-	priv->rx_ant = 0;
 	priv->tx_rate = 0;
 	priv->rxpd_htinfo = 0;
 	priv->rxpd_rate = 0;

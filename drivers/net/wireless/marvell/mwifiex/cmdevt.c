@@ -497,8 +497,11 @@ int mwifiex_process_event(struct mwifiex_adapter *adapter)
 
 	/* Get BSS number and corresponding priv */
 	priv = mwifiex_get_priv_by_id(adapter, EVENT_GET_BSS_NUM(eventcause));
-	if (!priv)
-		priv = mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_ANY);
+	if (!priv) {
+		mwifiex_dbg(adapter, ERROR, "received event on unused bss_num %d\n",
+			    EVENT_GET_BSS_NUM(eventcause));
+		return -EINVAL;
+	}
 
 	/* Clear BSS_NO_BITS from event */
 	eventcause &= EVENT_ID_MASK;
@@ -861,8 +864,12 @@ int mwifiex_process_cmdresp(struct mwifiex_adapter *adapter)
 	/* Get BSS number and corresponding priv */
 	priv = mwifiex_get_priv_by_id(adapter,
 			     HostCmd_GET_BSS_NO(le16_to_cpu(resp->seq_num)));
-	if (!priv)
-		priv = mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_ANY);
+	if (!priv) {
+		mwifiex_dbg(adapter, ERROR, "received event on unused bss_num %d\n",
+			    HostCmd_GET_BSS_NO(le16_to_cpu(resp->seq_num)));
+		return -EINVAL;
+	}
+
 	/* Clear RET_BIT from HostCmd */
 	resp->command = cpu_to_le16(orig_cmdresp_no & HostCmd_CMD_ID_MASK);
 

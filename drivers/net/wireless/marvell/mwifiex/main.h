@@ -1130,7 +1130,7 @@ int mwifiex_ret_enh_power_mode(struct mwifiex_private *priv,
 void mwifiex_process_hs_config(struct mwifiex_adapter *adapter);
 void mwifiex_hs_activated_event(struct mwifiex_adapter *adapter,
 					u8 activated);
-int mwifiex_set_hs_params(struct mwifiex_private *priv, u16 action,
+int mwifiex_set_hs_params(struct mwifiex_adapter *adapter, u16 action,
 			  int cmd_type, struct mwifiex_ds_hs_cfg *hs_cfg);
 int mwifiex_ret_802_11_hs_cfg(struct mwifiex_private *priv,
 			      struct host_cmd_ds_command *resp);
@@ -1445,7 +1445,7 @@ int mwifiex_wait_queue_complete(struct mwifiex_adapter *adapter,
 				struct cmd_ctrl_node *cmd_queued);
 int mwifiex_bss_start(struct mwifiex_private *priv, struct cfg80211_bss *bss,
 		      struct cfg80211_ssid *req_ssid);
-int mwifiex_cancel_hs(struct mwifiex_private *priv, int cmd_type);
+int mwifiex_cancel_hs(struct mwifiex_adapter *adapter, int cmd_type);
 int mwifiex_enable_hs(struct mwifiex_adapter *adapter);
 int mwifiex_disable_auto_ds(struct mwifiex_private *priv);
 int mwifiex_drv_get_data_rate(struct mwifiex_private *priv, u32 *rate);

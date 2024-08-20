@@ -1455,7 +1455,7 @@ static u32 mwifiex_parse_cal_cfg(u8 *src, size_t len, u8 *dst)
 	return d - dst;
 }
 
-int mwifiex_dnld_dt_cfgdata(struct mwifiex_private *priv,
+int mwifiex_dnld_dt_cfgdata(struct mwifiex_adapter *adapter,
 			    struct device_node *node, const char *prefix)
 {
 #ifdef CONFIG_OF
@@ -1472,9 +1472,9 @@ int mwifiex_dnld_dt_cfgdata(struct mwifiex_private *priv,
 		/* property header is 6 bytes, data must fit in cmd buffer */
 		if (prop->value && prop->length > 6 &&
 		    prop->length <= MWIFIEX_SIZE_OF_CMD_BUFFER - S_DS_GEN) {
-			ret = mwifiex_send_cmd(priv, HostCmd_CMD_CFG_DATA,
-					       HostCmd_ACT_GEN_SET, 0,
-					       prop, true);
+			ret = mwifiex_adapter_send_cmd(adapter, HostCmd_CMD_CFG_DATA,
+						       HostCmd_ACT_GEN_SET, 0,
+						       prop, true);
 			if (ret)
 				return ret;
 		}
@@ -2274,7 +2274,7 @@ int mwifiex_sta_init_cmd(struct mwifiex_private *priv, u8 first_sta, bool init)
 				adapter->hs_cfg.gpio = data;
 			}
 
-			mwifiex_dnld_dt_cfgdata(priv, adapter->dt_node,
+			mwifiex_dnld_dt_cfgdata(adapter, adapter->dt_node,
 						"marvell,caldata");
 		}
 

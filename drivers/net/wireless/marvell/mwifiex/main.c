@@ -214,7 +214,6 @@ exit_rx_proc:
 
 static void maybe_quirk_fw_disable_ds(struct mwifiex_adapter *adapter)
 {
-	struct mwifiex_private *priv = mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_STA);
 	struct mwifiex_ver_ext ver_ext;
 
 	if (test_and_set_bit(MWIFIEX_IS_REQUESTING_FW_VEREXT, &adapter->work_flags))
@@ -222,9 +221,9 @@ static void maybe_quirk_fw_disable_ds(struct mwifiex_adapter *adapter)
 
 	memset(&ver_ext, 0, sizeof(ver_ext));
 	ver_ext.version_str_sel = 1;
-	if (mwifiex_send_cmd(priv, HostCmd_CMD_VERSION_EXT,
+	if (mwifiex_adapter_send_cmd(adapter, HostCmd_CMD_VERSION_EXT,
 			     HostCmd_ACT_GEN_GET, 0, &ver_ext, false)) {
-		mwifiex_dbg(priv->adapter, MSG,
+		mwifiex_dbg(adapter, MSG,
 			    "Checking hardware revision failed.\n");
 	}
 }
@@ -1036,7 +1035,6 @@ mwifiex_tx_timeout(struct net_device *dev, unsigned int txqueue)
 void mwifiex_multi_chan_resync(struct mwifiex_adapter *adapter)
 {
 	struct usb_card_rec *card = adapter->card;
-	struct mwifiex_private *priv;
 	u16 tx_buf_size;
 	int i, ret;
 
@@ -1050,9 +1048,8 @@ void mwifiex_multi_chan_resync(struct mwifiex_adapter *adapter)
 
 	card->mc_resync_flag = false;
 	tx_buf_size = 0xffff;
-	priv = mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_ANY);
-	ret = mwifiex_send_cmd(priv, HostCmd_CMD_RECONFIGURE_TX_BUFF,
-			       HostCmd_ACT_GEN_SET, 0, &tx_buf_size, false);
+	ret = mwifiex_adapter_send_cmd(adapter, HostCmd_CMD_RECONFIGURE_TX_BUFF,
+				       HostCmd_ACT_GEN_SET, 0, &tx_buf_size, false);
 	if (ret)
 		mwifiex_dbg(adapter, ERROR,
 			    "send reconfig tx buf size cmd err\n");

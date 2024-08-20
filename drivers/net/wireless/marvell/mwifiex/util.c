@@ -616,9 +616,13 @@ mwifiex_get_sta_entry(struct mwifiex_private *priv, const u8 *mac)
 }
 
 static struct mwifiex_sta_node *
-mwifiex_get_tdls_sta_entry(struct mwifiex_private *priv, u8 status)
+mwifiex_get_tdls_sta_entry(struct mwifiex_adapter *adapter, u8 status)
 {
+	struct mwifiex_private *priv = mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_STA);
 	struct mwifiex_sta_node *node;
+
+	if (!priv)
+		return NULL;
 
 	list_for_each_entry(node, &priv->sta_list, list) {
 		if (node->tdls_status == status)
@@ -631,28 +635,28 @@ mwifiex_get_tdls_sta_entry(struct mwifiex_private *priv, u8 status)
 /* If tdls channel switching is on-going, tx data traffic should be
  * blocked until the switching stage completed.
  */
-u8 mwifiex_is_tdls_chan_switching(struct mwifiex_private *priv)
+u8 mwifiex_is_tdls_chan_switching(struct mwifiex_adapter *adapter)
 {
 	struct mwifiex_sta_node *sta_ptr;
 
-	if (!priv || !ISSUPP_TDLS_ENABLED(priv->adapter->fw_cap_info))
+	if (!ISSUPP_TDLS_ENABLED(adapter->fw_cap_info))
 		return false;
 
-	sta_ptr = mwifiex_get_tdls_sta_entry(priv, TDLS_CHAN_SWITCHING);
+	sta_ptr = mwifiex_get_tdls_sta_entry(adapter, TDLS_CHAN_SWITCHING);
 	if (sta_ptr)
 		return true;
 
 	return false;
 }
 
-static u8 mwifiex_is_tdls_off_chan(struct mwifiex_private *priv)
+static u8 mwifiex_is_tdls_off_chan(struct mwifiex_adapter *adapter)
 {
 	struct mwifiex_sta_node *sta_ptr;
 
-	if (!priv || !ISSUPP_TDLS_ENABLED(priv->adapter->fw_cap_info))
+	if (!ISSUPP_TDLS_ENABLED(adapter->fw_cap_info))
 		return false;
 
-	sta_ptr = mwifiex_get_tdls_sta_entry(priv, TDLS_IN_OFF_CHAN);
+	sta_ptr = mwifiex_get_tdls_sta_entry(adapter, TDLS_IN_OFF_CHAN);
 	if (sta_ptr)
 		return true;
 
@@ -662,13 +666,13 @@ static u8 mwifiex_is_tdls_off_chan(struct mwifiex_private *priv)
 /* If tdls channel switching is on-going or tdls operate on off-channel,
  * cmd path should be blocked until tdls switched to base-channel.
  */
-u8 mwifiex_is_send_cmd_allowed(struct mwifiex_private *priv)
+u8 mwifiex_is_send_cmd_allowed(struct mwifiex_adapter *adapter)
 {
-	if (!priv || !ISSUPP_TDLS_ENABLED(priv->adapter->fw_cap_info))
+	if (!ISSUPP_TDLS_ENABLED(adapter->fw_cap_info))
 		return true;
 
-	if (mwifiex_is_tdls_chan_switching(priv) ||
-	    mwifiex_is_tdls_off_chan(priv))
+	if (mwifiex_is_tdls_chan_switching(adapter) ||
+	    mwifiex_is_tdls_off_chan(adapter))
 		return false;
 
 	return true;

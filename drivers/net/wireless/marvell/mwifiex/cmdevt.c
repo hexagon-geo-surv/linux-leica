@@ -672,6 +672,20 @@ int mwifiex_send_cmd(struct mwifiex_private *priv, u16 cmd_no,
 }
 
 /*
+ * This function prepares a command and send it to the firmware.
+ *
+ * This function is meant to be used when a command is not specific
+ * to a struct mwifiex_private *priv, but globally to the adapter.
+ */
+int mwifiex_adapter_send_cmd(struct mwifiex_adapter *adapter, u16 cmd_no,
+			     u16 cmd_action, u32 cmd_oid, void *data_buf, bool sync)
+{
+	struct mwifiex_private *priv = adapter->priv[0];
+
+	return mwifiex_send_cmd(priv, cmd_no, cmd_action, cmd_oid, data_buf, sync);
+}
+
+/*
  * This function queues a command to the command pending queue.
  *
  * This in effect adds the command to the command list to be executed.

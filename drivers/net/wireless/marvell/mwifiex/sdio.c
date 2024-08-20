@@ -942,7 +942,7 @@ mwifiex_sdio_remove(struct sdio_func *func)
 
 		priv = mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_ANY);
 		mwifiex_disable_auto_ds(priv);
-		mwifiex_init_shutdown_fw(priv, MWIFIEX_FUNC_SHUTDOWN);
+		mwifiex_init_shutdown_fw(adapter, MWIFIEX_FUNC_SHUTDOWN);
 	}
 
 	mwifiex_remove_card(adapter);

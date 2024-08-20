@@ -3049,7 +3049,11 @@ struct wireless_dev *mwifiex_add_virtual_intf(struct wiphy *wiphy,
 	priv->netdev = dev;
 
 	if (!adapter->mfg_mode) {
-		mwifiex_set_default_mac_address(priv, dev);
+
+		if (params && !is_zero_ether_addr(params->macaddr))
+			mwifiex_set_mac_address(priv, dev, params->macaddr);
+		else
+			mwifiex_set_default_mac_address(priv, dev);
 
 		ret = mwifiex_send_cmd(priv, HostCmd_CMD_SET_BSS_MODE,
 				       HostCmd_ACT_GEN_SET, 0, NULL, true);
@@ -4775,7 +4779,8 @@ int mwifiex_register_cfg80211(struct mwifiex_adapter *adapter)
 
 	wiphy->features |= NL80211_FEATURE_INACTIVITY_TIMER |
 			   NL80211_FEATURE_LOW_PRIORITY_SCAN |
-			   NL80211_FEATURE_NEED_OBSS_SCAN;
+			   NL80211_FEATURE_NEED_OBSS_SCAN |
+			   NL80211_FEATURE_MAC_ON_CREATE;
 
 	if (adapter->host_mlme_enabled)
 		wiphy->features |= NL80211_FEATURE_SAE;

@@ -783,12 +783,12 @@ mwifiex_hscfg_write(struct file *file, const char __user *ubuf,
 	}
 
 	if (arg_num >= 1 && arg_num < 3)
-		mwifiex_set_hs_params(priv, HostCmd_ACT_GEN_GET,
+		mwifiex_set_hs_params(priv->adapter, HostCmd_ACT_GEN_GET,
 				      MWIFIEX_SYNC_CMD, &hscfg);
 
 	if (arg_num) {
 		if (conditions == HS_CFG_CANCEL) {
-			mwifiex_cancel_hs(priv, MWIFIEX_ASYNC_CMD);
+			mwifiex_cancel_hs(priv->adapter, MWIFIEX_ASYNC_CMD);
 			ret = count;
 			goto done;
 		}
@@ -800,7 +800,7 @@ mwifiex_hscfg_write(struct file *file, const char __user *ubuf,
 		hscfg.gap = gap;
 
 	hscfg.is_invoke_hostcmd = false;
-	mwifiex_set_hs_params(priv, HostCmd_ACT_GEN_SET,
+	mwifiex_set_hs_params(priv->adapter, HostCmd_ACT_GEN_SET,
 			      MWIFIEX_SYNC_CMD, &hscfg);
 
 	mwifiex_enable_hs(priv->adapter);
@@ -828,7 +828,7 @@ mwifiex_hscfg_read(struct file *file, char __user *ubuf,
 	if (!buf)
 		return -ENOMEM;
 
-	mwifiex_set_hs_params(priv, HostCmd_ACT_GEN_GET,
+	mwifiex_set_hs_params(priv->adapter, HostCmd_ACT_GEN_GET,
 			      MWIFIEX_SYNC_CMD, &hscfg);
 
 	pos = snprintf(buf, PAGE_SIZE, "%u 0x%x 0x%x\n", hscfg.conditions,

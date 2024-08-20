@@ -1475,8 +1475,6 @@ static void mwifiex_uninit_sw(struct mwifiex_adapter *adapter)
  */
 int mwifiex_shutdown_sw(struct mwifiex_adapter *adapter)
 {
-	struct mwifiex_private *priv;
-
 	if (!adapter)
 		return 0;
 
@@ -1484,10 +1482,9 @@ int mwifiex_shutdown_sw(struct mwifiex_adapter *adapter)
 	/* Caller should ensure we aren't suspending while this happens */
 	reinit_completion(adapter->fw_done);
 
-	priv = mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_ANY);
 	mwifiex_deauthenticate_all(adapter);
 
-	mwifiex_init_shutdown_fw(priv, MWIFIEX_FUNC_SHUTDOWN);
+	mwifiex_init_shutdown_fw(adapter, MWIFIEX_FUNC_SHUTDOWN);
 
 	mwifiex_uninit_sw(adapter);
 	adapter->is_up = false;

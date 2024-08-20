@@ -1303,14 +1303,14 @@ mwifiex_get_priv_by_id(struct mwifiex_adapter *adapter,
 	int i;
 
 	for (i = 0; i < adapter->priv_num; i++) {
-		if (adapter->priv[i]->bss_mode == NL80211_IFTYPE_UNSPECIFIED)
-			continue;
+		struct mwifiex_private *priv = adapter->priv[i];
 
-		if ((adapter->priv[i]->bss_num == bss_num) &&
-		    (adapter->priv[i]->bss_type == bss_type))
-			break;
+		if ((priv->bss_num == bss_num) &&
+		    (priv->bss_type == bss_type))
+			return  priv;
 	}
-	return ((i < adapter->priv_num) ? adapter->priv[i] : NULL);
+
+	return NULL;
 }
 
 /*

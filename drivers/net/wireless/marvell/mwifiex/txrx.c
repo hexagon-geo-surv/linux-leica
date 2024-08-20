@@ -33,12 +33,10 @@ int mwifiex_handle_rx_packet(struct mwifiex_adapter *adapter,
 	/* Get the BSS number from rxpd, get corresponding priv */
 	priv = mwifiex_get_priv_by_id(adapter, local_rx_pd->bss_num &
 				      BSS_NUM_MASK, local_rx_pd->bss_type);
-	if (!priv)
-		priv = mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_ANY);
-
 	if (!priv) {
 		mwifiex_dbg(adapter, ERROR,
-			    "data: priv not found. Drop RX packet\n");
+			    "data: received RX packet on unused bss_num %d. Dropping it\n",
+			    local_rx_pd->bss_num & BSS_NUM_MASK);
 		dev_kfree_skb_any(skb);
 		return -1;
 	}

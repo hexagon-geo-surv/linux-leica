@@ -1083,6 +1083,10 @@ int mwifiex_complete_cmd(struct mwifiex_adapter *adapter,
 int mwifiex_send_cmd(struct mwifiex_private *priv, u16 cmd_no,
 		     u16 cmd_action, u32 cmd_oid, void *data_buf, bool sync);
 
+int mwifiex_adapter_send_cmd(struct mwifiex_adapter *adapter, u16 cmd_no,
+			     u16 cmd_action, u32 cmd_oid, void *data_buf,
+			     bool sync);
+
 void mwifiex_cmd_timeout_func(struct timer_list *t);
 
 int mwifiex_get_debug_info(struct mwifiex_private *,

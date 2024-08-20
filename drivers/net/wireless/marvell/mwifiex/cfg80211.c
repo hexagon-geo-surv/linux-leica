@@ -562,7 +562,6 @@ int mwifiex_send_domain_info_cmd_fw(struct wiphy *wiphy)
 	struct ieee80211_supported_band *sband;
 	struct ieee80211_channel *ch;
 	struct mwifiex_adapter *adapter = mwifiex_cfg80211_get_adapter(wiphy);
-	struct mwifiex_private *priv;
 	struct mwifiex_802_11d_domain_reg *domain_info = &adapter->domain_reg;
 
 	/* Set country code */
@@ -620,9 +619,7 @@ int mwifiex_send_domain_info_cmd_fw(struct wiphy *wiphy)
 
 	domain_info->no_of_triplet = no_of_triplet;
 
-	priv = mwifiex_get_priv(adapter, MWIFIEX_BSS_ROLE_ANY);
-
-	if (mwifiex_send_cmd(priv, HostCmd_CMD_802_11D_DOMAIN_INFO,
+	if (mwifiex_adapter_send_cmd(adapter, HostCmd_CMD_802_11D_DOMAIN_INFO,
 			     HostCmd_ACT_GEN_SET, 0, NULL, false)) {
 		mwifiex_dbg(adapter, INFO,
 			    "11D: setting domain info in FW\n");
@@ -1865,8 +1862,6 @@ static int
 mwifiex_cfg80211_set_antenna(struct wiphy *wiphy, u32 tx_ant, u32 rx_ant)
 {
 	struct mwifiex_adapter *adapter = mwifiex_cfg80211_get_adapter(wiphy);
-	struct mwifiex_private *priv = mwifiex_get_priv(adapter,
-							MWIFIEX_BSS_ROLE_ANY);
 	struct mwifiex_ds_ant_cfg ant_cfg;
 
 	if (!tx_ant || !rx_ant)
@@ -1884,7 +1879,7 @@ mwifiex_cfg80211_set_antenna(struct wiphy *wiphy, u32 tx_ant, u32 rx_ant)
 			return -EOPNOTSUPP;
 
 		if ((tx_ant == BIT(adapter->number_of_antenna) - 1) &&
-		    (priv->adapter->number_of_antenna > 1)) {
+		    (adapter->number_of_antenna > 1)) {
 			tx_ant = RF_ANTENNA_AUTO;
 			rx_ant = RF_ANTENNA_AUTO;
 		}
@@ -1920,8 +1915,8 @@ mwifiex_cfg80211_set_antenna(struct wiphy *wiphy, u32 tx_ant, u32 rx_ant)
 	ant_cfg.tx_ant = tx_ant;
 	ant_cfg.rx_ant = rx_ant;
 
-	return mwifiex_send_cmd(priv, HostCmd_CMD_RF_ANTENNA,
-				HostCmd_ACT_GEN_SET, 0, &ant_cfg, true);
+	return mwifiex_adapter_send_cmd(adapter, HostCmd_CMD_RF_ANTENNA,
+					HostCmd_ACT_GEN_SET, 0, &ant_cfg, true);
 }
 
 static int

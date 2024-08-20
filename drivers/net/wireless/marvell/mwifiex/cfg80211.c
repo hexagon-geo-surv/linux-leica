@@ -3495,7 +3495,7 @@ static int mwifiex_cfg80211_suspend(struct wiphy *wiphy,
 	hs_cfg.is_invoke_hostcmd = false;
 	hs_cfg.gpio = adapter->hs_cfg.gpio;
 	hs_cfg.gap = adapter->hs_cfg.gap;
-	ret = mwifiex_set_hs_params(sta_priv, HostCmd_ACT_GEN_SET,
+	ret = mwifiex_set_hs_params(adapter, HostCmd_ACT_GEN_SET,
 				    MWIFIEX_SYNC_CMD, &hs_cfg);
 	if (ret)
 		mwifiex_dbg(adapter, ERROR, "Failed to set HS params\n");

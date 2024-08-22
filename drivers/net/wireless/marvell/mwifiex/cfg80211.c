@@ -961,6 +961,14 @@ mwifiex_init_new_priv_params(struct mwifiex_private *priv,
 {
 	struct mwifiex_adapter *adapter = priv->adapter;
 	unsigned long flags;
+	int bss_num;
+
+
+	bss_num = mwifiex_get_unused_bss_num(adapter, priv->bss_type);
+	if (bss_num < 0)
+		return -EBUSY;
+
+	priv->bss_num = bss_num;
 
 	mwifiex_init_priv(priv);
 
@@ -994,8 +1002,6 @@ mwifiex_init_new_priv_params(struct mwifiex_private *priv,
 			    dev->name, type);
 		return -EOPNOTSUPP;
 	}
-
-	priv->bss_num = mwifiex_get_unused_bss_num(adapter, priv->bss_type);
 
 	spin_lock_irqsave(&adapter->main_proc_lock, flags);
 	adapter->main_locked = false;

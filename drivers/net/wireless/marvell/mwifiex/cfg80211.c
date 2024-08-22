@@ -911,6 +911,49 @@ static int mwifiex_deinit_priv_params(struct mwifiex_private *priv)
 	return 0;
 }
 
+/*
+ * This function returns the first available unused private structure pointer.
+ */
+static int
+mwifiex_get_unused_bss_num(struct mwifiex_adapter *adapter, u8 bss_type)
+{
+	int i, busy = 0;
+
+	for (i = 0; i < adapter->priv_num; i++) {
+		struct mwifiex_private *priv = adapter->priv[i];
+
+		if (priv->bss_mode == NL80211_IFTYPE_UNSPECIFIED)
+			continue;
+
+		if (priv->bss_type == bss_type)
+			busy |= BIT(priv->bss_num);
+	}
+
+	return ffz(busy);
+}
+
+static struct mwifiex_private *
+mwifiex_get_unused_priv_by_bss_type(struct mwifiex_adapter *adapter,
+				    u8 bss_type)
+{
+	int i, bss_num;
+
+	bss_num = mwifiex_get_unused_bss_num(adapter, bss_type);
+	if (bss_num < 0)
+		return NULL;
+
+	for (i = 0; i < adapter->priv_num; i++) {
+		struct mwifiex_private *priv = adapter->priv[i];
+
+		if (priv->bss_mode == NL80211_IFTYPE_UNSPECIFIED) {
+			priv->bss_num = bss_num;
+			return priv;
+		}
+	}
+
+	return NULL;
+}
+
 static int
 mwifiex_init_new_priv_params(struct mwifiex_private *priv,
 			     struct net_device *dev,

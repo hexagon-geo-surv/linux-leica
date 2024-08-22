@@ -1002,8 +1002,9 @@ static int dw100_s_selection(struct file *file, void *fh,
 			}
 		}
 
-		w = (u32)((((u64)wframe << 16) * qscale) >> 32);
-		h = (u32)((((u64)hframe << 16) * qscale) >> 32);
+		uint32_t zero_point_five = 1 << 15;
+		w = (u32)(((((u64)wframe << 16)+zero_point_five) * qscalex) >> 32);
+		h = (u32)(((((u64)hframe << 16)+zero_point_five) * qscaley) >> 32);
 		x = x + (sel->r.width  - w) / 2;
 		y = y + (sel->r.height  - h) / 2;
 		x = min(wframe - w, (unsigned int)max(0, x));

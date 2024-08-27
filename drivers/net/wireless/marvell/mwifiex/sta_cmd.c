@@ -411,7 +411,7 @@ mwifiex_cmd_802_11_hs_cfg(struct mwifiex_private *priv,
  */
 static int mwifiex_cmd_802_11_mac_address(struct mwifiex_private *priv,
 					  struct host_cmd_ds_command *cmd,
-					  u16 cmd_action)
+					  u16 cmd_action, void *data_buf)
 {
 	cmd->command = cpu_to_le16(HostCmd_CMD_802_11_MAC_ADDRESS);
 	cmd->size = cpu_to_le16(sizeof(struct host_cmd_ds_802_11_mac_address) +
@@ -421,8 +421,8 @@ static int mwifiex_cmd_802_11_mac_address(struct mwifiex_private *priv,
 	cmd->params.mac_addr.action = cpu_to_le16(cmd_action);
 
 	if (cmd_action == HostCmd_ACT_GEN_SET)
-		memcpy(cmd->params.mac_addr.mac_addr, priv->curr_addr,
-		       ETH_ALEN);
+		memcpy(cmd->params.mac_addr.mac_addr, data_buf, ETH_ALEN);
+
 	return 0;
 }
 
@@ -1942,7 +1942,7 @@ int mwifiex_sta_prepare_cmd(struct mwifiex_private *priv, uint16_t cmd_no,
 		break;
 	case HostCmd_CMD_802_11_MAC_ADDRESS:
 		ret = mwifiex_cmd_802_11_mac_address(priv, cmd_ptr,
-						     cmd_action);
+						     cmd_action, data_buf);
 		break;
 	case HostCmd_CMD_MAC_MULTICAST_ADR:
 		ret = mwifiex_cmd_mac_multicast_adr(cmd_ptr, cmd_action,

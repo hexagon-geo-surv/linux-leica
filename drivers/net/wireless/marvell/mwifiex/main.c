@@ -944,20 +944,16 @@ int mwifiex_set_mac_address(struct mwifiex_private *priv,
 			    struct net_device *dev, u8 *new_mac)
 {
 	int ret;
-	u64 old_mac_addr;
 
 	netdev_info(dev, "%s: old: %pM new: %pM\n", __func__, priv->curr_addr, new_mac);
 
-	old_mac_addr = ether_addr_to_u64(priv->curr_addr);
-
-	ether_addr_copy(priv->curr_addr, new_mac);
-
-	/* Send request to firmware */
+	/* Send request to firmware. The response handler will copy the new
+	 * MAC address to priv->curr_addr
+	 */
 	ret = mwifiex_send_cmd(priv, HostCmd_CMD_802_11_MAC_ADDRESS,
-			       HostCmd_ACT_GEN_SET, 0, NULL, true);
+			       HostCmd_ACT_GEN_SET, 0, new_mac, true);
 
 	if (ret) {
-		u64_to_ether_addr(old_mac_addr, priv->curr_addr);
 		mwifiex_dbg(priv->adapter, ERROR,
 			    "set mac address failed: ret=%d\n", ret);
 		return ret;

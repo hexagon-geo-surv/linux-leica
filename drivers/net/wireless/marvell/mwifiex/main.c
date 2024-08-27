@@ -1796,7 +1796,7 @@ int mwifiex_remove_card(struct mwifiex_adapter *adapter)
 }
 EXPORT_SYMBOL_GPL(mwifiex_remove_card);
 
-void _mwifiex_dbg(const struct mwifiex_adapter *adapter, int mask,
+void _mwifiex_dbg(const struct mwifiex_adapter *adapter, struct net_device *dev, int mask,
 		  const char *fmt, ...)
 {
 	struct va_format vaf;
@@ -1810,7 +1810,9 @@ void _mwifiex_dbg(const struct mwifiex_adapter *adapter, int mask,
 	vaf.fmt = fmt;
 	vaf.va = &args;
 
-	if (adapter->dev)
+	if (dev)
+		netdev_info(dev, "%pV", &vaf);
+	else if (adapter->dev)
 		dev_info(adapter->dev, "%pV", &vaf);
 	else
 		pr_info("%pV", &vaf);

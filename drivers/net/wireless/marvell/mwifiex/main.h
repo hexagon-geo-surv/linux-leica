@@ -191,11 +191,13 @@ enum MWIFIEX_DEBUG_LEVEL {
 					MWIFIEX_DBG_FATAL | \
 					MWIFIEX_DBG_ERROR)
 
-__printf(3, 4)
-void _mwifiex_dbg(const struct mwifiex_adapter *adapter, int mask,
+__printf(4, 5)
+void _mwifiex_dbg(const struct mwifiex_adapter *adapter, struct net_device *dev, int mask,
 		  const char *fmt, ...);
 #define mwifiex_dbg(adapter, mask, fmt, ...)				\
-	_mwifiex_dbg(adapter, MWIFIEX_DBG_##mask, fmt, ##__VA_ARGS__)
+	_mwifiex_dbg(adapter, NULL, MWIFIEX_DBG_##mask, fmt, ##__VA_ARGS__)
+#define mwifiex_netdev_dbg(adapter, dev, mask, fmt, ...)		\
+	_mwifiex_dbg(adapter, dev, MWIFIEX_DBG_##mask, fmt, ##__VA_ARGS__)
 
 #define DEBUG_DUMP_DATA_MAX_LEN		128
 #define mwifiex_dbg_dump(adapter, dbg_mask, str, buf, len)	\

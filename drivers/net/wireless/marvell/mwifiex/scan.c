@@ -69,7 +69,7 @@ _dbg_security_flags(int log_level, const char *func, const char *desc,
 		    struct mwifiex_private *priv,
 		    struct mwifiex_bssdescriptor *bss_desc)
 {
-	_mwifiex_dbg(priv->adapter, log_level,
+	_mwifiex_dbg(priv->adapter, NULL, log_level,
 		     "info: %s: %s:\twpa_ie=%#x wpa2_ie=%#x WEP=%s WPA=%s WPA2=%s\tEncMode=%#x privacy=%#x\n",
 		     func, desc,
 		     bss_desc->bcn_wpa_ie ?

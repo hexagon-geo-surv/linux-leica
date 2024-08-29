@@ -40,6 +40,14 @@ properties:
       Host-To-Chip power save mechanism is driven by this GPIO
       connected to BT_WAKE_IN pin of the NXP chipset.
 
+  vcc-supply:
+    description:
+      phandle of the regulator that provides the supply voltage.
+
+  reset-gpios:
+    description:
+      Chip powerdown/reset signal (PDn).
+
 required:
   - compatible
 
@@ -54,5 +62,7 @@ examples:
             fw-init-baudrate = <3000000>;
             firmware-name = "uartuart8987_bt_v0.bin";
             device-wakeup-gpios = <&gpio 11 GPIO_ACTIVE_HIGH>;
+            vcc-supply = <&nxp_iw612_supply>;
+            reset-gpios = <&gpioctrl 2 GPIO_ACTIVE_LOW>;
         };
     };

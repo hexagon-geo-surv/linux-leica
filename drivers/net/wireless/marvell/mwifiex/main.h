@@ -1695,6 +1695,7 @@ int mwifiex_set_mac_address(struct mwifiex_private *priv,
 int mwifiex_set_default_mac_address(struct mwifiex_private *priv,
 				    struct net_device *dev);
 void mwifiex_devdump_tmo_func(unsigned long function_context);
+bool mwifiex_channel_conflict(struct mwifiex_private *priv, struct ieee80211_channel *ch);
 
 #ifdef CONFIG_DEBUG_FS
 void mwifiex_debugfs_init(void);

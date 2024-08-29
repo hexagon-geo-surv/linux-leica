@@ -2052,6 +2052,58 @@ static int mwifiex_cfg80211_stop_ap(struct wiphy *wiphy, struct net_device *dev,
 	return 0;
 }
 
+bool mwifiex_channel_conflict(struct mwifiex_private *priv, struct ieee80211_channel *ch)
+{
+	struct mwifiex_adapter *adapter = priv->adapter;
+	struct mwifiex_current_bss_params *bss_params;
+	u8 band;
+	int freq, i;
+
+	if (adapter->drcs_enabled)
+		return false;
+
+	for (i = 0; i < adapter->priv_num; i++) {
+		struct mwifiex_private *p = adapter->priv[i];
+		struct ieee80211_channel *used = NULL;
+
+		if (p == priv)
+			continue;
+
+		switch (GET_BSS_ROLE(p)) {
+		case MWIFIEX_BSS_ROLE_UAP:
+			if (!netif_carrier_ok(p->netdev))
+				break;
+
+			if (!cfg80211_chandef_valid(&p->bss_chandef))
+				break;
+
+			used = p->bss_chandef.chan;
+
+			break;
+		case MWIFIEX_BSS_ROLE_STA:
+			if (!p->media_connected)
+				break;
+
+			bss_params = &p->curr_bss_params;
+			band = mwifiex_band_to_radio_type(bss_params->band);
+			freq = ieee80211_channel_to_frequency(bss_params->bss_descriptor.channel,
+							      band);
+
+			used = ieee80211_get_channel(priv->wdev.wiphy, freq);
+
+			break;
+		}
+
+		if (used && !ieee80211_channel_equal(used, ch)) {
+			mwifiex_dbg(priv->adapter, MSG,
+				    "all AP and STA must operate on same channel\n");
+			return true;
+		}
+	}
+
+	return false;
+}
+
 /* cfg80211 operation handler for start_ap.
  * Function sets beacon period, DTIM period, SSID and security into
  * AP config structure.
@@ -2066,6 +2118,9 @@ static int mwifiex_cfg80211_start_ap(struct wiphy *wiphy,
 
 	if (GET_BSS_ROLE(priv) != MWIFIEX_BSS_ROLE_UAP)
 		return -1;
+
+	if (mwifiex_channel_conflict(priv, params->chandef.chan))
+		return -EBUSY;
 
 	bss_cfg = kzalloc(sizeof(struct mwifiex_uap_bss_param), GFP_KERNEL);
 	if (!bss_cfg)

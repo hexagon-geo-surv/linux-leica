@@ -1133,6 +1133,32 @@ mwifiex_change_vif_to_ap(struct net_device *dev,
 
 	return 0;
 }
+
+static int mwifiex_validate(struct mwifiex_adapter *adapter, struct mwifiex_private *priv,
+			    enum nl80211_iftype new_type)
+{
+	int i;
+	struct iface_combination_params params = {
+		.num_different_channels = 1,
+	};
+
+	for (i = 0; i < adapter->priv_num; i++) {
+		struct mwifiex_private *p = adapter->priv[i];
+
+		if (priv == p) {
+			params.iftype_num[new_type]++;
+		} else {
+			if (p->wdev.iftype != NL80211_IFTYPE_UNSPECIFIED)
+				params.iftype_num[p->wdev.iftype]++;
+		}
+	}
+
+	if (!priv)
+		params.iftype_num[new_type]++;
+
+	return cfg80211_check_combinations(adapter->wiphy, &params);
+}
+
 /*
  * CFG802.11 operation handler to change interface type.
  */
@@ -1144,6 +1170,11 @@ mwifiex_cfg80211_change_virtual_intf(struct wiphy *wiphy,
 {
 	struct mwifiex_private *priv = mwifiex_netdev_get_priv(dev);
 	enum nl80211_iftype curr_iftype = dev->ieee80211_ptr->iftype;
+	int ret;
+
+	ret = mwifiex_validate(priv->adapter, priv, type);
+	if (ret)
+		return ret;
 
 	if (priv->scan_request) {
 		mwifiex_dbg(priv->adapter, ERROR,
@@ -2956,6 +2987,10 @@ struct wireless_dev *mwifiex_add_virtual_intf(struct wiphy *wiphy,
 
 	if (!adapter)
 		return ERR_PTR(-EFAULT);
+
+	ret = mwifiex_validate(adapter, NULL, type);
+	if (ret)
+		return ERR_PTR(ret);
 
 	switch (type) {
 	case NL80211_IFTYPE_UNSPECIFIED:

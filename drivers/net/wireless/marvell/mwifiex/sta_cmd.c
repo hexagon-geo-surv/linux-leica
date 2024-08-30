@@ -14,10 +14,6 @@
 #include "11n.h"
 #include "11ac.h"
 
-static bool drcs;
-module_param(drcs, bool, 0644);
-MODULE_PARM_DESC(drcs, "multi-channel operation:1, single-channel operation:0");
-
 static bool disable_auto_ds;
 module_param(disable_auto_ds, bool, 0);
 MODULE_PARM_DESC(disable_auto_ds,
@@ -2323,14 +2319,13 @@ int mwifiex_sta_init_cmd(struct mwifiex_private *priv, u8 first_sta, bool init)
 				return -1;
 		}
 
-		if (drcs) {
+		if (ISSUPP_DRCS_ENABLED(adapter->fw_cap_info)) {
 			adapter->drcs_enabled = true;
-			if (ISSUPP_DRCS_ENABLED(adapter->fw_cap_info))
-				ret = mwifiex_send_cmd(priv,
-						       HostCmd_CMD_MC_POLICY,
-						       HostCmd_ACT_GEN_SET, 0,
-						       &adapter->drcs_enabled,
-						       true);
+			ret = mwifiex_send_cmd(priv,
+					       HostCmd_CMD_MC_POLICY,
+					       HostCmd_ACT_GEN_SET, 0,
+					       &adapter->drcs_enabled,
+					       true);
 			if (ret)
 				return -1;
 		}

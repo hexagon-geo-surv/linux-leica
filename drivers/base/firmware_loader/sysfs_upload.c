@@ -174,6 +174,10 @@ static void fw_upload_main(struct work_struct *work)
 	fw_upload_update_progress(fwlp, FW_UPLOAD_PROG_PREPARING);
 	ret = fwlp->ops->prepare(fwl, fwlp->data, fwlp->remaining_size);
 	if (ret != FW_UPLOAD_ERR_NONE) {
+		if (ret == FW_UPLOAD_ERR_SKIP) {
+			dev_info(fw_dev, "firmware already up-to-date, skip update\n");
+			ret = FW_UPLOAD_ERR_NONE;
+		}
 		fw_upload_set_error(fwlp, ret);
 		goto putdev_exit;
 	}

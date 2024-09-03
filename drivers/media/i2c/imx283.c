@@ -475,13 +475,13 @@ static const struct imx283_mode supported_modes_12bit[] = {
 		},
 	},
 	{
-		/* 20MPix 21.40 fps readout mode 0 */
+		/* Custom Crop Mode 1920x1080: readout mode 0 */
 		.mode = IMX283_MODE_0,
 		.bpp = 12,
 		.width = 1920,
 		.height = 1080,
 		.min_hmax = 5914, /* 887 @ 480MHz/72MHz */
-		.min_vmax = 3793, /* Lines */
+		.min_vmax = 1100, /* Lines */
 
 		.veff = 3694,
 		.vst = 0,
@@ -490,9 +490,9 @@ static const struct imx283_mode supported_modes_12bit[] = {
 		.hbin_ratio = 1,
 		.vbin_ratio = 1,
 
-		/* 20.00 FPS */
+		/* 72.72 FPS */
 		.default_hmax = 6000, /* 900 @ 480MHz/72MHz */
-		.default_vmax = 4000,
+		.default_vmax = 1100,
 
 		.min_shr = 11,
 		.horizontal_ob = 96,
@@ -619,7 +619,7 @@ static const struct imx283_mode supported_modes_12bit[] = {
 		.width = 5472,
 		.height = 450,
 		.min_hmax = 5914, /* 887 @ 480MHz/72MHz */
-		.min_vmax = 3793, /* Lines */
+		.min_vmax = 600, /* Lines */
 
 		.veff = 3694,
 		.vst = 0,
@@ -628,9 +628,9 @@ static const struct imx283_mode supported_modes_12bit[] = {
 		.hbin_ratio = 1,
 		.vbin_ratio = 1,
 
-		/* 20.00 FPS */
+		/* 123.07 FPS */
 		.default_hmax = 6000, /* 900 @ 480MHz/72MHz */
-		.default_vmax = 4000,
+		.default_vmax = 650,
 
 		.min_shr = 11,
 		.horizontal_ob = 96,
@@ -644,7 +644,7 @@ static const struct imx283_mode supported_modes_12bit[] = {
 		.width = 4096,
 		.height = 450,
 		.min_hmax = 5914, /* 887 @ 480MHz/72MHz */
-		.min_vmax = 3793, /* Lines */
+		.min_vmax = 600, /* Lines */
 
 		.veff = 3694,
 		.vst = 0,
@@ -653,9 +653,9 @@ static const struct imx283_mode supported_modes_12bit[] = {
 		.hbin_ratio = 1,
 		.vbin_ratio = 1,
 
-		/* 20.00 FPS */
+		/* 123.07 FPS */
 		.default_hmax = 6000, /* 900 @ 480MHz/72MHz */
-		.default_vmax = 4000,
+		.default_vmax = 650,
 
 		.min_shr = 11,
 		.horizontal_ob = 96,

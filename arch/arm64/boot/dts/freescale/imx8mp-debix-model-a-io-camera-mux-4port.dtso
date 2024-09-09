@@ -1,0 +1,237 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
+// Overlay to configure a 4 port camera multiplexer
+//
+// Configuration is based on the Arducam 4 channel multiplexer
+// which uses a PCA9543 I2C multiplexer to handle the
+// I2C, and GPIOs 4, 17, and 18 to control the MIPI muxes.
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/clock/imx8mp-clock.h>
+#include <dt-bindings/gpio/gpio.h>
+#include "imx8mp-pinfunc.h"
+
+&{/} {
+	/* 24 MHz Crystal on the imx335 camera module */
+	imx335_inclk_0: imx335_inclk_24m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		status = "okay";
+		clock-frequency = <24000000>;
+	};
+
+	cam0_regulator: regulator-vdd3v3 {
+		compatible = "regulator-fixed";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_csi0_pwdn>;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-name = "CSI0_POWER_EN";
+		gpio = <&gpio1 6 GPIO_ACTIVE_HIGH>;
+		vin-supply = <&reg_vdd5v0>;
+		startup-delay-us = <300000>;
+		enable-active-high;
+	};
+
+	mux: mux-controller {
+		compatible = "gpio-mux";
+		#mux-control-cells = <0>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_gpio_mux>;
+
+		/* SEL, En2, En1 */
+		mux-gpios = <&gpio1 12 GPIO_ACTIVE_HIGH>,
+			    <&gpio3 20 GPIO_ACTIVE_HIGH>,
+			    <&gpio3 22 GPIO_ACTIVE_HIGH>;
+	};
+
+	video-mux {
+		compatible = "video-mux";
+		mux-controls = <&mux>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		/*
+		 * GPIO mappings settings for selecting the different
+		 * camera connectors are not direct, hence port@ values
+		 * are not straight forward.
+		 */
+		port@2 {
+			/* Port A - En1 = 0, En2 = 1, SEL = 0 */
+			reg = <2>;
+
+			mux_in0: endpoint {
+				remote-endpoint = <&imx335_0_ep>;
+				clock-noncontinuous;
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+			};
+		};
+
+		port@3 {
+			/* Port B - En1 = 0, En2 = 1, SEL = 1 */
+			reg = <3>;
+		};
+
+		port@4 {
+			/* Port C - En1 = 1, En2 = 0, SEL = 0 */
+			reg = <4>;
+
+			mux_in2: endpoint {
+				remote-endpoint = <&imx219_2_ep>;
+				clock-noncontinuous;
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+			};
+		};
+
+		port@5 {
+			/* Port D - En1 = 1, En2 = 0, SEL = 1 */
+			reg = <5>;
+		};
+
+		port@6 {
+			/* Output port needs to be the highest port number */
+			reg = <6>;
+
+			mux_out: endpoint {
+				remote-endpoint = <&mipi_csi_0_in>;
+				clock-noncontinuous;
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+};
+
+&i2c2 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c2>;
+	status = "okay";
+
+	pca@70 {
+		reg = <0x70>;
+		compatible = "nxp,pca9544";
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		i2c@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			imx335_0: imx335@1a {
+				compatible = "sony,imx335";
+				reg = <0x1a>;
+
+				clocks = <&imx335_inclk_0>;
+				clock-names = "xclk";
+
+				rotation = <2>;
+				orientation = <2>;
+
+				status = "okay";
+
+				/* Arducam IMX335 module uses *only* the 3v3 line */
+				avdd-supply = <&cam0_regulator>;
+				ovdd-supply = <&cam0_regulator>;
+				dvdd-supply = <&cam0_regulator>;
+
+				port {
+					imx335_0_ep: endpoint {
+						remote-endpoint = <&mux_in0>;
+						clock-lanes = <0>;
+						/*
+						 * imx335 supports 4 lanes but
+						 * model A I/O (and the mux)
+						 * only supports 2 lanes
+						 */
+						data-lanes = <1 2>;
+						link-frequencies = /bits/ 64 <594000000>;
+					};
+				};
+			};
+		};
+
+		i2c@2 {
+			reg = <2>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			imx219_2: imx219@10 {
+				compatible = "sony,imx219";
+				reg = <0x10>;
+
+				clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+				clock-names = "xclk";
+				assigned-clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+				assigned-clock-parents = <&clk IMX8MP_CLK_24M>;
+				assigned-clock-rates = <24000000>;
+
+				VANA-supply = <&cam0_regulator>;
+				VDIG-supply = <&cam0_regulator>;
+				VDDL-supply = <&cam0_regulator>;
+
+				rotation = <0>;
+				orientation = <2>; /* External camera */
+
+				port {
+					imx219_2_ep: endpoint {
+						remote-endpoint = <&mux_in2>;
+						data-lanes = <1 2>;
+						clock-noncontinuous;
+						link-frequencies = /bits/ 64 <456000000>;
+					};
+				};
+			};
+		};
+	};
+};
+
+&i2c6 {
+	status = "disabled";
+};
+
+&iomuxc {
+	pinctrl_csi0_pwdn: csi0_rst_grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06	0x19
+		>;
+	};
+
+	pinctrl_i2c2: i2c2grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_I2C2_SCL__I2C2_SCL		0x400001c2
+			MX8MP_IOMUXC_I2C2_SDA__I2C2_SDA		0x400001c2
+		>;
+	};
+
+	pinctrl_gpio_mux: gpio_mux_grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_GPIO1_IO12__GPIO1_IO12	0x19
+			/* MX8MP_IOMUXC_SAI5_RXC__I2C6_SDA */
+			MX8MP_IOMUXC_SAI5_RXC__GPIO3_IO20	0x19
+			/* MX8MP_IOMUXC_SAI5_RXD1__CAN1_TX */
+			MX8MP_IOMUXC_SAI5_RXD1__GPIO3_IO22	0x19
+		>;
+	};
+};
+
+&mipi_csi_0 {
+	status = "okay";
+
+	ports {
+		port@0 {
+			mipi_csi_0_in: endpoint {
+				remote-endpoint = <&mux_out>;
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+};

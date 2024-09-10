@@ -2044,11 +2044,11 @@ bool mwifiex_channel_conflict(struct mwifiex_private *priv, struct ieee80211_cha
 		if (used && !ieee80211_channel_equal(used, ch)) {
 			mwifiex_dbg(priv->adapter, MSG,
 				    "all AP and STA must operate on same channel\n");
-			return false;
+			return true;
 		}
 	}
 
-	return true;
+	return false;
 }
 
 /* cfg80211 operation handler for start_ap.
@@ -2066,7 +2066,7 @@ static int mwifiex_cfg80211_start_ap(struct wiphy *wiphy,
 	if (GET_BSS_ROLE(priv) != MWIFIEX_BSS_ROLE_UAP)
 		return -1;
 
-	if (!mwifiex_channel_conflict(priv, params->chandef.chan))
+	if (mwifiex_channel_conflict(priv, params->chandef.chan))
 		return -EBUSY;
 
 	bss_cfg = kzalloc(sizeof(struct mwifiex_uap_bss_param), GFP_KERNEL);

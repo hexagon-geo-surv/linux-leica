@@ -291,7 +291,7 @@ int mwifiex_bss_start(struct mwifiex_private *priv, struct cfg80211_bss *bss,
 		if (!bss_desc)
 			return -1;
 
-		if (!mwifiex_channel_conflict(priv, bss->channel))
+		if (mwifiex_channel_conflict(priv, bss->channel))
 			return -EBUSY;
 
 		if (mwifiex_band_to_radio_type(bss_desc->bss_band) ==

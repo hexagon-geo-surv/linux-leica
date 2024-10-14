@@ -81,4 +81,15 @@ config RPMSG_VIRTIO
 	select RPMSG_NS
 	select VIRTIO
 
+config RPMSG_LEICA_COPRO
+	tristate "LEICA rpmsg driver"
+	depends on RPMSG
+	depends on NET
+	help
+	  Say Y here to use leica driver export rpmsg endpoints as device files,
+	  usually found in /dev. They make it possible for user-space programs
+	  to send and receive rpmsg packets.
+
+	  To compile this driver as a module, choose M here.
+
 endmenu

@@ -305,6 +305,7 @@ static const struct imx283_input_frequency imx283_frequencies[] = {
 };
 
 enum imx283_modes {
+	IMX283_MODE_0_SUPER,
 	IMX283_MODE_0,
 	IMX283_MODE_0_OB,
 	IMX283_MODE_1,
@@ -327,6 +328,7 @@ struct imx283_readout_mode {
 
 static const struct imx283_readout_mode imx283_readout_modes[] = {
 	/* All pixel scan modes */
+	[IMX283_MODE_0_SUPER] = { 0x04, 0x03, 0x10, 0x00 }, /* 12 bit */
 	[IMX283_MODE_0] = { 0x04, 0x03, 0x10, 0x00 }, /* 12 bit */
 	[IMX283_MODE_0_OB] = { 0x04, 0x03, 0x10, 0x00 }, /* 12 bit */
 	[IMX283_MODE_1] = { 0x04, 0x01, 0x00, 0x00 }, /* 10 bit */
@@ -417,8 +419,47 @@ static const struct imx283_reg_list link_freq_reglist[] = {
 		.height = (_height),					\
 	}
 
+/*
+ * OFFSET VERTICAL
+ * Tested working values : [16, 28, 40]
+ * Anything < 16 - dark Image
+ */
+static const unsigned int v_off = 16;
+
 /* Mode configs */
 static const struct imx283_mode supported_modes_12bit[] = {
+	/*======================================================*/
+	{
+		/* EXPERIMENTAL SUPER MODE 5592x(3710 - v_off) */
+		.mode = IMX283_MODE_0_SUPER,
+		.bpp = 12,
+		.width = 5592,
+		.height = 3710 - v_off,
+		.min_hmax = 5914, /* 887 @ 480MHz/72MHz */
+		.min_vmax = 3793, /* Lines */
+
+		.veff = 3694,
+		.vst = 0,
+		.vct = 0,
+
+		.hbin_ratio = 1,
+		.vbin_ratio = 1,
+
+		/* 20.00 FPS */
+		.default_hmax = 6000, /* 900 @ 480MHz/72MHz */
+		.default_vmax = 4000,
+
+		.min_shr = 11,
+		.horizontal_ob = 96,
+		.vertical_ob = 16,
+		.crop = {
+			.top = v_off,
+			.left = 0,
+			.width = 5592,
+			.height = 3710 - v_off,
+		}
+	},
+	/*=======================================================*/
 	{
 		/* 20MPix 21.40 fps readout mode 0 */
 		.mode = IMX283_MODE_0,
@@ -1283,6 +1324,7 @@ static int imx283_start_streaming(struct imx283 *imx283,
 	/* TODO: Validate mode->crop is fully contained within imx283_native_area */
 	cci_write(imx283->cci, IMX283_REG_HTRIMMING_START, mode->crop.left, &ret);
 	cci_write(imx283->cci, IMX283_REG_HTRIMMING_END, htrim_end, &ret);
+	dev_err(imx283->dev, "HTRIM START:  %d, HTRIM END: %d \n", mode->crop.left, htrim_end);
 
 	/* Disable embedded data */
 	cci_write(imx283->cci, IMX283_REG_EBD_X_OUT_SIZE, 0, &ret);

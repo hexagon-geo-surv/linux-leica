@@ -610,12 +610,7 @@ static const struct imx283_mode supported_modes_12bit[] = {
 		.min_shr = 11,
 		.horizontal_ob = 96,
 		.vertical_ob = 16,
-		.crop = {
-			.top = 40,
-			.left = 108,
-			.width = 2304,
-			.height = 3072,
-		},
+		.crop = CENTERED_RECTANGLE(imx283_active_area, 2304, 3072),
 	},
 
 	{

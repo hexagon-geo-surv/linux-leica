@@ -83,6 +83,11 @@ struct dw100_q_data {
 	struct v4l2_rect		crop;
 };
 
+struct dw100_map {
+	unsigned int *map;
+	dma_addr_t dma;
+};
+
 struct dw100_ctx {
 	struct v4l2_fh			fh;
 	struct dw100_device		*dw_dev;
@@ -92,12 +97,14 @@ struct dw100_ctx {
 	struct mutex			vq_mutex;
 
 	/* Look Up Table for pixel remapping */
-	unsigned int			*map;
-	dma_addr_t			map_dma;
+	struct dw100_map		maps[2];
+	unsigned int			applied_map_id;
 	size_t				map_size;
 	unsigned int			map_width;
 	unsigned int			map_height;
 	bool				user_map_is_set;
+	bool				user_map_is_updated;
+	struct mutex			maps_mutex;
 
 	/* Source and destination queue data */
 	struct dw100_q_data		q_data[2];
@@ -308,24 +315,32 @@ static int dw100_create_mapping(struct dw100_ctx *ctx)
 {
 	u32 *user_map;
 
-	if (ctx->map)
-		dma_free_coherent(&ctx->dw_dev->pdev->dev, ctx->map_size,
-				  ctx->map, ctx->map_dma);
+	for (unsigned int i = 0; i < ARRAY_SIZE(ctx->maps); i++) {
+		struct dw100_map *vertex_map = &ctx->maps[i];
+		if (vertex_map->map)
+			dma_free_coherent(&ctx->dw_dev->pdev->dev, ctx->map_size,
+					  vertex_map->map, vertex_map->dma);
 
-	ctx->map = dma_alloc_coherent(&ctx->dw_dev->pdev->dev, ctx->map_size,
-				      &ctx->map_dma, GFP_KERNEL);
+		vertex_map->map = dma_alloc_coherent(&ctx->dw_dev->pdev->dev, ctx->map_size,
+						     &vertex_map->dma, GFP_KERNEL);
 
-	if (!ctx->map)
-		return -ENOMEM;
+		if (!vertex_map->map)
+			return -ENOMEM;
+	}
 
 	user_map = dw100_get_user_map(ctx);
-	memcpy(ctx->map, user_map, ctx->map_size);
+
+	mutex_lock(&ctx->maps_mutex);
+	ctx->applied_map_id = 0;
+	memcpy(ctx->maps[ctx->applied_map_id].map, user_map, ctx->map_size);
+	mutex_unlock(&ctx->maps_mutex);
 
 	dev_dbg(&ctx->dw_dev->pdev->dev,
 		"%ux%u %s mapping created (d:%pad-c:%p) for stream %ux%u->%ux%u\n",
 		ctx->map_width, ctx->map_height,
 		ctx->user_map_is_set ? "user" : "identity",
-		&ctx->map_dma, ctx->map,
+		&ctx->maps[ctx->applied_map_id].dma,
+		ctx->maps[ctx->applied_map_id].map,
 		ctx->q_data[DW100_QUEUE_SRC].pix_fmt.width,
 		ctx->q_data[DW100_QUEUE_DST].pix_fmt.height,
 		ctx->q_data[DW100_QUEUE_SRC].pix_fmt.width,
@@ -336,10 +351,13 @@ static int dw100_create_mapping(struct dw100_ctx *ctx)
 
 static void dw100_destroy_mapping(struct dw100_ctx *ctx)
 {
-	if (ctx->map) {
-		dma_free_coherent(&ctx->dw_dev->pdev->dev, ctx->map_size,
-				  ctx->map, ctx->map_dma);
-		ctx->map = NULL;
+	for (unsigned int i = 0; i < ARRAY_SIZE(ctx->maps); i++) {
+		struct dw100_map *vertex_map = &ctx->maps[i];
+		if (vertex_map->map)
+			dma_free_coherent(&ctx->dw_dev->pdev->dev, ctx->map_size,
+					  vertex_map->map, vertex_map->dma);
+
+		vertex_map->map = NULL;
 	}
 }
 
@@ -347,9 +365,19 @@ static int dw100_s_ctrl(struct v4l2_ctrl *ctrl)
 {
 	struct dw100_ctx *ctx =
 		container_of(ctrl->handler, struct dw100_ctx, hdl);
+	u32 *user_map;
 
 	switch (ctrl->id) {
 	case V4L2_CID_DW100_DEWARPING_16x16_VERTEX_MAP:
+		unsigned int id;
+
+		user_map = ctrl->p_new.p_u32;
+		mutex_lock(&ctx->maps_mutex);
+		id = ctx->applied_map_id ? 0 : 1;
+		memcpy(ctx->maps[id].map, user_map, ctx->map_size);
+		ctx->user_map_is_updated = true;
+		mutex_unlock(&ctx->maps_mutex);
+
 		ctx->user_map_is_set = true;
 		break;
 	}
@@ -653,6 +681,8 @@ static int dw100_open(struct file *file)
 
 	v4l2_fh_add(&ctx->fh);
 
+	mutex_init(&ctx->maps_mutex);
+
 	return 0;
 
 err:
@@ -673,6 +703,7 @@ static int dw100_release(struct file *file)
 	v4l2_ctrl_handler_free(&ctx->hdl);
 	v4l2_m2m_ctx_release(ctx->fh.m2m_ctx);
 	mutex_destroy(&ctx->vq_mutex);
+	mutex_destroy(&ctx->maps_mutex);
 	kfree(ctx);
 
 	return 0;
@@ -1452,8 +1483,22 @@ static void dw100_start(struct dw100_ctx *ctx, struct vb2_v4l2_buffer *in_vb,
 	dw100_hw_set_destination(dw_dev, &ctx->q_data[DW100_QUEUE_DST],
 				 ctx->q_data[DW100_QUEUE_SRC].fmt,
 				 &out_vb->vb2_buf);
-	dw100_hw_set_mapping(dw_dev, ctx->map_dma,
-			     ctx->map_width, ctx->map_height);
+
+
+	mutex_lock(&ctx->maps_mutex);
+	if (ctx->user_map_is_updated) {
+		unsigned int id = ctx->applied_map_id ? 0 : 1;
+
+		dw100_hw_set_mapping(dw_dev, ctx->maps[id].dma,
+				     ctx->map_width, ctx->map_height);
+		ctx->applied_map_id = id;
+		ctx->user_map_is_updated = false;
+	} else {
+		dw100_hw_set_mapping(dw_dev, ctx->maps[ctx->applied_map_id].dma,
+				     ctx->map_width, ctx->map_height);
+	}
+	mutex_unlock(&ctx->maps_mutex);
+
 	dw100_hw_enable_irq(dw_dev);
 	dw100_hw_dewarp_start(dw_dev);
 

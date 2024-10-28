@@ -85,7 +85,7 @@ struct dw100_q_data {
 
 struct dw100_map {
 	unsigned int *map;
-	dma_addr_t map_dma;
+	dma_addr_t dma;
 };
 
 struct dw100_ctx {
@@ -315,15 +315,16 @@ static int dw100_create_mapping(struct dw100_ctx *ctx)
 {
 	u32 *user_map;
 
-	for (unsigned int i = 0; i < 2; i++) {
-		if (ctx->maps[i].map)
+	for (unsigned int i = 0; i < ARRAY_SIZE(ctx->maps); i++) {
+		struct dw100_map *vertex_map = &ctx->maps[i];
+		if (vertex_map->map)
 			dma_free_coherent(&ctx->dw_dev->pdev->dev, ctx->map_size,
-					  ctx->maps[i].map, ctx->maps[i].map_dma);
+					  vertex_map->map, vertex_map->dma);
 
-		ctx->maps[i].map = dma_alloc_coherent(&ctx->dw_dev->pdev->dev, ctx->map_size,
-						      &ctx->maps[i].map_dma, GFP_KERNEL);
+		vertex_map->map = dma_alloc_coherent(&ctx->dw_dev->pdev->dev, ctx->map_size,
+						     &vertex_map->dma, GFP_KERNEL);
 
-		if (!ctx->maps[i].map)
+		if (!vertex_map->map)
 			return -ENOMEM;
 	}
 
@@ -338,7 +339,7 @@ static int dw100_create_mapping(struct dw100_ctx *ctx)
 		"%ux%u %s mapping created (d:%pad-c:%p) for stream %ux%u->%ux%u\n",
 		ctx->map_width, ctx->map_height,
 		ctx->user_map_is_set ? "user" : "identity",
-		&ctx->maps[ctx->applied_map_id].map_dma,
+		&ctx->maps[ctx->applied_map_id].dma,
 		ctx->maps[ctx->applied_map_id].map,
 		ctx->q_data[DW100_QUEUE_SRC].pix_fmt.width,
 		ctx->q_data[DW100_QUEUE_DST].pix_fmt.height,
@@ -350,12 +351,13 @@ static int dw100_create_mapping(struct dw100_ctx *ctx)
 
 static void dw100_destroy_mapping(struct dw100_ctx *ctx)
 {
-	for (unsigned int i = 0; i < 2; i++) {
-		if (ctx->maps[i].map)
+	for (unsigned int i = 0; i < ARRAY_SIZE(ctx->maps); i++) {
+		struct dw100_map *vertex_map = &ctx->maps[i];
+		if (vertex_map->map)
 			dma_free_coherent(&ctx->dw_dev->pdev->dev, ctx->map_size,
-					  ctx->maps[i].map, ctx->maps[i].map_dma);
+					  vertex_map->map, vertex_map->dma);
 
-		ctx->maps[i].map = NULL;
+		vertex_map->map = NULL;
 	}
 }
 
@@ -363,12 +365,13 @@ static int dw100_s_ctrl(struct v4l2_ctrl *ctrl)
 {
 	struct dw100_ctx *ctx =
 		container_of(ctrl->handler, struct dw100_ctx, hdl);
+	u32 *user_map;
 
 	switch (ctrl->id) {
 	case V4L2_CID_DW100_DEWARPING_16x16_VERTEX_MAP:
-		u32 *user_map = ctrl->p_new.p_u32;
 		unsigned int id;
 
+		user_map = ctrl->p_new.p_u32;
 		mutex_lock(&ctx->maps_mutex);
 		id = ctx->applied_map_id ? 0 : 1;
 		memcpy(ctx->maps[id].map, user_map, ctx->map_size);
@@ -1488,10 +1491,13 @@ static void dw100_start(struct dw100_ctx *ctx, struct vb2_v4l2_buffer *in_vb,
 	if (ctx->user_map_is_updated) {
 		unsigned int id = ctx->applied_map_id ? 0 : 1;
 
-		dw100_hw_set_mapping(dw_dev, ctx->maps[id].map_dma,
+		dw100_hw_set_mapping(dw_dev, ctx->maps[id].dma,
 				     ctx->map_width, ctx->map_height);
 		ctx->applied_map_id = id;
 		ctx->user_map_is_updated = false;
+	} else {
+		dw100_hw_set_mapping(dw_dev, ctx->maps[ctx->applied_map_id].dma,
+				     ctx->map_width, ctx->map_height);
 	}
 	mutex_unlock(&ctx->maps_mutex);
 

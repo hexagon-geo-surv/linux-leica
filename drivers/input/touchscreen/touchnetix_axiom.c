@@ -7,8 +7,6 @@
  * Marco Felsch <kernel@pengutronix.de>
  */
 
-#include <asm/unaligned.h>
-
 #include <linux/bitfield.h>
 #include <linux/bits.h>
 #include <linux/completion.h>
@@ -31,6 +29,7 @@
 #include <linux/regmap.h>
 #include <linux/regulator/consumer.h>
 #include <linux/time.h>
+#include <linux/unaligned.h>
 
 /*
  * Short introduction for developers:

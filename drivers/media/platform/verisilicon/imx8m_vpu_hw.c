@@ -234,6 +234,48 @@ static const struct hantro_fmt imx8m_vpu_g2_dec_fmts[] = {
 	},
 };
 
+static const struct hantro_fmt imx8mp_vc8000e_fmts[] = {
+	{
+		.fourcc = V4L2_PIX_FMT_YUV420M,
+		.codec_mode = HANTRO_MODE_NONE,
+		.enc_fmt = ROCKCHIP_VPU_ENC_FMT_YUV420P,
+		.frmsize = {
+			.min_width = FMT_MIN_WIDTH,
+			.max_width = FMT_FHD_WIDTH,
+			.step_width = MB_DIM,
+			.min_height = FMT_MIN_HEIGHT,
+			.max_height = FMT_FHD_HEIGHT,
+			/* TODO: implement dummy reads to relax size restrictions */
+			.step_height = 64,
+		},
+	}, {
+		.fourcc = V4L2_PIX_FMT_NV12M,
+		.codec_mode = HANTRO_MODE_NONE,
+		.enc_fmt = ROCKCHIP_VPU_ENC_FMT_YUV420SP,
+		.frmsize = {
+			.min_width = FMT_MIN_WIDTH,
+			.max_width = FMT_FHD_WIDTH,
+			.step_width = MB_DIM,
+			.min_height = FMT_MIN_HEIGHT,
+			.max_height = FMT_FHD_HEIGHT,
+			.step_height = MB_DIM,
+		},
+	}, {
+		/* TODO: Check if correct */
+		.fourcc = V4L2_PIX_FMT_H264_SLICE,
+		.codec_mode = HANTRO_MODE_H264_ENC,
+		.max_depth = 2,
+		.frmsize = {
+			.min_width = FMT_MIN_WIDTH,
+			.max_width = FMT_FHD_WIDTH,
+			.step_width = MB_DIM,
+			.min_height = FMT_MIN_HEIGHT,
+			.max_height = FMT_FHD_HEIGHT,
+			.step_height = MB_DIM,
+		},
+	},
+};
+
 static irqreturn_t imx8m_vpu_g1_irq(int irq, void *dev_id)
 {
 	struct hantro_dev *vpu = dev_id;
@@ -246,6 +288,24 @@ static irqreturn_t imx8m_vpu_g1_irq(int irq, void *dev_id)
 
 	vdpu_write(vpu, 0, G1_REG_INTERRUPT);
 	vdpu_write(vpu, G1_REG_CONFIG_DEC_CLK_GATE_E, G1_REG_CONFIG);
+
+	hantro_irq_done(vpu, state);
+
+	return IRQ_HANDLED;
+}
+
+static irqreturn_t hantro_vc8000e_irq(int irq, void *dev_id)
+{
+	struct hantro_dev *vpu = dev_id;
+	enum vb2_buffer_state state;
+	u32 status;
+
+	/* TODO: add proper name and interrupt handling */
+	status = vepu_read(vpu, 0x4);
+	vepu_write(vpu, status, 0x4);
+
+	state = (status & BIT(2)) ?
+		 VB2_BUF_STATE_DONE : VB2_BUF_STATE_ERROR;
 
 	hantro_irq_done(vpu, state);
 
@@ -323,6 +383,14 @@ static const struct hantro_codec_ops imx8mq_vpu_g2_codec_ops[] = {
 	},
 };
 
+static const struct hantro_codec_ops imx8mp_vpu_vc8000e_codec_ops[] = {
+	[HANTRO_MODE_H264_ENC] = {
+		.run = hantro_vc8000e_h264_enc_run,
+		.done = hantro_vc8000e_h264_enc_done,
+		.init = hantro_h264_enc_init,
+	},
+};
+
 /*
  * VPU variants.
  */
@@ -333,6 +401,10 @@ static const struct hantro_irq imx8mq_irqs[] = {
 
 static const struct hantro_irq imx8mq_g2_irqs[] = {
 	{ "g2", hantro_g2_irq },
+};
+
+static const struct hantro_irq imx8mp_vc8000e_irqs[] = {
+	{ "vc8000e", hantro_vc8000e_irq },
 };
 
 static const char * const imx8mq_clk_names[] = { "g1", "g2", "bus" };
@@ -399,4 +471,14 @@ const struct hantro_variant imx8mm_vpu_g1_variant = {
 	.num_irqs = ARRAY_SIZE(imx8mq_irqs),
 	.clk_names = imx8mq_g1_clk_names,
 	.num_clocks = ARRAY_SIZE(imx8mq_g1_clk_names),
+};
+
+const struct hantro_variant imx8mp_vpu_vc8000e_variant = {
+	.enc_fmts = imx8mp_vc8000e_fmts,
+	.num_enc_fmts = ARRAY_SIZE(imx8mp_vc8000e_fmts),
+	.codec = HANTRO_H264_ENCODER,
+	.codec_ops = imx8mp_vpu_vc8000e_codec_ops,
+	.irqs = imx8mp_vc8000e_irqs,
+	.num_irqs = ARRAY_SIZE(imx8mp_vc8000e_irqs),
+	.num_clocks = 1,
 };

@@ -448,7 +448,7 @@ static const struct imx283_mode supported_modes_12bit[] = {
 
 		.min_shr = 11,
 		.horizontal_ob = 96,
-		.vertical_ob = 16,
+		.vertical_ob = 0, /* VOB will output on main image data type */
 		.crop = {
 			.top = v_off,
 			.left = 0,

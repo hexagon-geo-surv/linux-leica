@@ -304,7 +304,6 @@ static const struct imx283_input_frequency imx283_frequencies[] = {
 };
 
 enum imx283_modes {
-	IMX283_MODE_0_SUPER,
 	IMX283_MODE_0,
 	IMX283_MODE_1,
 	IMX283_MODE_1A,
@@ -326,7 +325,6 @@ struct imx283_readout_mode {
 
 static const struct imx283_readout_mode imx283_readout_modes[] = {
 	/* All pixel scan modes */
-	[IMX283_MODE_0_SUPER] = { 0x04, 0x03, 0x10, 0x00 }, /* 12 bit */
 	[IMX283_MODE_0] = { 0x04, 0x03, 0x10, 0x00 }, /* 12 bit */
 	[IMX283_MODE_1] = { 0x04, 0x01, 0x00, 0x00 }, /* 10 bit */
 	[IMX283_MODE_1A] = { 0x04, 0x01, 0x20, 0x50 }, /* 10 bit */
@@ -425,10 +423,12 @@ static const unsigned int v_off = 16;
 
 /* Mode configs */
 static const struct imx283_mode supported_modes_12bit[] = {
-	/*======================================================*/
 	{
-		/* EXPERIMENTAL SUPER MODE 5592x(3710 - v_off) */
-		.mode = IMX283_MODE_0_SUPER,
+		/*
+		 * EXPERIMENTAL SUPER RESOLUTION MODE
+		 *	 5592x(3710 - v_off)
+		 */
+		.mode = IMX283_MODE_0,
 		.bpp = 12,
 		.width = 5592,
 		.height = 3710 - v_off,
@@ -456,7 +456,6 @@ static const struct imx283_mode supported_modes_12bit[] = {
 			.height = 3710 - v_off,
 		}
 	},
-	/*=======================================================*/
 	{
 		/* 20MPix 21.40 fps readout mode 0 */
 		.mode = IMX283_MODE_0,

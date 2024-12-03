@@ -1119,6 +1119,9 @@ static void axiom_u42_get_touchslots(struct axiom_data *ts)
 		goto fallback;
 	}
 
+	ts->enabled_slots = 0;
+	ts->num_slots = 0;
+
 	for (i = 0; i < AXIOM_MAX_TOUCHSLOTS; i++) {
 		bool touch_enabled;
 
@@ -2525,6 +2528,12 @@ static int axiom_register_input_dev(struct axiom_data *ts)
 	touchscreen_parse_properties(input, true, &ts->prop);
 
 	axiom_u42_get_touchslots(ts);
+	if (!ts->num_slots) {
+		input_free_device(input);
+		dev_err(dev, "Error firmware has no touchslots enabled\n");
+		return -EINVAL;
+	}
+
 	ret = input_mt_init_slots(input, ts->num_slots, INPUT_MT_DIRECT);
 	if (ret) {
 		input_free_device(input);

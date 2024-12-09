@@ -298,7 +298,7 @@ process_start:
 		     !mwifiex_bypass_txlist_empty(adapter) ||
 		     !mwifiex_wmm_lists_empty(adapter))) {
 			adapter->pm_wakeup_fw_try = true;
-			mod_timer(&adapter->wakeup_timer, jiffies + (HZ*3));
+			mod_timer(&adapter->wakeup_timer, jiffies + (HZ * 10));
 			adapter->if_ops.wakeup(adapter);
 			continue;
 		}

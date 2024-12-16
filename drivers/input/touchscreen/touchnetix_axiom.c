@@ -2701,8 +2701,10 @@ static int axiom_i2c_probe(struct i2c_client *client)
 	ret = axiom_register_input_dev(ts);
 	pm_runtime_mark_last_busy(dev);
 	pm_runtime_put_sync_autosuspend(dev);
-	if (ret)
-		return dev_err_probe(dev, ret, "Failed to finish setup\n");
+	if (ret && IS_ENABLED(CONFIG_FW_UPLOAD))
+		dev_warn(dev, "Failed to register the input device, wait for user fw update\n");
+	else if (ret)
+		return dev_err_probe(dev, ret, "Failed to register input device\n");
 
 	return 0;
 }

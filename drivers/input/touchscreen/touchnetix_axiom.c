@@ -99,6 +99,7 @@ struct axiom_u02_rev1_system_manager_msg {
 #define AXIOM_U31_REV1_RUNTIME_FW_MAJ_REG	(AXIOM_U31_REV1_PAGE0 + 3)
 #define AXIOM_U31_REV1_RUNTIME_FW_STATUS_REG	(AXIOM_U31_REV1_PAGE0 + 4)
 #define   AXIOM_U31_REV1_RUNTIME_FW_STATUS	BIT(7)
+#define   AXIOM_U31_REV1_RUNTIME_FW_VARIANT	GENMASK(6, 0)
 #define AXIOM_U31_REV1_JEDEC_ID_LOW_REG		(AXIOM_U31_REV1_PAGE0 + 8)
 #define AXIOM_U31_REV1_JEDEC_ID_HIGH_REG	(AXIOM_U31_REV1_PAGE0 + 9)
 #define AXIOM_U31_REV1_NUM_USAGES_REG		(AXIOM_U31_REV1_PAGE0 + 10)
@@ -337,6 +338,7 @@ struct axiom_data {
 	unsigned int fw_minor;
 	unsigned int fw_rc;
 	unsigned int fw_status;
+	unsigned int fw_variant;
 	u16 device_id;
 	u16 jedec_id;
 	u8 silicon_rev;
@@ -946,6 +948,7 @@ static int axiom_u31_parse_device_info(struct axiom_data *ts)
 	if (ret)
 		return ret;
 	ts->fw_status = FIELD_GET(AXIOM_U31_REV1_RUNTIME_FW_STATUS, val);
+	ts->fw_variant = FIELD_GET(AXIOM_U31_REV1_RUNTIME_FW_VARIANT, val);
 
 	ret = regmap_read(regmap, AXIOM_U31_REV1_JEDEC_ID_HIGH_REG, &val);
 	if (ret)
@@ -2434,6 +2437,32 @@ static ssize_t fw_status_show(struct device *dev,
 }
 static DEVICE_ATTR_RO(fw_status);
 
+static ssize_t fw_variant_show(struct device *dev,
+			       struct device_attribute *attr, char *buf)
+{
+	struct i2c_client *i2c = to_i2c_client(dev);
+	struct axiom_data *ts = i2c_get_clientdata(i2c);
+	const char *val;
+
+	switch (ts->fw_variant) {
+	case 0:
+		val = "3d";
+		break;
+	case 1:
+		val = "2d";
+		break;
+	case 3:
+		val = "force";
+		break;
+	default:
+		val = "unkown";
+		break;
+	}
+
+	return sprintf(buf, "%s\n", val);
+}
+static DEVICE_ATTR_RO(fw_variant);
+
 static ssize_t device_id_show(struct device *dev,
 			      struct device_attribute *attr, char *buf)
 {
@@ -2459,6 +2488,7 @@ static struct attribute *axiom_attrs[] = {
 	&dev_attr_fw_minor.attr,
 	&dev_attr_fw_rc.attr,
 	&dev_attr_fw_status.attr,
+	&dev_attr_fw_variant.attr,
 	&dev_attr_device_id.attr,
 	&dev_attr_device_state.attr,
 	NULL

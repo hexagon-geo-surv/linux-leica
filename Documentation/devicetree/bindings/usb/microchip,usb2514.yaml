@@ -14,11 +14,18 @@ allOf:
 
 properties:
   compatible:
-    enum:
-      - usb424,2412
-      - usb424,2417
-      - usb424,2514
-      - usb424,2517
+    oneOf:
+      - items:
+          - enum:
+              - usb424,2412
+              - usb424,2417
+              - usb424,2514
+              - usb424,2517
+      - items:
+          - enum:
+              - usb424,2512
+              - usb424,2513
+          - const: usb424,2514
 
   reg: true
 

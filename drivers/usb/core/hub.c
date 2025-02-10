@@ -3052,22 +3052,27 @@ static int hub_port_reset(struct usb_hub *hub, int port1,
 
 	/* Reset the port */
 	for (i = 0; i < PORT_RESET_TRIES; i++) {
+		dev_info(&hub->hdev->dev, "PCAT: sending %s to port %d..\n", warm ? "BH_PORT_RESET" : "PORT_RESET", port1);
 		status = set_port_feature(hub->hdev, port1, (warm ?
 					USB_PORT_FEAT_BH_PORT_RESET :
 					USB_PORT_FEAT_RESET));
 		if (status == -ENODEV) {
 			;	/* The hub is gone */
+			dev_err(&hub->hdev->dev, "PCAT: The hub is gone !!\n");
 		} else if (status) {
 			dev_err(&port_dev->dev,
-					"cannot %sreset (err = %d)\n",
+					"PCAT: cannot %sreset (err = %d)\n",
 					warm ? "warm " : "", status);
 		} else {
+			dev_info(&hub->hdev->dev, "PCAT: reset sent\n");
 			status = hub_port_wait_reset(hub, port1, udev, delay,
 								warm);
 			if (status && status != -ENOTCONN && status != -ENODEV)
 				dev_dbg(hub->intfdev,
-						"port_wait_reset: err = %d\n",
+						"PCAT: port_wait_reset: err = %d\n",
 						status);
+			else
+				dev_info(&hub->hdev->dev, "PCAT: reset complete %d\n", status);
 		}
 
 		/*
@@ -3159,6 +3164,12 @@ done:
 
 	return status;
 }
+
+int wrapper_hub_port_reset(struct usb_hub *hub, int port1, unsigned int delay)
+{
+	return hub_port_reset(hub, port1, NULL, delay, false);
+}
+EXPORT_SYMBOL_GPL(wrapper_hub_port_reset);
 
 /*
  * hub_port_stop_enumerate - stop USB enumeration or ignore port events

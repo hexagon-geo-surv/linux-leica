@@ -182,3 +182,5 @@ static inline int hub_port_debounce_be_stable(struct usb_hub *hub,
 {
 	return hub_port_debounce(hub, port1, false);
 }
+
+extern int wrapper_hub_port_reset(struct usb_hub *hub, int port1, unsigned int delay);

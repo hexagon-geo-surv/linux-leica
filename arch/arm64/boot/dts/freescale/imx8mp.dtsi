@@ -2041,10 +2041,10 @@
 						     "pai", "pvi", "trng",
 						     "hdmi-tx", "hdmi-tx-phy",
 						     "hdcp", "hrv";
-				interconnects = <&noc IMX8MP_ICM_LCDIF_HDMI &noc IMX8MP_ICN_HDMI>,
-						<&noc IMX8MP_ICM_HRV &noc IMX8MP_ICN_HDMI>,
+				interconnects = <&noc IMX8MP_ICM_HRV &noc IMX8MP_ICN_HDMI>,
+						<&noc IMX8MP_ICM_LCDIF_HDMI &noc IMX8MP_ICN_HDMI>,
 						<&noc IMX8MP_ICM_HDCP &noc IMX8MP_ICN_HDMI>;
-				interconnect-names = "lcdif-hdmi", "hrv", "hdcp";
+				interconnect-names = "hrv", "lcdif-hdmi", "hdcp";
 				#power-domain-cells = <1>;
 			};
 

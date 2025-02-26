@@ -680,10 +680,23 @@ static void rkisp1_isp_set_src_fmt(struct rkisp1_isp *isp,
 		if (sink_info->pixel_enc == V4L2_PIXEL_ENC_BAYER) {
 			if (format->colorspace != V4L2_COLORSPACE_DEFAULT)
 				src_fmt->colorspace = format->colorspace;
-			if (format->xfer_func != V4L2_XFER_FUNC_DEFAULT)
+
+			if (format->xfer_func == V4L2_XFER_FUNC_DEFAULT)
 				src_fmt->xfer_func = format->xfer_func;
+			else
+				src_fmt->xfer_func =
+					V4L2_MAP_XFER_FUNC_DEFAULT(format->colorspace);
+
 			if (format->ycbcr_enc != V4L2_YCBCR_ENC_DEFAULT)
 				src_fmt->ycbcr_enc = format->ycbcr_enc;
+			else
+				src_fmt->ycbcr_enc =
+					V4L2_MAP_YCBCR_ENC_DEFAULT(format->colorspace);
+
+			if (format->quantization == V4L2_QUANTIZATION_DEFAULT)
+				src_fmt->quantization =
+					V4L2_MAP_QUANTIZATION_DEFAULT(false,
+						format->colorspace, format->ycbcr_enc);
 		}
 
 		if (format->quantization != V4L2_QUANTIZATION_DEFAULT)

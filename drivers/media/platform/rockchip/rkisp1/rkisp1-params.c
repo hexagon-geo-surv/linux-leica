@@ -764,11 +764,6 @@ static void rkisp1_aec_config_v12(struct rkisp1_params *params,
 static void rkisp1_cproc_config(struct rkisp1_params *params,
 				const struct rkisp1_cif_isp_cproc_config *arg)
 {
-	struct rkisp1_cif_isp_isp_other_cfg *cur_other_cfg =
-		container_of(arg, struct rkisp1_cif_isp_isp_other_cfg, cproc_config);
-	struct rkisp1_cif_isp_ie_config *cur_ie_config =
-						&cur_other_cfg->ie_config;
-	u32 effect = cur_ie_config->effect;
 	u32 quantization = params->quantization;
 
 	rkisp1_write(params->rkisp1, RKISP1_CIF_C_PROC_CONTRAST,
@@ -778,8 +773,7 @@ static void rkisp1_cproc_config(struct rkisp1_params *params,
 	rkisp1_write(params->rkisp1, RKISP1_CIF_C_PROC_BRIGHTNESS,
 		     arg->brightness);
 
-	if (quantization != V4L2_QUANTIZATION_FULL_RANGE ||
-	    effect != V4L2_COLORFX_NONE) {
+	if (quantization != V4L2_QUANTIZATION_FULL_RANGE) {
 		rkisp1_param_clear_bits(params, RKISP1_CIF_C_PROC_CTRL,
 					RKISP1_CIF_C_PROC_YOUT_FULL |
 					RKISP1_CIF_C_PROC_YIN_FULL |

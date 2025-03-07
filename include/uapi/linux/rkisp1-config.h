@@ -962,6 +962,91 @@ struct rkisp1_cif_isp_wdr_config {
 	__u8 use_iref;
 };
 
+/*
+ * enum rkisp1_cif_isp_cac_h_clip_mode - horizontal clipping mode
+ *
+ * @RKISP1_CIF_ISP_CAC_H_CLIP_MODE_4PX: +/- 4 pixels
+ * @RKISP1_CIF_ISP_CAC_H_CLIP_MODE_4_5PX: +/- 4/5 pixels depending on bayer position
+ */
+enum rkisp1_cif_isp_cac_h_clip_mode {
+	RKISP1_CIF_ISP_CAC_H_CLIP_MODE_4PX = 0,
+	RKISP1_CIF_ISP_CAC_H_CLIP_MODE_4_5PX = 1,
+};
+
+/**
+ * enum rkisp1_cif_isp_cac_v_clip_mode - vertical clipping mode
+ *
+ * @RKISP1_CIF_ISP_CAC_V_CLIP_MODE_2PX: +/- 2 pixels
+ * @RKISP1_CIF_ISP_CAC_V_CLIP_MODE_3PX: +/- 3 pixels
+ * @RKISP1_CIF_ISP_CAC_V_CLIP_MODE_3_4PX: +/- 3/4 pixels depending on bayer position
+ */
+enum rkisp1_cif_isp_cac_v_clip_mode {
+	RKISP1_CIF_ISP_CAC_V_CLIP_MODE_2PX = 0,
+	RKISP1_CIF_ISP_CAC_V_CLIP_MODE_3PX = 1,
+	RKISP1_CIF_ISP_CAC_V_CLIP_MODE_3_4PX = 2,
+};
+
+/**
+ * struct rkisp1_cif_isp_cac_config - Rockchip ISP1 (lateral) chromatic aberration correction
+ *
+ * @h_clip_mode: horizontal clipping mode, specifies the maximum amount by which
+ *               the red and blue pixels will be shifted horizontally
+ *               (from enum rkisp1_cif_isp_cac_h_clip_mode)
+ * @v_clip_mode: vertical clipping mode, specifies the maximum amount by which
+ *               the red and blue pixels will be shifted vertically
+ *               (from enum rkisp1_cif_isp_cac_v_clip_mode)
+ *
+ * @v_count_start: 13 bit unsigned counter that is decremented before processing each line
+ * @h_count_start: 13 bit unsigned counter that is decremented before processing each pixel
+ *                 within a given line
+ *
+ * @blue: 5.4 two's complement fractional coefficients for calculating blue pixel shift
+ * @red: 5.4 two's complement fractional coefficients for calculating red pixel shift
+ *
+ * @x_ns: horizontal normalization shift factor (4 bit unsigned integer)
+ * @x_nf: horizontal normalization scaling factor (5 bit unsigned integer)
+ *
+ * @y_ns: vertical normalization shift factor (4 bit unsigned integer)
+ * @y_nf: vertical normalization scaling factor (5 bit unsigned integer)
+ *
+ * Conceptual overview of processing a frame:
+ *
+ * 1. For each frame $v_count is initialized with the value of @v_count_start. For each line
+ *    $h_count is initialized to @h_count_start. $v_count is decremented for each line, while
+ *    $h_count is decremented for each row (within a line). The location where these two counters
+ *    both reach 0 is the location of the optical center. If a counter reaches zero, it will
+ *    be incremented in subsequent steps.
+ *
+ * 2. For each pixel, vertical and horizontal distances are calculated from the optical center
+ *    as follows: ${h,v}_d = (((${h,v}_count << 4) >> @{x,y}_ns) * @{x,y}_nf) >> 5.
+ *    The distance is always stored in 8 bits, the parameters @{x,y}_{ns,nf} must be chosen
+ *    accordingly, taking into account the shape of the pixels as well.
+ *
+ * 3. The distance is then used to calculate the horizontal/vertical shift for the red and blue
+ *    planes amount as follows: shift = c[0] * r + c[1] * r^2 + c[2] * r^3. Here `c` is @red
+ *    or @blue, the color dependent coefficients, and `r` is the horizontal/vertical distance.
+ *
+ * 4. The shift amounts are clipped based on @{h,v}_clip_mode. Then the pixels are shifted. If
+ *    the pixels have to be shifted towards the center, away from the edges, then pixels at the
+ *    border are replicated.
+ */
+struct rkisp1_cif_isp_cac_config {
+	__u8 h_clip_mode;
+	__u8 v_clip_mode;
+
+	__u16 v_count_start;
+	__u16 h_count_start;
+
+	__u16 blue[3];
+	__u16 red[3];
+
+	__u8 x_ns;
+	__u8 x_nf;
+
+	__u8 y_ns;
+	__u8 y_nf;
+};
+
 /*---------- PART2: Measurement Statistics ------------*/
 
 /**
@@ -1156,6 +1241,7 @@ enum rkisp1_ext_params_block_type {
 	RKISP1_EXT_PARAMS_BLOCK_TYPE_COMPAND_EXPAND,
 	RKISP1_EXT_PARAMS_BLOCK_TYPE_COMPAND_COMPRESS,
 	RKISP1_EXT_PARAMS_BLOCK_TYPE_WDR,
+	RKISP1_EXT_PARAMS_BLOCK_TYPE_CAC,
 };
 
 #define RKISP1_EXT_PARAMS_FL_BLOCK_DISABLE	(1U << 0)
@@ -1555,6 +1641,23 @@ struct rkisp1_ext_params_wdr_config {
 	struct rkisp1_cif_isp_wdr_config config;
 } __attribute__((aligned(8)));
 
+/**
+ * struct rkisp1_ext_params_cac_config - RkISP1 extensible params
+ * Chromatic aberration correction
+ *
+ * RkISP1 extensible parameters for the chromatic aberration correction
+ * configuration block. Identified by :c:type:`RKISP1_EXT_PARAMS_BLOCK_TYPE_CAC`.
+ *
+ * @header: The RkISP1 extensible parameters header, see
+ *	    :c:type:`rkisp1_ext_params_block_header`
+ * @config: Chromatic aberration correction configuration, see
+ *	    :c:type:`rkisp1_cif_isp_cac_config`
+ */
+struct rkisp1_ext_params_cac_config {
+	struct rkisp1_ext_params_block_header header;
+	struct rkisp1_cif_isp_cac_config config;
+} __attribute__((aligned(8)));
+
 /*
  * The rkisp1_ext_params_compand_curve_config structure is counted twice as it
  * is used for both the COMPAND_EXPAND and COMPAND_COMPRESS block types.
@@ -1580,7 +1683,8 @@ struct rkisp1_ext_params_wdr_config {
 	sizeof(struct rkisp1_ext_params_compand_bls_config)		+\
 	sizeof(struct rkisp1_ext_params_compand_curve_config)		+\
 	sizeof(struct rkisp1_ext_params_compand_curve_config)		+\
-	sizeof(struct rkisp1_ext_params_wdr_config))
+	sizeof(struct rkisp1_ext_params_wdr_config)			+\
+	sizeof(struct rkisp1_ext_params_cac_config))
 
 /**
  * enum rksip1_ext_param_buffer_version - RkISP1 extensible parameters version

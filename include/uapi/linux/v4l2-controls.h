@@ -1694,6 +1694,121 @@ struct v4l2_ctrl_h264_decode_params {
 	__u32 flags;
 };
 
+#define V4L2_H264_NAL_CODED_SLICE_NON_IDR_PIC	1
+#define V4L2_H264_NAL_CODED_SLICE_IDR_PIC	5
+
+#define V4L2_CID_STATELESS_H264_ENCODE_PARAMS	(V4L2_CID_CODEC_STATELESS_BASE + 8)
+
+/**
+ * struct v4l2_ctrl_h264_encode_params - H264 encoding parameters
+ *
+ * @slice_type: selects slice type. Set to one of V4L2_H264_SLICE_TYPE_{}
+ * @pic_parameter_set_id: identifies the picture parameter set that is referred to
+ * in the slice header. The value shall be in the range of 0 to 255, inclusive.
+ * @frame_num: an identifier for pictures.
+ * @idr_pic_id: identifies an IDR picture.
+ * @cabac_init_idc: index for determining the initialization table used in the
+ * initialization process for context variables. The value of cabac_init_idc
+ * shall be in the range of 0 to 2, inclusive.
+ * @disable_deblocking_filter_idc: specifies whether the operation of the
+ * deblocking filter shall be disabled across some block edges of the slice and
+ * specifies for which edges the filtering is disabled.
+ * @slice_alpha_c0_offset_div2: offset used in accessing the alpha and tC0
+ * deblocking filter tables for filtering operations controlled by the macroblocks
+ * within the slice.
+ * @slice_beta_offset_div2: offset used in accessing the beta deblocking filter
+ * table for filtering operations controlled by the macroblocks within the slice.
+ * @slice_size_mb_rows: number of macroblock rows in a slice.
+ * @pic_init_qp_minus26: initial value minus 26 of luma qp for each slice.
+ * @chroma_qp_index_offset: offset that shall be added to qp luma for addressing the
+ * table of qp chroma values for the Cb chroma component.
+ * @nal_ref_idc: nal_ref_idc for the header of the generated NAL unit
+ * @nal_unit_type: one of the V4L2_H264_NAL_CODED_SLICE_{} values
+ * @flags: combination of V4L2_H264_ENCODE_FLAG_{} flags.
+ * @reference_ts: timestamp of the V4L2 buffer to use as reference
+ */
+struct v4l2_ctrl_h264_encode_params {
+	/* Slice parameters */
+
+	__u8 slice_type;
+	__u8 pic_parameter_set_id;
+	__u16 frame_num;
+	__u16 idr_pic_id;
+	__u8 cabac_init_idc;
+	__u8 disable_deblocking_filter_idc;
+	__s8 slice_alpha_c0_offset_div2;
+	__s8 slice_beta_offset_div2;
+
+	__s32 slice_size_mb_rows;
+
+	/*
+	 * PPS parameters
+	 *
+	 * TODO Duplicating the PPS in the encode_params may not be necessary,
+	 * if the PPS are set via separate control. Otherwise, it may be useful
+	 * to just use struct v4l2_ctrl_h264_pps here.
+	 *
+	 * Needs to be consistent with the values set in the PPS referenced by
+	 * pic_parameter_set_id.
+	 */
+	__s8 pic_init_qp_minus26;
+	__s8 chroma_qp_index_offset;
+
+	__u32 flags; /* V4L2_H264_ENCODE_FLAG_ */
+
+	/*
+	 * If nal_ref_idc is 0, the NAL unit won't be used as reference by
+	 * later NAL units. Any other value indicates that the NAL unit may be
+	 * used as reference.
+	 */
+	__u8 nal_ref_idc;
+
+	/* TODO Can we infer the nal_unit_type from the slice_type? */
+	__u8 nal_unit_type;
+
+	/* Reference */
+
+	__u64 reference_ts;
+};
+
+#define V4L2_H264_ENCODE_FLAG_ENTROPY_CODING_MODE	0x01
+#define V4L2_H264_ENCODE_FLAG_TRANSFORM_8X8_MODE	0x02
+#define V4L2_H264_ENCODE_FLAG_CONSTRAINED_INTRA_PRED	0x04
+#define V4L2_H264_ENCODE_FLAG_NUM_REF_IDX_OVERRIDE	0x08
+#define V4L2_H264_ENCODE_FLAG_NO_OUTPUT_OF_PRIOR_PICS	0x10
+#define V4L2_H264_ENCODE_FLAG_LONG_TERM_REFERENCE	0x20
+
+#define V4L2_CID_STATELESS_H264_ENCODE_RC	(V4L2_CID_CODEC_STATELESS_BASE + 9)
+
+/**
+ * struct v4l2_ctrl_h264_encode_rc
+ *
+ * @qp: quantization parameter for the currently encoded slice
+ *
+ * TODO Setting the QP is enough for implementing const QP, but probably the
+ * entire rate control mechanism has to be reworked.
+ */
+struct v4l2_ctrl_h264_encode_rc {
+	__u32 qp;
+	__u32 qp_min;
+	__u32 qp_max;
+	__s32 mad_qp_delta;
+	__u32 mad_threshold;
+
+	__u32 cp_distance_mbs;
+	__u32 cp_target[10];
+	__s32 cp_target_error[6];
+	__s32 cp_qp_delta[7];
+};
+
+#define V4L2_CID_STATELESS_H264_ENCODE_FEEDBACK	(V4L2_CID_CODEC_STATELESS_BASE + 10)
+
+struct v4l2_ctrl_h264_encode_feedback {
+	__u32 qp_sum;
+	__u32 cp[10];
+	__u32 mad_count;
+	__u32 rlc_count;
+};
 
 /* Stateless FWHT control, used by the vicodec driver */
 

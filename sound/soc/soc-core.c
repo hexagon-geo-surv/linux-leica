@@ -3046,7 +3046,7 @@ int snd_soc_of_parse_pin_switches(struct snd_soc_card *card, const char *prop)
 	unsigned int i, nb_controls;
 	int ret;
 
-	if (!of_property_read_bool(dev->of_node, prop))
+	if (!of_property_present(dev->of_node, prop))
 		return 0;
 
 	strings = devm_kcalloc(dev, nb_controls_max,
@@ -3120,7 +3120,7 @@ int snd_soc_of_parse_tdm_slot(struct device_node *np,
 	if (rx_mask)
 		snd_soc_of_get_slot_mask(np, "dai-tdm-slot-rx-mask", rx_mask);
 
-	if (of_property_read_bool(np, "dai-tdm-slot-num")) {
+	if (of_property_present(np, "dai-tdm-slot-num")) {
 		ret = of_property_read_u32(np, "dai-tdm-slot-num", &val);
 		if (ret)
 			return ret;
@@ -3129,7 +3129,7 @@ int snd_soc_of_parse_tdm_slot(struct device_node *np,
 			*slots = val;
 	}
 
-	if (of_property_read_bool(np, "dai-tdm-slot-width")) {
+	if (of_property_present(np, "dai-tdm-slot-width")) {
 		ret = of_property_read_u32(np, "dai-tdm-slot-width", &val);
 		if (ret)
 			return ret;

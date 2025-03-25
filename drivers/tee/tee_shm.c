@@ -19,16 +19,24 @@ static void shm_put_kernel_pages(struct page **pages, size_t page_count)
 {
 	size_t n;
 
-	for (n = 0; n < page_count; n++)
-		put_page(pages[n]);
+	for (n = 0; n < page_count; n++) {
+		struct page *page = pages[n];
+
+		if (!PageSlab(page))
+			put_page(page);
+	}
 }
 
 static void shm_get_kernel_pages(struct page **pages, size_t page_count)
 {
 	size_t n;
 
-	for (n = 0; n < page_count; n++)
-		get_page(pages[n]);
+	for (n = 0; n < page_count; n++) {
+		struct page *page = pages[n];
+
+		if (!PageSlab(page))
+			get_page(page);
+	}
 }
 
 static void release_registered_pages(struct tee_shm *shm)

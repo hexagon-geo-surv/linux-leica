@@ -117,6 +117,10 @@ static ssize_t disable_store(struct device *dev, struct device_attribute *attr,
 	if (rc)
 		return rc;
 
+	/* Early quit if no change was detected */
+	if (port_dev->disabled == disabled)
+		return count;
+
 	hub_get(hub);
 	rc = usb_autopm_get_interface(intf);
 	if (rc < 0)
@@ -147,6 +151,8 @@ static ssize_t disable_store(struct device *dev, struct device_attribute *attr,
 		if (!port_dev->is_superspeed)
 			usb_clear_port_feature(hdev, port1, USB_PORT_FEAT_C_ENABLE);
 	}
+
+	port_dev->disabled = disabled;
 
 	if (!rc)
 		rc = count;

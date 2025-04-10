@@ -429,6 +429,8 @@ struct sdma_desc {
  * @event_mask:		event mask used in p_2_p script
  * @watermark_level:	value for gReg[7], some script will extend it from
  *			basic watermark such as p_2_p
+ * @spba_start_addr:	SDMA controller SPBA bus start address
+ * @spba_end_addr:	SDMA controller SPBA bus end address
  * @shp_addr:		value for gReg[6]
  * @per_addr:		value for gReg[2]
  * @status:		status of dma channel
@@ -461,6 +463,8 @@ struct sdma_channel {
 	dma_addr_t			per_address, per_address2;
 	unsigned long			event_mask[2];
 	unsigned long			watermark_level;
+	u32				spba_start_addr;
+	u32				spba_end_addr;
 	u32				shp_addr, per_addr;
 	enum dma_status			status;
 	struct imx_dma_data		data;
@@ -534,8 +538,6 @@ struct sdma_engine {
 	u32				script_number;
 	struct sdma_script_start_addrs	*script_addrs;
 	const struct sdma_driver_data	*drvdata;
-	u32				spba_start_addr;
-	u32				spba_end_addr;
 	unsigned int			irq;
 	dma_addr_t			bd0_phys;
 	struct sdma_buffer_descriptor	*bd0;
@@ -1236,8 +1238,6 @@ static void sdma_channel_synchronize(struct dma_chan *chan)
 
 static void sdma_set_watermarklevel_for_p2p(struct sdma_channel *sdmac)
 {
-	struct sdma_engine *sdma = sdmac->sdma;
-
 	int lwml = sdmac->watermark_level & SDMA_WATERMARK_LEVEL_LWML;
 	int hwml = (sdmac->watermark_level & SDMA_WATERMARK_LEVEL_HWML) >> 16;
 
@@ -1263,12 +1263,12 @@ static void sdma_set_watermarklevel_for_p2p(struct sdma_channel *sdmac)
 		swap(sdmac->event_mask[0], sdmac->event_mask[1]);
 	}
 
-	if (sdmac->per_address2 >= sdma->spba_start_addr &&
-			sdmac->per_address2 <= sdma->spba_end_addr)
+	if (sdmac->per_address2 >= sdmac->spba_start_addr &&
+			sdmac->per_address2 <= sdmac->spba_end_addr)
 		sdmac->watermark_level |= SDMA_WATERMARK_LEVEL_SP;
 
-	if (sdmac->per_address >= sdma->spba_start_addr &&
-			sdmac->per_address <= sdma->spba_end_addr)
+	if (sdmac->per_address >= sdmac->spba_start_addr &&
+			sdmac->per_address <= sdmac->spba_end_addr)
 		sdmac->watermark_level |= SDMA_WATERMARK_LEVEL_DP;
 
 	sdmac->watermark_level |= SDMA_WATERMARK_LEVEL_CONT;
@@ -1447,6 +1447,31 @@ static void sdma_desc_free(struct virt_dma_desc *vd)
 	kfree(desc);
 }
 
+static int sdma_config_spba_slave(struct dma_chan *chan)
+{
+	struct sdma_channel *sdmac = to_sdma_chan(chan);
+	struct device_node *spba_bus;
+	struct resource spba_res;
+	int ret;
+
+	spba_bus = of_get_parent(chan->slave->of_node);
+	/* Device doesn't belong to the spba-bus */
+	if (!of_device_is_compatible(spba_bus, "fsl,spba-bus"))
+		return 0;
+
+	ret = of_address_to_resource(spba_bus, 0, &spba_res);
+	of_node_put(spba_bus);
+	if (ret) {
+		dev_err(sdmac->sdma->dev, "Failed to get spba-bus resources\n");
+		return -EINVAL;
+	}
+
+	sdmac->spba_start_addr = spba_res.start;
+	sdmac->spba_end_addr = spba_res.end;
+
+	return 0;
+}
+
 static int sdma_alloc_chan_resources(struct dma_chan *chan)
 {
 	struct sdma_channel *sdmac = to_sdma_chan(chan);
@@ -1527,6 +1552,8 @@ static void sdma_free_chan_resources(struct dma_chan *chan)
 
 	sdmac->event_id0 = 0;
 	sdmac->event_id1 = 0;
+	sdmac->spba_start_addr = 0;
+	sdmac->spba_end_addr = 0;
 
 	sdma_set_channel_priority(sdmac, 0);
 
@@ -1837,6 +1864,7 @@ static int sdma_config(struct dma_chan *chan,
 {
 	struct sdma_channel *sdmac = to_sdma_chan(chan);
 	struct sdma_engine *sdma = sdmac->sdma;
+	int ret;
 
 	memcpy(&sdmac->slave_config, dmaengine_cfg, sizeof(*dmaengine_cfg));
 
@@ -1866,6 +1894,10 @@ static int sdma_config(struct dma_chan *chan,
 			return -EINVAL;
 		sdma_event_enable(sdmac, sdmac->event_id1);
 	}
+
+	ret = sdma_config_spba_slave(chan);
+	if (ret)
+		return ret;
 
 	return 0;
 }
@@ -2235,11 +2267,9 @@ static struct dma_chan *sdma_xlate(struct of_phandle_args *dma_spec,
 static int sdma_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
-	struct device_node *spba_bus;
 	const char *fw_name;
 	int ret;
 	int irq;
-	struct resource spba_res;
 	int i;
 	struct sdma_engine *sdma;
 	s32 *saddr_arr;
@@ -2375,14 +2405,6 @@ static int sdma_probe(struct platform_device *pdev)
 			dev_err(&pdev->dev, "failed to register controller\n");
 			goto err_register;
 		}
-
-		spba_bus = of_find_compatible_node(NULL, NULL, "fsl,spba-bus");
-		ret = of_address_to_resource(spba_bus, 0, &spba_res);
-		if (!ret) {
-			sdma->spba_start_addr = spba_res.start;
-			sdma->spba_end_addr = spba_res.end;
-		}
-		of_node_put(spba_bus);
 	}
 
 	/*

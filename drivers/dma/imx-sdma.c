@@ -2233,6 +2233,13 @@ static struct dma_chan *sdma_xlate(struct of_phandle_args *dma_spec,
 				     ofdma->of_node);
 }
 
+static void sdma_dma_of_dma_controller_unregister_action(void *data)
+{
+	struct sdma_engine *sdma = data;
+
+	of_dma_controller_free(sdma->dev->of_node);
+}
+
 static void sdma_dma_device_unregister_action(void *data)
 {
 	struct sdma_engine *sdma = data;
@@ -2370,6 +2377,8 @@ static int sdma_probe(struct platform_device *pdev)
 	ret = of_dma_controller_register(np, sdma_xlate, sdma);
 	if (ret)
 		return dev_err_probe(dev, ret, "failed to register controller\n");
+
+	devm_add_action_or_reset(dev, sdma_dma_of_dma_controller_unregister_action, sdma);
 
 	spba_bus = of_find_compatible_node(NULL, NULL, "fsl,spba-bus");
 	ret = of_address_to_resource(spba_bus, 0, &spba_res);

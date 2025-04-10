@@ -2393,6 +2393,7 @@ static int sdma_probe(struct platform_device *pdev)
 	sdma->dma_device.device_prep_dma_memcpy = sdma_prep_memcpy;
 	sdma->dma_device.device_issue_pending = sdma_issue_pending;
 	sdma->dma_device.copy_align = 2;
+	sdma->dma_device.create_devlink = true;
 	dma_set_max_seg_size(sdma->dma_device.dev, SDMA_BD_MAX_CNT);
 
 	platform_set_drvdata(pdev, sdma);
@@ -2432,25 +2433,11 @@ static int sdma_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static void sdma_remove(struct platform_device *pdev)
-{
-	struct sdma_engine *sdma = platform_get_drvdata(pdev);
-	int i;
-
-	/* Kill the tasklet */
-	for (i = 0; i < MAX_DMA_CHANNELS; i++) {
-		struct sdma_channel *sdmac = &sdma->channel[i];
-
-		sdma_free_chan_resources(&sdmac->vc.chan);
-	}
-}
-
 static struct platform_driver sdma_driver = {
 	.driver		= {
 		.name	= "imx-sdma",
 		.of_match_table = sdma_dt_ids,
 	},
-	.remove		= sdma_remove,
 	.probe		= sdma_probe,
 };
 

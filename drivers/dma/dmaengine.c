@@ -858,6 +858,21 @@ found:
 	/* No functional issue if it fails, users are supposed to test before use */
 #endif
 
+	/*
+	 * Devlinks between the dmaengine device and the consumer device
+	 * are optional till all dmaengine drivers are converted/tested.
+	 */
+	if (chan->device->create_devlink) {
+		struct device_link *dl;
+
+		dl = device_link_add(dev, chan->device->dev, DL_FLAG_AUTOREMOVE_CONSUMER);
+		if (!dl) {
+			dev_err(dev, "failed to create device link to %s\n",
+					dev_name(chan->device->dev));
+			return ERR_PTR(-EINVAL);
+		}
+	}
+
 	chan->name = kasprintf(GFP_KERNEL, "dma:%s", name);
 	if (!chan->name)
 		return chan;

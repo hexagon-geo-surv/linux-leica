@@ -817,6 +817,8 @@ struct dma_filter {
  *	DMA tansaction with no software intervention for reinitialization.
  *	Zero value means unlimited number of entries.
  * @descriptor_reuse: a submitted transfer can be resubmitted after completion
+ * @create_devlink: create a devlink between a dma_chan_dev supplier and
+ *	dma-channel consumer device
  * @residue_granularity: granularity of the transfer residue reported
  *	by tx_status
  * @device_alloc_chan_resources: allocate resources and return the
@@ -894,6 +896,7 @@ struct dma_device {
 	u32 max_burst;
 	u32 max_sg_burst;
 	bool descriptor_reuse;
+	bool create_devlink;
 	enum dma_residue_granularity residue_granularity;
 
 	int (*device_alloc_chan_resources)(struct dma_chan *chan);

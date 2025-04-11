@@ -814,6 +814,7 @@ struct dma_chan *dma_request_chan(struct device *dev, const char *name)
 {
 	struct dma_device *d, *_d;
 	struct dma_chan *chan = NULL;
+	struct device_link *dl;
 
 	/* If device-tree is present get slave info from here */
 	if (dev->of_node)
@@ -857,6 +858,13 @@ found:
 	chan->dbg_client_name = kasprintf(GFP_KERNEL, "%s:%s", dev_name(dev),
 					  name);
 #endif
+
+	dl = device_link_add(dev, chan->device->dev, DL_FLAG_AUTOREMOVE_CONSUMER);
+	if (!dl) {
+		dev_err(dev, "failed to create device link to %s\n",
+			dev_name(chan->device->dev));
+		return ERR_PTR(-EINVAL);
+	}
 
 	chan->name = kasprintf(GFP_KERNEL, "dma:%s", name);
 	if (!chan->name)

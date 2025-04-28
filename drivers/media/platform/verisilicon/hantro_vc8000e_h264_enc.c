@@ -210,7 +210,6 @@ int hantro_vc8000e_h264_enc_run(struct hantro_ctx *ctx)
 	hantro_reg_write_relaxed(vpu, &vc8000e_intra_area_bottom_msb2, 0x1);
 
 	/* Encoding control */
-	/* reference picture list0 config */
 	hantro_reg_write_relaxed(vpu, &vc8000e_chroma_qp_offset,
 				 encode_params->chroma_qp_index_offset);
 	hantro_reg_write_relaxed(vpu, &vc8000e_max_trb_size, 2); /* From downstream */
@@ -231,6 +230,24 @@ int hantro_vc8000e_h264_enc_run(struct hantro_ctx *ctx)
 	hantro_reg_write_relaxed(vpu,
 				 &vc8000e_slice_deblocking_filter_override_flag,
 				 !encode_params->disable_deblocking_filter_idc);
+
+	/* Reference picture list0 config */
+	/* TODO: add support for 2nd reference picture */
+	if (encode_params->slice_type == V4L2_H264_SLICE_TYPE_I) {
+		hantro_reg_write_relaxed(vpu, &vc8000e_active_override_flag, 0);
+	} else {
+		hantro_reg_write_relaxed(vpu, &vc8000e_active_l0_cnt, 1);
+		if (pps->num_ref_idx_l0_default_active_minus1 + 1 != 1)
+			hantro_reg_write_relaxed(vpu, &vc8000e_active_override_flag, 1);
+	}
+	/*
+	 * Delta between frame-to-be-encoded and the reference frame in list0.
+	 * Since we only support one reference frame and the last encoded frame
+	 * is the used as reference for the frame-to-be-encoded, we can set it
+	 * to 1. Only exception is frame0 which doesn't have any delta.
+	 */
+	if (encode_params->frame_num)
+		hantro_reg_write_relaxed(vpu, &vc8000e_l0_delta_framenum0, 1);
 
 	hantro_reg_write_relaxed(vpu, &vc8000e_l0_used_by_next_pic0, 0x1); /* TODO: dyn. params */
 	hantro_reg_write_relaxed(vpu, &vc8000e_l0_used_by_next_pic1, 0x1); /* TODO: dyn. params */

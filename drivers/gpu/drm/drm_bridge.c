@@ -1323,7 +1323,38 @@ struct drm_bridge *of_drm_find_bridge(struct device_node *np)
 	mutex_lock(&bridge_lock);
 
 	list_for_each_entry(bridge, &bridge_list, list) {
-		if (bridge->of_node == np) {
+		/*
+		 * Leica specific matching adaptions.
+		 *
+		 * The fsl-ldb LVDS bridge driver adds two drm-bridges to the
+		 * bridge_list to control two dedicated panels on port@1 and
+		 * port@2 but both bridges share the same fsl-ldb of_node. The
+		 * port@0 is used by the lcdif crtc driver to connect the crtc
+		 * to the bridge.
+		 *
+		 * The lcdif of_node has two endpoints to create and expose two
+		 * drm-encoders (clone-mode) to the userspace. The endpoint-id
+		 * is a don't care for the matching algorithm due to internal
+		 * API limitations.
+		 *
+		 * drm-encoder <-> drm-bridge matching algorithm:
+		 *
+		 * The 1st drm-encoder matches against the 1st added drm-bridge
+		 * from the fsl-ldb driver. This bridge controls the panel at
+		 * port@1.
+		 *
+		 * The 2nd drm-encoder matches against the 2nd added drm-bridge
+		 * from the fsl-ldb driver. This bridge controls the panel at
+		 * port@2. The 2nd bridge is used because the first bridge was
+		 * already bound to the first encoder which sets the
+		 * bridge->dev.
+		 *
+		 * To ensure this matching alogrithm, the lcdif driver needs to
+		 * find and register a bridge before trying to find the 2nd
+		 * bridge because the register/encoder-bridge bind step will set
+		 * the bridge->dev.
+		 */
+		if (bridge->of_node == np && !bridge->dev) {
 			mutex_unlock(&bridge_lock);
 			return bridge;
 		}

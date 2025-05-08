@@ -85,13 +85,14 @@ static const struct fsl_ldb_devdata fsl_ldb_devdata[] = {
 
 struct fsl_ldb {
 	struct device *dev;
-	struct drm_bridge bridge;
-	struct drm_bridge *panel_bridge;
+	struct drm_bridge bridge[2];
+	struct drm_bridge *panel_bridge[2];
 	struct clk *clk;
 	struct regmap *regmap;
 	const struct fsl_ldb_devdata *devdata;
 	bool ch0_enabled;
 	bool ch1_enabled;
+	bool dual_encoder;
 };
 
 static bool fsl_ldb_is_dual(const struct fsl_ldb *fsl_ldb)
@@ -101,7 +102,7 @@ static bool fsl_ldb_is_dual(const struct fsl_ldb *fsl_ldb)
 
 static inline struct fsl_ldb *to_fsl_ldb(struct drm_bridge *bridge)
 {
-	return container_of(bridge, struct fsl_ldb, bridge);
+	return bridge->driver_private;;
 }
 
 static unsigned long fsl_ldb_link_frequency(struct fsl_ldb *fsl_ldb, int clock)
@@ -116,8 +117,16 @@ static int fsl_ldb_attach(struct drm_bridge *bridge,
 			  enum drm_bridge_attach_flags flags)
 {
 	struct fsl_ldb *fsl_ldb = to_fsl_ldb(bridge);
+	unsigned int idx = bridge->encoder->index;
 
-	return drm_bridge_attach(bridge->encoder, fsl_ldb->panel_bridge,
+	/*
+	 * For more details abouth the matching algorithm see the code comment
+	 * on of_drm_find_bridge().
+	 */
+	if (idx > 1)
+		return -EINVAL;
+
+	return drm_bridge_attach(bridge->encoder, fsl_ldb->panel_bridge[idx],
 				 bridge, flags);
 }
 
@@ -292,7 +301,7 @@ static const struct drm_bridge_funcs funcs = {
 static int fsl_ldb_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
-	struct device_node *panel_node;
+	struct device_node *panel_node, *panel_node2;
 	struct device_node *remote1 __free(device_node) = NULL;
 	struct device_node *remote2 __free(device_node) = NULL;
 	struct drm_panel *panel;
@@ -308,8 +317,12 @@ static int fsl_ldb_probe(struct platform_device *pdev)
 		return -EINVAL;
 
 	fsl_ldb->dev = &pdev->dev;
-	fsl_ldb->bridge.funcs = &funcs;
-	fsl_ldb->bridge.of_node = dev->of_node;
+	fsl_ldb->bridge[0].funcs = &funcs;
+	fsl_ldb->bridge[0].of_node = dev->of_node;
+	fsl_ldb->bridge[0].driver_private = fsl_ldb;
+	fsl_ldb->bridge[1].funcs = &funcs;
+	fsl_ldb->bridge[1].of_node = dev->of_node;
+	fsl_ldb->bridge[1].driver_private = fsl_ldb;
 
 	fsl_ldb->clk = devm_clk_get(dev, "ldb");
 	if (IS_ERR(fsl_ldb->clk))
@@ -328,21 +341,44 @@ static int fsl_ldb_probe(struct platform_device *pdev)
 	fsl_ldb->ch1_enabled = (remote2 != NULL);
 	panel_node = remote1 ? remote1 : remote2;
 
+	/*
+	 * For more details abouth the matching algorithm see the code comment
+	 * on of_drm_find_bridge().
+	 */
+	if ((remote1 && remote2) && (remote1 != remote2)) {
+		fsl_ldb->ch1_enabled = false;
+		fsl_ldb->dual_encoder = true;
+		panel_node = remote1;
+		panel_node2 = remote2;
+	}
+
 	if (!fsl_ldb->ch0_enabled && !fsl_ldb->ch1_enabled)
 		return dev_err_probe(dev, -ENXIO, "No panel node found");
 
 	dev_dbg(dev, "Using %s\n",
 		fsl_ldb_is_dual(fsl_ldb) ? "dual-link mode" :
+		fsl_ldb->dual_encoder ? "dual-encoder mode" :
 		fsl_ldb->ch0_enabled ? "channel 0" : "channel 1");
 
 	panel = of_drm_find_panel(panel_node);
 	if (IS_ERR(panel))
 		return dev_err_probe(dev, PTR_ERR(panel), "drm panel not found\n");
 
-	fsl_ldb->panel_bridge = devm_drm_panel_bridge_add(dev, panel);
-	if (IS_ERR(fsl_ldb->panel_bridge))
-		return dev_err_probe(dev, PTR_ERR(fsl_ldb->panel_bridge),
+	fsl_ldb->panel_bridge[0] = devm_drm_panel_bridge_add(dev, panel);
+	if (IS_ERR(fsl_ldb->panel_bridge[0]))
+		return dev_err_probe(dev, PTR_ERR(fsl_ldb->panel_bridge[0]),
 				     "drm panel-bridge add failed\n");
+
+	if (fsl_ldb->dual_encoder) {
+		panel = of_drm_find_panel(panel_node2);
+		if (IS_ERR(panel))
+			return dev_err_probe(dev, PTR_ERR(panel), "2nd drm panel not found\n");
+
+		fsl_ldb->panel_bridge[1] = devm_drm_panel_bridge_add(dev, panel);
+		if (IS_ERR(fsl_ldb->panel_bridge[1]))
+			return dev_err_probe(dev, PTR_ERR(fsl_ldb->panel_bridge[1]),
+					     "2nd drm panel-bridge add failed\n");
+	}
 
 	if (fsl_ldb_is_dual(fsl_ldb)) {
 		struct device_node *port1 __free(device_node) =
@@ -363,7 +399,9 @@ static int fsl_ldb_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, fsl_ldb);
 
-	drm_bridge_add(&fsl_ldb->bridge);
+	drm_bridge_add(&fsl_ldb->bridge[0]);
+	if (fsl_ldb->dual_encoder)
+		drm_bridge_add(&fsl_ldb->bridge[1]);
 
 	return 0;
 }
@@ -372,7 +410,9 @@ static void fsl_ldb_remove(struct platform_device *pdev)
 {
 	struct fsl_ldb *fsl_ldb = platform_get_drvdata(pdev);
 
-	drm_bridge_remove(&fsl_ldb->bridge);
+	drm_bridge_remove(&fsl_ldb->bridge[0]);
+	if (fsl_ldb->dual_encoder)
+		drm_bridge_remove(&fsl_ldb->bridge[1]);
 }
 
 static const struct of_device_id fsl_ldb_match[] = {

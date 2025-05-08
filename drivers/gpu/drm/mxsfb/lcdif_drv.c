@@ -48,14 +48,15 @@ static const struct drm_encoder_funcs lcdif_encoder_funcs = {
 static int lcdif_attach_bridge(struct lcdif_drm_private *lcdif)
 {
 	struct device *dev = lcdif->drm->dev;
+	struct drm_encoder *encoder;
 	struct device_node *ep;
 	struct drm_bridge *bridge;
+	unsigned int clone_mask;
 	int ret;
 
 	for_each_endpoint_of_node(dev->of_node, ep) {
 		struct device_node *remote;
 		struct of_endpoint of_ep;
-		struct drm_encoder *encoder;
 
 		remote = of_graph_get_remote_port_parent(ep);
 		if (!of_device_is_available(remote)) {
@@ -105,6 +106,21 @@ static int lcdif_attach_bridge(struct lcdif_drm_private *lcdif)
 					     of_ep.id);
 		}
 	}
+
+	/*
+	 * For more details abouth the matching algorithm see the code comment
+	 * on of_drm_find_bridge().
+	 */
+	if (of_graph_get_endpoint_count(dev->of_node) < 2)
+		return 0;
+
+	/* setup possible_clones */
+	clone_mask = 0;
+	list_for_each_entry(encoder, &lcdif->drm->mode_config.encoder_list, head)
+		clone_mask |= drm_encoder_mask(encoder);
+
+	list_for_each_entry(encoder, &lcdif->drm->mode_config.encoder_list, head)
+		encoder->possible_clones = clone_mask;
 
 	return 0;
 }

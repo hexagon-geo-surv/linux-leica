@@ -312,11 +312,13 @@ static int fsl_ldb_probe(struct platform_device *pdev)
 
 	fsl_ldb->clk = devm_clk_get(dev, "ldb");
 	if (IS_ERR(fsl_ldb->clk))
-		return PTR_ERR(fsl_ldb->clk);
+		return dev_err_probe(dev, PTR_ERR(fsl_ldb->clk),
+				     "Failed to get ldb clk\n");
 
 	fsl_ldb->regmap = syscon_node_to_regmap(dev->of_node->parent);
 	if (IS_ERR(fsl_ldb->regmap))
-		return PTR_ERR(fsl_ldb->regmap);
+		return dev_err_probe(dev, PTR_ERR(fsl_ldb->regmap),
+				     "Failed to get regmap\n");
 
 	/* Locate the remote ports and the panel node */
 	remote1 = of_graph_get_remote_node(dev->of_node, 1, 0);
@@ -339,12 +341,12 @@ static int fsl_ldb_probe(struct platform_device *pdev)
 	panel = of_drm_find_panel(panel_node);
 	of_node_put(panel_node);
 	if (IS_ERR(panel))
-		return PTR_ERR(panel);
+		return dev_err_probe(dev, PTR_ERR(panel), "drm panel not found\n");
 
 	fsl_ldb->panel_bridge = devm_drm_panel_bridge_add(dev, panel);
 	if (IS_ERR(fsl_ldb->panel_bridge))
-		return PTR_ERR(fsl_ldb->panel_bridge);
-
+		return dev_err_probe(dev, PTR_ERR(fsl_ldb->panel_bridge),
+				     "drm panel-bridge add failed\n");
 
 	if (fsl_ldb_is_dual(fsl_ldb)) {
 		struct device_node *port1, *port2;
@@ -360,10 +362,9 @@ static int fsl_ldb_probe(struct platform_device *pdev)
 					     "Error getting dual link configuration\n");
 
 		/* Only DRM_LVDS_DUAL_LINK_ODD_EVEN_PIXELS is supported */
-		if (dual_link == DRM_LVDS_DUAL_LINK_EVEN_ODD_PIXELS) {
-			dev_err(dev, "LVDS channel pixel swap not supported.\n");
-			return -EINVAL;
-		}
+		if (dual_link == DRM_LVDS_DUAL_LINK_EVEN_ODD_PIXELS)
+			return dev_err_probe(dev, -EINVAL,
+					     "LVDS channel pixel swap not supported.\n");
 	}
 
 	platform_set_drvdata(pdev, fsl_ldb);

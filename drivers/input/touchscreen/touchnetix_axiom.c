@@ -7,6 +7,7 @@
  * Marco Felsch <kernel@pengutronix.de>
  */
 
+#include <drm/drm_panel.h>
 #include <linux/bitfield.h>
 #include <linux/bits.h>
 #include <linux/completion.h>
@@ -314,6 +315,9 @@ struct axiom_data {
 	struct touchscreen_properties prop;
 	bool irq_setup_done;
 	u32 poll_interval;
+
+	struct drm_panel_follower panel_follower;
+	bool is_panel_follower;
 
 	enum axiom_runmode mode;
 	/*
@@ -2545,8 +2549,12 @@ static int axiom_register_input_dev(struct axiom_data *ts)
 	input->id.vendor = ts->jedec_id;
 	input->id.product = ts->device_id;
 	input->id.version = ts->silicon_rev;
-	input->open = axiom_input_open;
-	input->close = axiom_input_close;
+
+	/* Either follow the panel or the open user count, not both */
+	if (!ts->is_panel_follower) {
+		input->open = axiom_input_open;
+		input->close = axiom_input_close;
+	}
 
 	axiom_u64_cds_enabled(ts);
 	input_set_abs_params(input, ABS_MT_POSITION_X, 0, AXIOM_MAX_XY - 1, 0, 0);
@@ -2669,6 +2677,45 @@ static int axiom_power_device(struct axiom_data *ts, unsigned int enable)
 	return 0;
 }
 
+static int axiom_panel_prepared(struct drm_panel_follower *follower)
+{
+	struct axiom_data *ts = container_of(follower, struct axiom_data,
+					     panel_follower);
+
+	return pm_runtime_resume_and_get(ts->dev);
+}
+
+static int axiom_panel_unpreparing(struct drm_panel_follower *follower)
+{
+	struct axiom_data *ts = container_of(follower, struct axiom_data,
+					     panel_follower);
+
+	return pm_runtime_put_sync_suspend(ts->dev);
+}
+
+static const struct drm_panel_follower_funcs axiom_panel_follower_funcs = {
+	.panel_prepared = axiom_panel_prepared,
+	.panel_unpreparing = axiom_panel_unpreparing,
+};
+
+static int axiom_register_panel_follower(struct axiom_data *ts)
+{
+	struct device *dev = ts->dev;
+
+	if (!drm_is_panel_follower(dev))
+		return 0;
+
+	if (device_can_wakeup(dev)) {
+		dev_warn(dev, "Can't follow panel if marked as wakup device\n");
+		return 0;
+	}
+
+	ts->panel_follower.funcs = &axiom_panel_follower_funcs;
+	ts->is_panel_follower = true;
+
+	return devm_drm_panel_add_follower(dev, &ts->panel_follower);
+}
+
 static int axiom_i2c_probe(struct i2c_client *client)
 {
 	struct device *dev = &client->dev;
@@ -2711,6 +2758,10 @@ static int axiom_i2c_probe(struct i2c_client *client)
 	ret = devm_pm_runtime_enable(dev);
 	if (ret)
 		return dev_err_probe(dev, ret, "Failed to enable pm-runtime\n");
+
+	ret = axiom_register_panel_follower(ts);
+	if (ret)
+		return dev_err_probe(dev, ret, "Failed to register panel follower\n");
 
 	ret = axiom_u31_device_discover(ts);
 	/*

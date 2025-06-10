@@ -2,6 +2,7 @@
 // Copyright (c) 2015--2017 Intel Corporation.
 
 #include <linux/delay.h>
+#include <linux/gpio/consumer.h>
 #include <linux/i2c.h>
 #include <linux/module.h>
 #include <linux/pm_runtime.h>
@@ -38,6 +39,7 @@ struct dw9714_device {
 	struct v4l2_subdev sd;
 	u16 current_val;
 	struct regulator *vcc;
+	struct gpio_desc *powerdown_gpio;
 };
 
 static inline struct dw9714_device *to_dw9714_vcm(struct v4l2_ctrl *ctrl)
@@ -151,11 +153,20 @@ static int dw9714_probe(struct i2c_client *client)
 	if (IS_ERR(dw9714_dev->vcc))
 		return PTR_ERR(dw9714_dev->vcc);
 
+	dw9714_dev->powerdown_gpio = devm_gpiod_get_optional(&client->dev,
+							     "powerdown",
+							     GPIOD_OUT_LOW);
+	if (IS_ERR(dw9714_dev->powerdown_gpio))
+		return dev_err_probe(&client->dev,
+				     PTR_ERR(dw9714_dev->powerdown_gpio),
+				     "could not get powerdown gpio\n");
+
 	rval = regulator_enable(dw9714_dev->vcc);
 	if (rval < 0) {
 		dev_err(&client->dev, "failed to enable vcc: %d\n", rval);
 		return rval;
 	}
+	gpiod_set_value_cansleep(dw9714_dev->powerdown_gpio, 0);
 
 	usleep_range(1000, 2000);
 
@@ -185,6 +196,7 @@ static int dw9714_probe(struct i2c_client *client)
 	return 0;
 
 err_cleanup:
+	gpiod_set_value_cansleep(dw9714_dev->powerdown_gpio, 1);
 	regulator_disable(dw9714_dev->vcc);
 	v4l2_ctrl_handler_free(&dw9714_dev->ctrls_vcm);
 	media_entity_cleanup(&dw9714_dev->sd.entity);
@@ -200,6 +212,7 @@ static void dw9714_remove(struct i2c_client *client)
 
 	pm_runtime_disable(&client->dev);
 	if (!pm_runtime_status_suspended(&client->dev)) {
+		gpiod_set_value_cansleep(dw9714_dev->powerdown_gpio, 1);
 		ret = regulator_disable(dw9714_dev->vcc);
 		if (ret) {
 			dev_err(&client->dev,
@@ -234,6 +247,7 @@ static int __maybe_unused dw9714_vcm_suspend(struct device *dev)
 		usleep_range(DW9714_CTRL_DELAY_US, DW9714_CTRL_DELAY_US + 10);
 	}
 
+	gpiod_set_value_cansleep(dw9714_dev->powerdown_gpio, 1);
 	ret = regulator_disable(dw9714_dev->vcc);
 	if (ret)
 		dev_err(dev, "Failed to disable vcc: %d\n", ret);
@@ -262,6 +276,8 @@ static int  __maybe_unused dw9714_vcm_resume(struct device *dev)
 		dev_err(dev, "Failed to enable vcc: %d\n", ret);
 		return ret;
 	}
+	gpiod_set_value_cansleep(dw9714_dev->powerdown_gpio, 0);
+
 	usleep_range(1000, 2000);
 
 	for (val = dw9714_dev->current_val % DW9714_CTRL_STEPS;

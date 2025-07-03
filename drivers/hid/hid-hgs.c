@@ -572,6 +572,7 @@ static const struct hid_device_id hgs_hid_devices[] = {
 	{ HID_I2C_DEVICE(0x16bd, 0x8000) },
 	{ HID_I2C_DEVICE(0x16bd, 0x0057) },
 	{ HID_I2C_DEVICE(0x16bd, 0x0056) },
+	{ HID_I2C_DEVICE(0x0803, 0x6030) },
 	{}
 };
 MODULE_DEVICE_TABLE(hid, hgs_hid_devices);

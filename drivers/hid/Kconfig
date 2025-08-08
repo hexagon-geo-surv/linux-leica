@@ -541,6 +541,13 @@ config HID_GYRATION
 	help
 	Support for Gyration remote control.
 
+config HID_HGS_KDU
+	tristate "HGS KDU/KU HID devices"
+	depends on HID
+	select I2C_HID_OF
+	help
+	Enable support for HGS KDU/KU HID devices, including keyboard backlight and LED control.
+
 config HID_ICADE
 	tristate "ION iCade arcade controller"
 	help

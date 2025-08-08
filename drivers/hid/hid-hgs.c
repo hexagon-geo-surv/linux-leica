@@ -302,7 +302,173 @@ static void hgs_cleanup_action(void *data)
 	if (!ctx)
 		return;
 
+	hgs_fw_exit(ctx);
 	hid_hw_stop(ctx->hid);
+}
+
+static void hgs_parse_fw_feature_field(struct hgs_ctx *ctx, struct hid_report *report,
+				       struct hid_field *field)
+{
+	struct device *dev = &ctx->hid->dev;
+
+	u32 usage_hid = field->usage[0].hid;
+
+	if (report->type != HID_FEATURE_REPORT)
+		return;
+
+	if (usage_hid == HGS_USAGE_FW_VERSION_MAJOR || usage_hid == HGS_USAGE_FW_VERSION_MINOR ||
+	    usage_hid == HGS_USAGE_FW_VERSION_BUILD) {
+		if (!ctx->fw.version_feature_report) {
+			ctx->fw.version_feature_report = report;
+			dev_info(dev,
+				 "Found FW Version usage (Usage 0x%X) in Feature Report ID %d\n",
+				 usage_hid, report->id);
+		}
+		return;
+	}
+
+	if (usage_hid == HGS_USAGE_FW_MATERIAL &&
+	    field->application == HGS_APPLICATION_FW_MATERIAL) {
+		if (!ctx->fw.material_info_feature_report) {
+			ctx->fw.material_info_feature_report = report;
+			dev_info(dev, "Found Material Info (Usage 0x%X) in Feature Report ID %d\n",
+				 usage_hid, report->id);
+		}
+		return;
+	}
+
+	if (usage_hid == HGS_USAGE_BOARD_INFO &&
+	    field->application == HGS_APPLICATION_FW_BOARD_ID) {
+		if (!ctx->fw.board_info_feature_report) {
+			ctx->fw.board_info_feature_report = report;
+			dev_info(dev, "Found Board Info (Usage 0x%X) in Feature Report ID %d\n",
+				 usage_hid, report->id);
+		}
+		return;
+	}
+
+	if (usage_hid == HGS_USAGE_TRACE_ID && field->application == HGS_APPLICATION_FW_TRACE_ID) {
+		if (!ctx->fw.trace_id_feature_report) {
+			ctx->fw.trace_id_feature_report = report;
+			dev_info(dev, "Found Trace ID (Usage 0x%X) in Feature Report ID %d\n",
+				 usage_hid, report->id);
+		}
+		return;
+	}
+}
+
+static void hgs_parse_fw_output_field(struct hgs_ctx *ctx, struct hid_report *report,
+				      struct hid_field *field)
+{
+	struct device *dev = &ctx->hid->dev;
+	u32 usage_hid = field->usage[0].hid;
+
+	if (report->type != HID_OUTPUT_REPORT)
+		return;
+
+	if (usage_hid == HGS_USAGE_FW_STREAM_SIZE || usage_hid == HGS_USAGE_FW_STREAM_SIZE_LEGACY) {
+		ctx->fw.output_report = report;
+		ctx->fw.stream_size_field = field;
+		dev_info(dev, "Found FW Stream Size (Usage 0x%X) in Output Report ID %d\n",
+			 usage_hid, report->id);
+		return;
+	}
+
+	if (usage_hid == HGS_USAGE_FW_DATA_BLOCK || usage_hid == HGS_USAGE_FW_DATA_BLOCK_LEGACY) {
+		ctx->fw.output_report = report;
+		ctx->fw.data_block_field = field;
+		dev_info(dev, "Found FW Data Block (Usage 0x%X) in Output Report ID %d\n",
+			 usage_hid, report->id);
+		return;
+	}
+}
+
+static void hgs_parse_fw_input_field(struct hgs_ctx *ctx, struct hid_report *report,
+				     struct hid_field *field)
+{
+	struct device *dev = &ctx->hid->dev;
+
+	u32 usage_hid = field->usage[0].hid;
+
+	if (report->type != HID_INPUT_REPORT)
+		return;
+
+	if (usage_hid == HGS_USAGE_FW_STATE || usage_hid == HGS_USAGE_FW_STATE_LEGACY) {
+		ctx->fw.input_report = report;
+		ctx->fw.state_field = field;
+		dev_info(dev, "Found FW State (Usage 0x%X) in Input Report ID %d\n", usage_hid,
+			 report->id);
+		return;
+	}
+}
+
+static void hgs_hid_parse_update_reports(struct hgs_ctx *ctx)
+{
+	struct hid_device *hdev = ctx->hid;
+	struct hid_report_enum *report_enum_array[] = {
+		&hdev->report_enum[HID_OUTPUT_REPORT],
+		&hdev->report_enum[HID_INPUT_REPORT],
+		&hdev->report_enum[HID_FEATURE_REPORT]
+	};
+
+	struct hid_report *report;
+	struct hid_field *field;
+	int i, j;
+
+	ctx->fw.output_report = NULL;
+	ctx->fw.input_report = NULL;
+	ctx->fw.version_feature_report = NULL;
+	ctx->fw.stream_size_field = NULL;
+	ctx->fw.data_block_field = NULL;
+	ctx->fw.state_field = NULL;
+
+	for (i = 0; i < ARRAY_SIZE(report_enum_array); i++) {
+		list_for_each_entry(report, &report_enum_array[i]->report_list, list) {
+			for (j = 0; j < report->maxfield; j++) {
+				field = report->field[j];
+				if (report->type == HID_OUTPUT_REPORT)
+					hgs_parse_fw_output_field(ctx, report, field);
+				else if (report->type == HID_INPUT_REPORT)
+					hgs_parse_fw_input_field(ctx, report, field);
+				else if (report->type == HID_FEATURE_REPORT)
+					hgs_parse_fw_feature_field(ctx, report, field);
+			}
+		}
+	}
+
+	hgs_fw_init(ctx);
+}
+
+static int hgs_hid_raw_event(struct hid_device *hdev, struct hid_report *report, u8 *raw_data,
+			     int size)
+{
+	struct hgs_ctx *ctx = hid_get_drvdata(hdev);
+	struct hgs_fw_data *fw;
+	unsigned long flags;
+
+	if (!ctx)
+		return 1;
+
+	fw = &ctx->fw;
+
+	if (report && fw->input_report && report->id == fw->input_report->id &&
+	    report->type == HID_INPUT_REPORT) {
+		if (size >= 2 && raw_data[0] == report->id) {
+			u8 state_value = raw_data[1];
+
+			spin_lock_irqsave(&fw->state_lock, flags);
+			fw->last_fw_state = state_value;
+			fw->fw_state_updated = true;
+			spin_unlock_irqrestore(&fw->state_lock, flags);
+
+			complete(&fw->fw_state_received);
+		} else {
+			dev_warn(&hdev->dev,
+				 "Event: Report ID %d, unexpected size %d or raw_data[0] 0x%02x\n",
+				 report->id, size, (size > 0 ? raw_data[0] : 0xFF));
+		}
+	}
+	return 0;
 }
 
 static int hgs_hid_probe(struct hid_device *hdev, const struct hid_device_id *id)
@@ -333,6 +499,8 @@ static int hgs_hid_probe(struct hid_device *hdev, const struct hid_device_id *id
 	ret = hgs_register_leds_from_reports(ctx);
 	if (ret)
 		dev_warn(&hdev->dev, "Failed to register LEDs: %d\n", ret);
+
+	hgs_hid_parse_update_reports(ctx);
 
 	ret = hid_hw_start(hdev, HID_CONNECT_DEFAULT);
 	if (ret) {
@@ -412,8 +580,9 @@ static struct hid_driver hgs_hid_driver = {
 	.id_table = hgs_hid_devices,
 	.name = "hgs-hid",
 	.probe = hgs_hid_probe,
-	.suspend = hgs_hid_suspend,
+	.raw_event = hgs_hid_raw_event,
 	.reset_resume = hgs_hid_resume,
+	.suspend = hgs_hid_suspend,
 };
 
 module_hid_driver(hgs_hid_driver);

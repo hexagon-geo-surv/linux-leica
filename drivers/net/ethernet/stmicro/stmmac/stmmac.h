@@ -181,6 +181,7 @@ struct stmmac_tc_entry {
 #define STMMAC_PPS_MAX		4
 struct stmmac_pps_cfg {
 	bool available;
+	bool on;
 	struct timespec64 start;
 	struct timespec64 period;
 };

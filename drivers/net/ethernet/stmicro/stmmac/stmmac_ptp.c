@@ -10,6 +10,70 @@
 #include "stmmac.h"
 #include "stmmac_ptp.h"
 
+#define PPS_RESTART_SLEEP_US 100
+#define PPS_RESTART_DELAY_NS 100*NSEC_PER_MSEC
+
+/**
+ * stmmac_restart_pps
+ *
+ * @ptp: pointer to ptp_clock_info structure
+ * @ts: time value to set
+ *
+ * Description: this function will restart the pps output from
+ * the current phc time.
+ */
+static int stmmac_restart_pps(struct ptp_clock_info *ptp)
+{
+	struct stmmac_priv *priv =
+	    container_of(ptp, struct stmmac_priv, ptp_clock_ops);
+	unsigned long flags;
+	ktime_t time_ns, start_ns, period_ns;
+	s64 cycles, remainder_ns;
+	struct stmmac_pps_cfg *cfg;
+	int index;
+	int ret = 0;
+
+	for (index = 0; index < STMMAC_PPS_MAX; index++)
+	{
+		cfg = &priv->pps[index];
+		if (cfg->on) {
+			period_ns = timespec64_to_ktime(cfg->period);
+			start_ns = timespec64_to_ktime(cfg->start);
+
+			/* Turn off pps. */
+			write_lock_irqsave(&priv->ptp_lock, flags);
+			ret = stmmac_flex_pps_config(priv, priv->ioaddr,
+				index, cfg, 0,
+				priv->sub_second_inc,
+				priv->systime_flags);
+
+			/* Get phc time. */
+			stmmac_get_systime(priv, priv->ptpaddr, &time_ns);
+
+			time_ns += PPS_RESTART_DELAY_NS;
+			
+			/* Calculate the restart time. */
+			cycles = div64_s64((time_ns - start_ns), period_ns);
+			remainder_ns = (time_ns - start_ns) - cycles * period_ns;
+			if (remainder_ns < 0)
+				remainder_ns += period_ns;
+			start_ns = time_ns + period_ns - remainder_ns;
+
+			cfg->period = ktime_to_timespec64(period_ns);
+			cfg->start = ktime_to_timespec64(start_ns);
+			
+			/* Turn on pps */
+			ret = stmmac_flex_pps_config(priv, priv->ioaddr,
+				index, cfg, 1,
+				priv->sub_second_inc,
+				priv->systime_flags);
+			write_unlock_irqrestore(&priv->ptp_lock, flags);
+		}
+	}
+	return 0;
+}
+
+
 /**
  * stmmac_adjust_freq
  *
@@ -108,6 +172,9 @@ static int stmmac_adjust_time(struct ptp_clock_info *ptp, s64 delta)
 			netdev_err(priv->dev, "failed to configure EST\n");
 	}
 
+	/* Restart pps output. */
+	stmmac_restart_pps(ptp);
+
 	return 0;
 }
 
@@ -156,6 +223,9 @@ static int stmmac_set_time(struct ptp_clock_info *ptp,
 	stmmac_init_systime(priv, priv->ptpaddr, ts->tv_sec, ts->tv_nsec);
 	write_unlock_irqrestore(&priv->ptp_lock, flags);
 
+	/* Restart pps output. */
+	stmmac_restart_pps(ptp);
+
 	return 0;
 }
 
@@ -169,26 +239,30 @@ static int stmmac_enable(struct ptp_clock_info *ptp,
 	int ret = -EOPNOTSUPP;
 	unsigned long flags;
 	u32 acr_value;
-
+	
 	switch (rq->type) {
 	case PTP_CLK_REQ_PEROUT:
+		netdev_info(priv->dev, "%s: REQ_PEROUT: %s PPS index=%i with flags=%#04x\n", __func__, str_enable_disable(on), rq->perout.index, rq->perout.flags);
+
 		/* Reject requests with unsupported flags */
 		if (rq->perout.flags)
 			return -EOPNOTSUPP;
 
 		cfg = &priv->pps[rq->perout.index];
 
+		write_lock_irqsave(&priv->ptp_lock, flags);
 		cfg->start.tv_sec = rq->perout.start.sec;
 		cfg->start.tv_nsec = rq->perout.start.nsec;
 		cfg->period.tv_sec = rq->perout.period.sec;
 		cfg->period.tv_nsec = rq->perout.period.nsec;
+		cfg->on = on;
 
-		write_lock_irqsave(&priv->ptp_lock, flags);
 		ret = stmmac_flex_pps_config(priv, priv->ioaddr,
 					     rq->perout.index, cfg, on,
 					     priv->sub_second_inc,
 					     priv->systime_flags);
 		write_unlock_irqrestore(&priv->ptp_lock, flags);
+
 		break;
 	case PTP_CLK_REQ_EXTTS: {
 		u8 channel;

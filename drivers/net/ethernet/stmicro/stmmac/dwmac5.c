@@ -535,9 +535,9 @@ int dwmac5_flex_pps_config(void __iomem *ioaddr, int index,
 	val &= ~PPSx_MASK(index);
 
 	if (!enable) {
-		val |= PPSCMDx(index, 0x5);
 		val |= PPSEN0;
-		writel(val, ioaddr + MAC_PPS_CONTROL);
+		writel(val | PPSCMDx(index, 0x3), ioaddr + MAC_PPS_CONTROL);
+		writel(val | PPSCMDx(index, 0x5), ioaddr + MAC_PPS_CONTROL);
 		return 0;
 	}
 

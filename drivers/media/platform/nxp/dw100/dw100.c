@@ -74,6 +74,10 @@ struct dw100_device {
 	struct clk_bulk_data		*clks;
 	int				num_clks;
 	struct dentry			*debugfs_root;
+
+	/* Completion handlers */
+	struct work_struct		job_completion;
+	bool				with_error;
 };
 
 struct dw100_q_data {
@@ -1123,6 +1127,16 @@ static void dw100_job_finish(struct dw100_device *dw_dev, bool with_error)
 	v4l2_m2m_job_finish(dw_dev->m2m_dev, curr_ctx->fh.m2m_ctx);
 }
 
+static void dw100_job_completion_task(struct work_struct *work)
+{
+	struct dw100_device *dw_dev =
+		container_of(work, struct dw100_device, job_completion);
+
+	dev_dbg(&dw_dev->pdev->dev, "Job completion task started\n");
+
+	dw100_job_finish(dw_dev, dw_dev->with_error);
+}
+
 static void dw100_hw_reset(struct dw100_device *dw_dev)
 {
 	u32 val;
@@ -1444,7 +1458,16 @@ static irqreturn_t dw100_irq_handler(int irq, void *dev_id)
 	dw100_hw_clear_irq(dw_dev, pending_irqs |
 			   DW100_INTERRUPT_STATUS_INT_ERR_TIME_OUT);
 
-	dw100_job_finish(dw_dev, with_error);
+	/*
+	 * PREEMPT_RT kernel fails to handle the vb2_buffer_done locking in
+	 * atomic context. This might need further investigation to handle
+	 * this correctly at the v4l2 m2m layer.
+	 *
+	 * For now, we schedule a work to handle the job completion.
+	 */
+	dw_dev->with_error = with_error;
+	INIT_WORK(&dw_dev->job_completion, dw100_job_completion_task);
+	schedule_work(&dw_dev->job_completion);
 
 	return IRQ_HANDLED;
 }

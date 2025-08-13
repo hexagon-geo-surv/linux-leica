@@ -196,7 +196,6 @@ struct imx335_mode {
  * @vblank: Vertical blanking in lines
  * @lane_mode: Mode for number of connected data lanes
  * @cur_mode: Pointer to current selected sensor mode
- * @mutex: Mutex for serializing sensor controls
  * @link_freq_bitmap: Menu bitmap for link_freq_ctrl
  * @cur_mbus_code: Currently selected media bus format code
  */
@@ -223,7 +222,6 @@ struct imx335 {
 	u32 vblank;
 	u32 lane_mode;
 	const struct imx335_mode *cur_mode;
-	struct mutex mutex;
 	unsigned long link_freq_bitmap;
 	u32 cur_mbus_code;
 };
@@ -759,36 +757,6 @@ static void imx335_fill_pad_format(struct imx335 *imx335,
 }
 
 /**
- * imx335_get_pad_format() - Get subdevice pad format
- * @sd: pointer to imx335 V4L2 sub-device structure
- * @sd_state: V4L2 sub-device configuration
- * @fmt: V4L2 sub-device format need to be set
- *
- * Return: 0 if successful, error code otherwise.
- */
-static int imx335_get_pad_format(struct v4l2_subdev *sd,
-				 struct v4l2_subdev_state *sd_state,
-				 struct v4l2_subdev_format *fmt)
-{
-	struct imx335 *imx335 = to_imx335(sd);
-
-	mutex_lock(&imx335->mutex);
-
-	if (fmt->which == V4L2_SUBDEV_FORMAT_TRY) {
-		struct v4l2_mbus_framefmt *framefmt;
-
-		framefmt = v4l2_subdev_state_get_format(sd_state, fmt->pad);
-		fmt->format = *framefmt;
-	} else {
-		imx335_fill_pad_format(imx335, imx335->cur_mode, fmt);
-	}
-
-	mutex_unlock(&imx335->mutex);
-
-	return 0;
-}
-
-/**
  * imx335_set_pad_format() - Set subdevice pad format
  * @sd: pointer to imx335 V4L2 sub-device structure
  * @sd_state: V4L2 sub-device configuration
@@ -801,12 +769,12 @@ static int imx335_set_pad_format(struct v4l2_subdev *sd,
 				 struct v4l2_subdev_format *fmt)
 {
 	struct imx335 *imx335 = to_imx335(sd);
+	struct v4l2_mbus_framefmt *format;
 	const struct imx335_mode *mode;
 	int i, ret = 0;
 
-	mutex_lock(&imx335->mutex);
-
 	mode = &supported_mode;
+
 	for (i = 0; i < ARRAY_SIZE(imx335_mbus_codes); i++) {
 		if (imx335_mbus_codes[i] == fmt->format.code)
 			imx335->cur_mbus_code = imx335_mbus_codes[i];
@@ -814,18 +782,14 @@ static int imx335_set_pad_format(struct v4l2_subdev *sd,
 
 	imx335_fill_pad_format(imx335, mode, fmt);
 
-	if (fmt->which == V4L2_SUBDEV_FORMAT_TRY) {
-		struct v4l2_mbus_framefmt *framefmt;
+	format = v4l2_subdev_state_get_format(sd_state, fmt->pad);
+	*format = fmt->format;
 
-		framefmt = v4l2_subdev_state_get_format(sd_state, fmt->pad);
-		*framefmt = fmt->format;
-	} else {
+	if (fmt->which == V4L2_SUBDEV_FORMAT_ACTIVE) {
 		ret = imx335_update_controls(imx335, mode);
 		if (!ret)
 			imx335->cur_mode = mode;
 	}
-
-	mutex_unlock(&imx335->mutex);
 
 	return ret;
 }
@@ -846,12 +810,10 @@ static int imx335_init_state(struct v4l2_subdev *sd,
 	fmt.which = sd_state ? V4L2_SUBDEV_FORMAT_TRY : V4L2_SUBDEV_FORMAT_ACTIVE;
 	imx335_fill_pad_format(imx335, &supported_mode, &fmt);
 
-	mutex_lock(&imx335->mutex);
 	__v4l2_ctrl_modify_range(imx335->link_freq_ctrl, 0,
 				 __fls(imx335->link_freq_bitmap),
 				 ~(imx335->link_freq_bitmap),
 				 __ffs(imx335->link_freq_bitmap));
-	mutex_unlock(&imx335->mutex);
 
 	return imx335_set_pad_format(sd, sd_state, &fmt);
 }
@@ -919,13 +881,17 @@ static int imx335_start_streaming(struct imx335 *imx335)
 	const struct imx335_reg_list *reg_list;
 	int ret;
 
+	ret = pm_runtime_resume_and_get(imx335->dev);
+	if (ret < 0)
+		return ret;
+
 	/* Setup PLL */
 	reg_list = &link_freq_reglist[__ffs(imx335->link_freq_bitmap)];
 	ret = cci_multi_reg_write(imx335->cci, reg_list->regs,
 				  reg_list->num_of_regs, NULL);
 	if (ret) {
 		dev_err(imx335->dev, "%s failed to set plls\n", __func__);
-		return ret;
+		goto err_rpm_put;
 	}
 
 	/* Write sensor mode registers */
@@ -934,27 +900,27 @@ static int imx335_start_streaming(struct imx335 *imx335)
 				  reg_list->num_of_regs, NULL);
 	if (ret) {
 		dev_err(imx335->dev, "fail to write initial registers\n");
-		return ret;
+		goto err_rpm_put;
 	}
 
 	ret = imx335_set_framefmt(imx335);
 	if (ret) {
 		dev_err(imx335->dev, "%s failed to set frame format: %d\n",
 			__func__, ret);
-		return ret;
+		goto err_rpm_put;
 	}
 
 	/* Configure lanes */
 	ret = cci_write(imx335->cci, IMX335_REG_LANEMODE,
 			imx335->lane_mode, NULL);
 	if (ret)
-		return ret;
+		goto err_rpm_put;
 
 	/* Setup handler will write actual exposure and gain */
 	ret =  __v4l2_ctrl_handler_setup(imx335->sd.ctrl_handler);
 	if (ret) {
 		dev_err(imx335->dev, "fail to setup handler\n");
-		return ret;
+		goto err_rpm_put;
 	}
 
 	/* Start streaming */
@@ -962,25 +928,29 @@ static int imx335_start_streaming(struct imx335 *imx335)
 			IMX335_MODE_STREAMING, NULL);
 	if (ret) {
 		dev_err(imx335->dev, "fail to start streaming\n");
-		return ret;
+		goto err_rpm_put;
 	}
 
 	/* Initial regulator stabilization period */
 	usleep_range(18000, 20000);
 
 	return 0;
+
+err_rpm_put:
+	pm_runtime_put(imx335->dev);
+
+	return ret;
 }
 
 /**
  * imx335_stop_streaming() - Stop sensor stream
  * @imx335: pointer to imx335 device
- *
- * Return: 0 if successful, error code otherwise.
  */
-static int imx335_stop_streaming(struct imx335 *imx335)
+static void imx335_stop_streaming(struct imx335 *imx335)
 {
-	return cci_write(imx335->cci, IMX335_REG_MODE_SELECT,
-			 IMX335_MODE_STANDBY, NULL);
+	cci_write(imx335->cci, IMX335_REG_MODE_SELECT,
+		  IMX335_MODE_STANDBY, NULL);
+	pm_runtime_put(imx335->dev);
 }
 
 /**
@@ -993,31 +963,18 @@ static int imx335_stop_streaming(struct imx335 *imx335)
 static int imx335_set_stream(struct v4l2_subdev *sd, int enable)
 {
 	struct imx335 *imx335 = to_imx335(sd);
-	int ret;
+	struct v4l2_subdev_state *state;
+	int ret = 0;
 
-	mutex_lock(&imx335->mutex);
+	state = v4l2_subdev_lock_and_get_active_state(sd);
 
 	if (enable) {
-		ret = pm_runtime_resume_and_get(imx335->dev);
-		if (ret)
-			goto error_unlock;
-
 		ret = imx335_start_streaming(imx335);
-		if (ret)
-			goto error_power_off;
 	} else {
 		imx335_stop_streaming(imx335);
-		pm_runtime_put(imx335->dev);
 	}
 
-	mutex_unlock(&imx335->mutex);
-
-	return 0;
-
-error_power_off:
-	pm_runtime_put(imx335->dev);
-error_unlock:
-	mutex_unlock(&imx335->mutex);
+	v4l2_subdev_unlock_state(state);
 
 	return ret;
 }
@@ -1146,7 +1103,7 @@ static const struct v4l2_subdev_pad_ops imx335_pad_ops = {
 	.enum_frame_size = imx335_enum_frame_size,
 	.get_selection = imx335_get_selection,
 	.set_selection = imx335_get_selection,
-	.get_fmt = imx335_get_pad_format,
+	.get_fmt = v4l2_subdev_get_fmt,
 	.set_fmt = imx335_set_pad_format,
 };
 
@@ -1240,9 +1197,6 @@ static int imx335_init_controls(struct imx335 *imx335)
 	ret = v4l2_ctrl_handler_init(ctrl_hdlr, 10);
 	if (ret)
 		return ret;
-
-	/* Serialize controls with sensor device */
-	ctrl_hdlr->lock = &imx335->mutex;
 
 	/* Initialize exposure and gain */
 	lpfr = mode->vblank + mode->height;
@@ -1363,12 +1317,10 @@ static int imx335_probe(struct i2c_client *client)
 		return ret;
 	}
 
-	mutex_init(&imx335->mutex);
-
 	ret = imx335_power_on(imx335->dev);
 	if (ret) {
 		dev_err(imx335->dev, "failed to power-on the sensor\n");
-		goto error_mutex_destroy;
+		return ret;
 	}
 
 	/* Check module identity */
@@ -1401,11 +1353,18 @@ static int imx335_probe(struct i2c_client *client)
 		goto error_handler_free;
 	}
 
+	imx335->sd.state_lock = imx335->ctrl_handler.lock;
+	ret = v4l2_subdev_init_finalize(&imx335->sd);
+	if (ret < 0) {
+		dev_err(imx335->dev, "subdev init error\n");
+		goto error_media_entity;
+	}
+
 	ret = v4l2_async_register_subdev_sensor(&imx335->sd);
 	if (ret < 0) {
 		dev_err(imx335->dev,
 			"failed to register async subdev: %d\n", ret);
-		goto error_media_entity;
+		goto error_subdev_cleanup;
 	}
 
 	pm_runtime_set_active(imx335->dev);
@@ -1414,14 +1373,14 @@ static int imx335_probe(struct i2c_client *client)
 
 	return 0;
 
+error_subdev_cleanup:
+	v4l2_subdev_cleanup(&imx335->sd);
 error_media_entity:
 	media_entity_cleanup(&imx335->sd.entity);
 error_handler_free:
 	v4l2_ctrl_handler_free(imx335->sd.ctrl_handler);
 error_power_off:
 	imx335_power_off(imx335->dev);
-error_mutex_destroy:
-	mutex_destroy(&imx335->mutex);
 
 	return ret;
 }
@@ -1435,9 +1394,9 @@ error_mutex_destroy:
 static void imx335_remove(struct i2c_client *client)
 {
 	struct v4l2_subdev *sd = i2c_get_clientdata(client);
-	struct imx335 *imx335 = to_imx335(sd);
 
 	v4l2_async_unregister_subdev(sd);
+	v4l2_subdev_cleanup(sd);
 	media_entity_cleanup(&sd->entity);
 	v4l2_ctrl_handler_free(sd->ctrl_handler);
 
@@ -1445,8 +1404,6 @@ static void imx335_remove(struct i2c_client *client)
 	if (!pm_runtime_status_suspended(&client->dev))
 		imx335_power_off(&client->dev);
 	pm_runtime_set_suspended(&client->dev);
-
-	mutex_destroy(&imx335->mutex);
 }
 
 static const struct dev_pm_ops imx335_pm_ops = {

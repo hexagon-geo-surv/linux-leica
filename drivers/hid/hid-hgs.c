@@ -16,6 +16,20 @@
 #include <linux/slab.h>
 #include "hid-hgs.h"
 
+static void hgs_led_write_hid_field(struct hgs_led *led, struct hgs_ctx *ctx, int brightness)
+{
+	struct hid_field *field = led->field;
+
+	if (!field)
+		return;
+	dev_dbg(&ctx->hid->dev, "HID writing LED brightness: %d\n", brightness);
+	mutex_lock(&ctx->lock);
+	field->value[led->dt.usage_index] = brightness;
+	hid_hw_request(led->hdev, field->report, HID_REQ_SET_REPORT);
+	fsleep(300);
+	mutex_unlock(&ctx->lock);
+}
+
 static int hgs_led_brightness_set_blocking(struct led_classdev *cdev,
 					   enum led_brightness brightness)
 {
@@ -34,16 +48,8 @@ static int hgs_led_brightness_set_blocking(struct led_classdev *cdev,
 
 	brightness = clamp((int)brightness, field->logical_minimum, field->logical_maximum);
 
-	mutex_lock(&ctx->lock);
 	cdev->brightness = brightness;
-	if (field->report_count >= led->dt.usage_index)
-		field->value[led->dt.usage_index] = brightness;
-	else
-		field->value[0] = brightness;
-	hid_hw_request(led->hdev, field->report, HID_REQ_SET_REPORT);
-	fsleep(300);
-	mutex_unlock(&ctx->lock);
-	dev_dbg(&ctx->hid->dev, "LED brightness set to %u\n", brightness);
+	hgs_led_write_hid_field(led, ctx, brightness);
 	return 0;
 }
 
@@ -186,8 +192,8 @@ static int hgs_backlight_update_status(struct backlight_device *bl_dev)
 		return -ENODEV;
 	}
 
+
 	if (ctx->backlight.suspended) {
-		bl_dev->props.brightness = 0;
 		return -EAGAIN;
 	}
 
@@ -209,7 +215,7 @@ static int hgs_backlight_update_status(struct backlight_device *bl_dev)
 	hid_hw_request(ctx->hid, field->report, HID_REQ_SET_REPORT);
 	fsleep(300);
 	mutex_unlock(&ctx->lock);
-	dev_dbg(&ctx->hid->dev, "Backlight brightness set to %d\n", brightness);
+	dev_info(&ctx->hid->dev, "Backlight brightness set to %d\n", brightness);
 	return 0;
 }
 
@@ -532,9 +538,8 @@ static int hgs_hid_suspend(struct hid_device *hdev, pm_message_t message)
 	}
 
 	list_for_each_entry(led, &ctx->led_list, list) {
-		if (led->cdev.brightness_set_blocking) {
-			led->saved_brightness = led->cdev.brightness;
-			led->cdev.brightness_set_blocking(&led->cdev, 0);
+		if (led->field) {
+			hgs_led_write_hid_field(led, ctx, 0);
 			led->suspended = true;
 		}
 	}
@@ -559,9 +564,9 @@ static int hgs_hid_resume(struct hid_device *hdev)
 	}
 
 	list_for_each_entry(led, &ctx->led_list, list) {
-		if (led->cdev.brightness_set_blocking) {
+		if (led->field) {
 			led->suspended = false;
-			led->cdev.brightness_set_blocking(&led->cdev, led->saved_brightness);
+			hgs_led_write_hid_field(led, ctx, led->cdev.brightness);
 		}
 	}
 

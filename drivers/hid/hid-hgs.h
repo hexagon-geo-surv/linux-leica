@@ -58,7 +58,6 @@ struct hgs_led_dt {
 
 struct hgs_led {
 	bool suspended;
-	enum led_brightness saved_brightness;
 	struct hgs_led_dt dt;
 	struct hid_device *hdev;
 	struct hid_field *field;

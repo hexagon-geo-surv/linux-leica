@@ -86,5 +86,12 @@ examples:
                 compatible = "usbb95,772b";
                 reg = <1>;
             };
+
+            /* VBUS on the 2nd port is managed by the host */
+            ethernet@2 {
+                compatible = "usbb95,772b";
+                reg = <2>;
+                vbus-supply = <&reg_5v0_vbus>;
+            };
         };
     };

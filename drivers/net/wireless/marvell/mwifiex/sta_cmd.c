@@ -1532,7 +1532,7 @@ int mwifiex_send_rgpower_table(struct mwifiex_adapter *adapter, const u8 *data,
 		}
 
 		if (*pos == '}' && start_raw) {
-			memcpy(&hostcmd->len, &hostcmd->cmd[2], sizeof(u16));
+			hostcmd->len = get_unaligned_le16(&hostcmd->cmd[2]);
 			ret = mwifiex_adapter_send_cmd(adapter, 0, 0, 0,
 						       hostcmd, false);
 			if (ret) {

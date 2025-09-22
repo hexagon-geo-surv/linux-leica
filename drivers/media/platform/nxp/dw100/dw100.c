@@ -1506,6 +1506,8 @@ static void dw100_device_run(void *priv)
 		ctx->warned_dynamic_update = true;
 		dev_warn(&ctx->dw_dev->pdev->dev,
 			"Request required to update the vertex map dynamically");
+		/* Todo: Remove once userland uses requests */
+		dw100_update_mapping(ctx);
 	}
 
 	dw100_start(ctx, src_buf, dst_buf);

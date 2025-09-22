@@ -656,6 +656,20 @@ static const struct imx283_mode supported_modes_12bit[] = {
 		.crop = CENTERED_RECTANGLE(imx283_recommended_area, 5472, 450, 6),
 	},
 	{
+		/* 2/2 Binned Panoramic Mode 2736x450: readout mode 2 */
+		.scan = &imx283_scan_modes[IMX283_MODE_2],
+		.width = 2736,
+		.height = 450,
+		.min_hmax = 5914, /* 887 @ 480MHz/72MHz */
+		.min_vmax = 950, /* Lines */
+
+		/* 84.21 FPS */
+		.default_hmax = 6000, /* 900 @ 480MHz/72MHz */
+		.default_vmax = 950,
+
+		.crop = CENTERED_RECTANGLE(imx283_recommended_area, 5472, 900, 6),
+	},
+	{
 		/* Custom Crop Mode 4096x450: readout mode 0 */
 		.scan = &imx283_scan_modes[IMX283_MODE_0],
 		.width = 4096,

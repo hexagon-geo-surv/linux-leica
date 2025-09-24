@@ -513,6 +513,37 @@ static const struct imx283_reg_list link_freq_reglist[] = {
 	},
 };
 
+/*
+ * Alignment.
+ * We desire our crop positions to be such that they are aligned correctly
+ * to the bayer pattern and centered in the available area while still
+ * also maintaining the restrictions to match positions in each binnning
+ * mode.
+ *
+ * To support modes providing the same image position in both 2x and 3x
+ * binning modes we align to the lowest common multiple of 2 and 3 as
+ * 6 pixels - which is then further duplicated to 12 pixels of bayer
+ * pattern (2 lines of 6 pixels).
+ */
+
+/* We can not use the Kernel ALIGN_DOWN as that operate on powers of two only */
+#define IMX283_ALIGN_DOWN(x, a) ((x) - ((x) % (a)))
+
+/* Align to the binning factor and bayer pattern (2 lines, rows) */
+#define ALIGN_DOWN_BINNED(x, bin) \
+	IMX283_ALIGN_DOWN((x), (2 * (bin)))
+
+#define CENTERED_COORD(start, outer, inner, bin) \
+	ALIGN_DOWN_BINNED((start) + (((outer) - (inner)) / 2), (bin))
+
+#define CENTERED_RECTANGLE(rect, _w, _h, bin) \
+	{ \
+		.left = CENTERED_COORD((rect).left, (rect).width, (_w), (bin)), \
+		.top = CENTERED_COORD((rect).top, (rect).height, (_h), (bin)), \
+		.width = (_w), \
+		.height = (_h), \
+	}
+
 /* Mode configs */
 static const struct imx283_mode supported_modes_12bit[] = {
 	{
@@ -573,7 +604,7 @@ static const struct imx283_mode supported_modes_12bit[] = {
 		.default_hmax = 6000, /* 900 @ 480MHz/72MHz */
 		.default_vmax = 4000,
 
-		.crop = imx283_recommended_area,
+		.crop = CENTERED_RECTANGLE(imx283_recommended_area, 5472, 3648, 6),
 	},
 	{
 		/*
@@ -589,7 +620,7 @@ static const struct imx283_mode supported_modes_12bit[] = {
 		.default_hmax = 2500, /* 375 @ 480MHz/72Mhz */
 		.default_vmax = 3840,
 
-		.crop = imx283_recommended_area,
+		.crop = CENTERED_RECTANGLE(imx283_recommended_area, 5472, 3648, 6),
 	},
 	{
 		/*
@@ -605,7 +636,7 @@ static const struct imx283_mode supported_modes_12bit[] = {
 		.default_hmax = 1900, /* 285 @ 480MHz/72Mhz */
 		.default_vmax = 4200,
 
-		.crop = imx283_recommended_area,
+		.crop = CENTERED_RECTANGLE(imx283_recommended_area, 5472, 3648, 6),
 	},
 };
 
@@ -622,7 +653,7 @@ static const struct imx283_mode supported_modes_10bit[] = {
 		.default_hmax = 6000, /* 750 @ 576MHz / 72MHz */
 		.default_vmax = 3840,
 
-		.crop = imx283_recommended_area,
+		.crop = CENTERED_RECTANGLE(imx283_recommended_area, 5472, 3648, 6),
 	},
 };
 

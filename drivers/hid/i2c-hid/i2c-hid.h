@@ -40,6 +40,7 @@ void i2c_hid_core_remove(struct i2c_client *client);
 
 void i2c_hid_core_shutdown(struct i2c_client *client);
 
+int i2c_hid_wait_reset_complete(struct device *dev, unsigned long timeout_ms);
 extern const struct dev_pm_ops i2c_hid_core_pm;
 
 #endif

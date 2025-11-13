@@ -1365,6 +1365,33 @@ const struct dev_pm_ops i2c_hid_core_pm = {
 };
 EXPORT_SYMBOL_GPL(i2c_hid_core_pm);
 
+int i2c_hid_wait_reset_complete(struct device *dev, unsigned long timeout_ms)
+{
+	struct i2c_client *client;
+	struct i2c_hid *ihid;
+
+	if (!dev)
+		return -ENODEV;
+
+	client = to_i2c_client(dev);
+	if (!client)
+		return -ENODEV;
+
+	ihid = i2c_get_clientdata(client);
+	if (!ihid)
+		return -ENODEV;
+
+	set_bit(I2C_HID_RESET_PENDING, &ihid->flags);
+	if (wait_event_timeout(ihid->wait,
+			       !test_bit(I2C_HID_RESET_PENDING, &ihid->flags),
+			       msecs_to_jiffies(timeout_ms)))
+		return 0;
+
+	clear_bit(I2C_HID_RESET_PENDING, &ihid->flags);
+	return -ETIMEDOUT;
+}
+EXPORT_SYMBOL_GPL(i2c_hid_wait_reset_complete);
+
 MODULE_DESCRIPTION("HID over I2C core driver");
 MODULE_AUTHOR("Benjamin Tissoires <benjamin.tissoires@gmail.com>");
 MODULE_LICENSE("GPL");

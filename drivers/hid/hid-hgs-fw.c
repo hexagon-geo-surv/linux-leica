@@ -8,6 +8,7 @@
 #include <linux/slab.h>
 #include <linux/sysfs.h>
 #include <linux/delay.h>
+#include "./i2c-hid/i2c-hid.h"
 #include "hid-hgs.h"
 
 #define KDU_FW_STATE_OK 0x00
@@ -520,8 +521,10 @@ static void hgs_fw_upload_cleanup(struct fw_upload *fw_upload)
 {
 	struct hgs_ctx *ctx = fw_upload->dd_handle;
 	struct device *dev = &ctx->hid->dev;
-
+	dev_info(dev, "waiting for HID client reset\n");
+	i2c_hid_wait_reset_complete(ctx->hid->dev.parent, 10000);
 	mutex_unlock(&ctx->lock);
+	hid_driver_reset_resume(ctx->hid);
 	dev_info(dev, "fwl_cleanup: Cleaning up firmware upload state\n");
 }
 

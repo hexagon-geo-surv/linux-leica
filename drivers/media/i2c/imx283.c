@@ -1482,7 +1482,51 @@ static const struct v4l2_subdev_internal_ops imx283_internal_ops = {
 	.init_state = imx283_init_state,
 };
 
+#ifdef CONFIG_VIDEO_ADV_DEBUG
+static int imx283_g_register(struct v4l2_subdev *sd,
+			     struct v4l2_dbg_register *reg)
+{
+	struct imx283 *imx283 = to_imx283(sd);
+	u64 val;
+	int ret;
+
+	if (!pm_runtime_get_if_active(imx283->dev))
+		return 0;
+
+	ret = cci_read(imx283->cci, CCI_REG8(reg->reg), &val, NULL);
+	reg->val = val;
+
+	pm_runtime_put(imx283->dev);
+
+	return ret;
+}
+
+static int imx283_s_register(struct v4l2_subdev *sd,
+			     const struct v4l2_dbg_register *reg)
+{
+	struct imx283 *imx283 = to_imx283(sd);
+	int ret;
+
+	if (!pm_runtime_get_if_active(imx283->dev))
+		return 0;
+
+	ret = cci_write(imx283->cci, CCI_REG8(reg->reg), reg->val, NULL);
+
+	pm_runtime_put(imx283->dev);
+
+	return ret;
+}
+#endif
+
+static const struct v4l2_subdev_core_ops imx283_core_ops = {
+#ifdef CONFIG_VIDEO_ADV_DEBUG
+	.g_register = imx283_g_register,
+	.s_register = imx283_s_register,
+#endif
+};
+
 static const struct v4l2_subdev_ops imx283_subdev_ops = {
+	.core = &imx283_core_ops,
 	.video = &imx283_video_ops,
 	.pad = &imx283_pad_ops,
 };

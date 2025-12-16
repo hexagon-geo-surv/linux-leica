@@ -59,6 +59,7 @@ properties:
                   - const: 3
                   - const: 4
 
+          clock-noncontinuous: true
           link-frequencies: true
 
         required:
@@ -99,6 +100,7 @@ examples:
                 imx283: endpoint {
                     remote-endpoint = <&cam>;
                     data-lanes = <1 2 3 4>;
+                    clock-noncontinuous;
                     link-frequencies = /bits/ 64 <360000000>;
                 };
             };

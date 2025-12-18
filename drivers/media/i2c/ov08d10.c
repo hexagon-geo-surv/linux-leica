@@ -13,7 +13,7 @@
 #include <media/v4l2-fwnode.h>
 
 #define OV08D10_SCLK			144000000ULL
-#define OV08D10_XVCLK_19_2		19200000
+#define OV08D10_XVCLK_24		14000000
 #define OV08D10_ROWCLK			36000
 #define OV08D10_DATA_LANES		2
 #define OV08D10_RGB_DEPTH		10
@@ -113,7 +113,7 @@ static const struct ov08d10_reg mipi_data_rate_720mbps[] = {
 	{0x11, 0x2a},
 	{0x14, 0x43},
 	{0x1a, 0x04},
-	{0x1b, 0xe1},
+	{0x1b, 0xb4},
 	{0x1e, 0x13},
 	{0xb7, 0x02}
 };
@@ -122,7 +122,7 @@ static const struct ov08d10_reg mipi_data_rate_720mbps[] = {
 static const struct ov08d10_reg mipi_data_rate_360mbps[] = {
 	{0xfd, 0x00},
 	{0x1a, 0x04},
-	{0x1b, 0xe1},
+	{0x1b, 0xb4},
 	{0x1d, 0x00},
 	{0x1c, 0x19},
 	{0x11, 0x2a},
@@ -1508,7 +1508,7 @@ static int ov08d10_probe(struct i2c_client *client)
 				     "failed to get clock\n");
 
 	freq = clk_get_rate(ov08d10->clk);
-	if (freq != OV08D10_XVCLK_19_2)
+	if (freq != OV08D10_XVCLK_24)
 		dev_warn(ov08d10->dev,
 			 "external clock rate %lu is not supported\n", freq);
 

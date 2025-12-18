@@ -1265,7 +1265,52 @@ static const struct v4l2_subdev_pad_ops ov08d10_pad_ops = {
 	.enum_frame_size = ov08d10_enum_frame_size,
 };
 
+#ifdef CONFIG_VIDEO_ADV_DEBUG
+static int ov08d10_g_register(struct v4l2_subdev *sd,
+			      struct v4l2_dbg_register *reg)
+{
+	struct ov08d10 *ov08d10 = to_ov08d10(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(&ov08d10->sd);
+	int ret;
+
+	if (!pm_runtime_get_if_in_use(ov08d10->dev))
+		return 0;
+
+	ret = i2c_smbus_read_byte_data(client, reg->reg);
+	reg->val = ret;
+
+	pm_runtime_put(ov08d10->dev);
+
+	return ret;
+}
+
+static int ov08d10_s_register(struct v4l2_subdev *sd,
+			      const struct v4l2_dbg_register *reg)
+{
+	struct ov08d10 *ov08d10 = to_ov08d10(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(&ov08d10->sd);
+	int ret;
+
+	if (!pm_runtime_get_if_in_use(ov08d10->dev))
+		return 0;
+
+	ret = i2c_smbus_write_byte_data(client, reg->reg, reg->val);
+
+	pm_runtime_put(ov08d10->dev);
+
+	return ret;
+}
+#endif
+
+static const struct v4l2_subdev_core_ops ov08d10_core_ops = {
+#ifdef CONFIG_VIDEO_ADV_DEBUG
+	.g_register = ov08d10_g_register,
+	.s_register = ov08d10_s_register,
+#endif
+};
+
 static const struct v4l2_subdev_ops ov08d10_subdev_ops = {
+	.core = &ov08d10_core_ops,
 	.video = &ov08d10_video_ops,
 	.pad = &ov08d10_pad_ops,
 };

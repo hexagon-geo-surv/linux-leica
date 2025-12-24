@@ -594,9 +594,19 @@ static int sbs_get_battery_presence_and_health(
 		return ret;
 	}
 
-	if (psp == POWER_SUPPLY_PROP_PRESENT)
+	if (psp == POWER_SUPPLY_PROP_PRESENT) {
 		val->intval = 1; /* battery present */
-	else { /* POWER_SUPPLY_PROP_HEALTH */
+		if (ret == 0) {
+			int voltage, capacity;
+
+			voltage = sbs_read_word_data(
+				client, sbs_data[REG_VOLTAGE].addr);
+			capacity = sbs_read_word_data(
+				client, sbs_data[REG_CAPACITY].addr);
+			if (voltage == 0 && capacity == 0)
+				val->intval = 0;
+		}
+	} else { /* POWER_SUPPLY_PROP_HEALTH */
 		if (sbs_bat_needs_calibration(client)) {
 			val->intval = POWER_SUPPLY_HEALTH_CALIBRATION_REQUIRED;
 		} else {

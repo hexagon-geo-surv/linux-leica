@@ -14,6 +14,7 @@
 #include <linux/init.h>
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
+#include <linux/list.h>
 #include <linux/module.h>
 #include <linux/property.h>
 #include <linux/of.h>
@@ -214,8 +215,10 @@ struct sbs_info {
 	u32				poll_retry_count;
 	struct delayed_work		work;
 	struct mutex			mode_lock;
+	u32				poll_interval;
 	u32				flags;
 	int				technology;
+	struct list_head		list;
 	char				strings[NR_STRING_BUFFERS][I2C_SMBUS_BLOCK_MAX + 1];
 };
 
@@ -242,6 +245,52 @@ static void sbs_invalidate_cached_props(struct sbs_info *chip)
 }
 
 static bool force_load;
+static DEFINE_MUTEX(sbs_list_lock);
+static LIST_HEAD(sbs_battery_devices);
+static unsigned int poll_interval;
+
+static int poll_interval_param_set(const char *val,
+				   const struct kernel_param *kp)
+{
+	struct sbs_info *chip;
+	unsigned int prev_val = *(unsigned int *)kp->arg;
+	int ret;
+
+	ret = param_set_uint(val, kp);
+	if (ret < 0 || prev_val == *(unsigned int *)kp->arg)
+		return ret;
+
+	mutex_lock(&sbs_list_lock);
+	list_for_each_entry(chip, &sbs_battery_devices, list) {
+		if (!chip->gpio_detect) {
+			chip->poll_interval = poll_interval;
+			if (chip->poll_interval)
+				mod_delayed_work(system_wq, &chip->work, 0);
+		}
+	}
+	mutex_unlock(&sbs_list_lock);
+
+	return 0;
+}
+
+static const struct kernel_param_ops param_ops_poll_interval = {
+	.set = poll_interval_param_set,
+	.get = param_get_uint,
+};
+
+static void sbs_list_remove(void *data)
+{
+	struct sbs_info *chip = data;
+
+	mutex_lock(&sbs_list_lock);
+	list_del(&chip->list);
+	mutex_unlock(&sbs_list_lock);
+}
+
+module_param_cb(poll_interval, &param_ops_poll_interval, &poll_interval, 0644);
+MODULE_PARM_DESC(
+	poll_interval,
+	"Polling interval in milliseconds for devices without GPIO interrupt (0=disabled)");
 
 static int sbs_read_word_data(struct i2c_client *client, u8 address);
 static int sbs_write_word_data(struct i2c_client *client, u8 address, u16 value);
@@ -1091,6 +1140,10 @@ static void sbs_delayed_work(struct work_struct *work)
 	/* if the read failed, give up on this work */
 	if (ret < 0) {
 		chip->poll_time = 0;
+		if (chip->poll_interval)
+			schedule_delayed_work(
+				&chip->work,
+				msecs_to_jiffies(chip->poll_interval));
 		return;
 	}
 
@@ -1106,6 +1159,11 @@ static void sbs_delayed_work(struct work_struct *work)
 	if (chip->last_state != ret) {
 		chip->poll_time = 0;
 		power_supply_changed(chip->power_supply);
+	}
+
+	if (chip->poll_interval) {
+		schedule_delayed_work(&chip->work,
+				      msecs_to_jiffies(chip->poll_interval));
 		return;
 	}
 	if (chip->poll_time > 0) {
@@ -1173,6 +1231,8 @@ static int sbs_probe(struct i2c_client *client)
 	}
 	chip->i2c_retry_count = chip->i2c_retry_count + 1;
 
+	chip->poll_interval = poll_interval;
+
 	chip->charger_broadcasts = !device_property_read_bool(&client->dev,
 					"sbs,disable-charger-broadcasts");
 
@@ -1201,12 +1261,18 @@ static int sbs_probe(struct i2c_client *client)
 		goto skip_gpio;
 	}
 
+	if (chip->poll_interval) {
+		dev_dbg(&client->dev,
+			"GPIO-based IRQ configured, polling disabled\n");
+		chip->poll_interval = 0;
+	}
+
 skip_gpio:
 	/*
 	 * Before we register, we might need to make sure we can actually talk
 	 * to the battery.
 	 */
-	if (!(force_load || chip->gpio_detect)) {
+	if (!(force_load || chip->gpio_detect || chip->poll_interval)) {
 		union power_supply_propval val;
 
 		rc = sbs_get_battery_presence_and_health(
@@ -1229,6 +1295,22 @@ skip_gpio:
 
 	dev_info(&client->dev,
 		"%s: battery gas gauge device registered\n", client->name);
+
+	mutex_lock(&sbs_list_lock);
+	list_add(&chip->list, &sbs_battery_devices);
+	mutex_unlock(&sbs_list_lock);
+
+	rc = devm_add_action(&client->dev, sbs_list_remove, chip);
+	if (rc) {
+		mutex_lock(&sbs_list_lock);
+		list_del(&chip->list);
+		mutex_unlock(&sbs_list_lock);
+		return rc;
+	}
+
+	if (chip->poll_interval > 0)
+		schedule_delayed_work(&chip->work,
+				      msecs_to_jiffies(chip->poll_interval));
 
 	return 0;
 }

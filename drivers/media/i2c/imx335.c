@@ -218,6 +218,7 @@ struct imx335 {
 	struct gpio_desc *reset_gpio;
 	struct regulator_bulk_data supplies[ARRAY_SIZE(imx335_supply_name)];
 	struct regmap *cci;
+	bool slave_mode;
 
 	struct clk *inclk;
 	struct v4l2_ctrl_handler ctrl_handler;
@@ -272,7 +273,6 @@ static const int imx335_tpg_val[] = {
 /* Sensor mode registers */
 static const struct cci_reg_sequence mode_2592x1944_regs[] = {
 	{ IMX335_REG_MODE_SELECT, IMX335_MODE_STANDBY },
-	{ IMX335_REG_MASTER_MODE, 0x00 },
 	{ IMX335_REG_WINMODE, 0x04 },
 	{ IMX335_REG_HMAX, 550 },
 	{ IMX335_REG_HTRIMMING_START, 48 },
@@ -281,12 +281,10 @@ static const struct cci_reg_sequence mode_2592x1944_regs[] = {
 	{ IMX335_REG_AREA2_WIDTH_1, 40 },
 	{ IMX335_REG_AREA3_WIDTH_1, 3928 },
 	{ IMX335_REG_OPB_SIZE_V, 0 },
-	{ IMX335_REG_XVS_XHS_DRV, 0x00 },
 };
 
 static const struct cci_reg_sequence mode_1312x972_regs[] = {
 	{ IMX335_REG_MODE_SELECT, IMX335_MODE_STANDBY },
-	{ IMX335_REG_MASTER_MODE, 0x00 },
 	{ IMX335_REG_WINMODE, 0x01 },
 	{ IMX335_REG_HMAX, 275 },
 	{ IMX335_REG_HTRIMMING_START, 48 },
@@ -295,7 +293,6 @@ static const struct cci_reg_sequence mode_1312x972_regs[] = {
 	{ IMX335_REG_AREA2_WIDTH_1, 48 },
 	{ IMX335_REG_AREA3_WIDTH_1, 3936 },
 	{ IMX335_REG_OPB_SIZE_V, 0 },
-	{ IMX335_REG_XVS_XHS_DRV, 0x00 },
 	{ CCI_REG8(0x3300), 1 }, /* TCYCLE */
 	{ CCI_REG8(0x3199), 0x30 }, /* HADD/VADD */
 };
@@ -369,6 +366,16 @@ static const struct cci_reg_sequence imx335_common_regs[] = {
 	{ CCI_REG8(0x3796), 0xa1 },
 	{ CCI_REG8(0x37b0), 0x36 },
 	{ CCI_REG8(0x3a00), 0x00 },
+};
+
+static const struct cci_reg_sequence imx335_mastermode_regs[] = {
+	{ IMX335_REG_MASTER_MODE, 0x00 },
+	{ IMX335_REG_XVS_XHS_DRV, 0x00 },
+};
+
+static const struct cci_reg_sequence imx335_slavemode_regs[] = {
+	{ IMX335_REG_MASTER_MODE, 0x01 },
+	{ IMX335_REG_XVS_XHS_DRV, 0x0F },
 };
 
 static const struct cci_reg_sequence mode_2592x1944_vflip_normal[] = {
@@ -1052,6 +1059,20 @@ static int imx335_start_streaming(struct imx335 *imx335)
 		goto err_rpm_put;
 	}
 
+	/* Write sensor master/slave mode registers */
+	if (imx335->slave_mode) {
+		ret = cci_multi_reg_write(imx335->cci, imx335_slavemode_regs,
+					  ARRAY_SIZE(imx335_slavemode_regs), NULL);
+	} else {
+		ret = cci_multi_reg_write(imx335->cci, imx335_mastermode_regs,
+					  ARRAY_SIZE(imx335_mastermode_regs), NULL);
+	}
+
+	if (ret) {
+		dev_err(imx335->dev, "fail to write master/slave mode registers\n");
+		goto err_rpm_put;
+	}
+
 	/* Write sensor common registers */
 	ret = cci_multi_reg_write(imx335->cci, imx335_common_regs,
 				  ARRAY_SIZE(imx335_common_regs), NULL);
@@ -1212,6 +1233,8 @@ static int imx335_parse_hw_config(struct imx335 *imx335)
 		dev_err(imx335->dev, "inclk frequency mismatch\n");
 		return -EINVAL;
 	}
+
+	imx335->slave_mode = of_property_read_bool(dev_of_node(imx335->dev), "slave-mode");
 
 	ep = fwnode_graph_get_next_endpoint(fwnode, NULL);
 	if (!ep) {

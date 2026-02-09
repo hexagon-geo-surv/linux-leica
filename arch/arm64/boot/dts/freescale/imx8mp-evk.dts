@@ -9,6 +9,7 @@
 #include <dt-bindings/phy/phy-imx8-pcie.h>
 #include <dt-bindings/usb/pd.h>
 #include "imx8mp.dtsi"
+#include "imx8mp-uca89-isp0-meta.dtsi"
 
 / {
 	model = "NXP i.MX8MPlus EVK board";

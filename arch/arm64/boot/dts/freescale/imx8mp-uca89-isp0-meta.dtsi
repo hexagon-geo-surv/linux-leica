@@ -1,0 +1,152 @@
+// SPDX-License-Identifier: GPL-2.0-only OR BSD-3-Clause
+/*
+ * Copyright Leica Geosystems AG
+ */
+
+#include <dt-bindings/clock/imx8mp-clock.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/media/video-interfaces.h>
+#include "imx8mp-pinfunc.h"
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/leds/common.h>
+
+&iomuxc {
+
+	pinctrl_csi0_pwn: csi0_pwn_grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD1_STROBE__GPIO2_IO11	0x19
+		>;
+	};
+
+	pinctrl_csi_mclk: csi_mclk_grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_GPIO1_IO15__CCM_CLKO2	0x59
+		>;
+	};
+
+	pinctrl_uart3_cts_gpio: uart3-cts-gpio {
+		fsl,pins = <
+			MX8MP_IOMUXC_ECSPI1_MISO__GPIO5_IO08 0x19
+		>;
+	};
+};
+
+&{/} {
+	reg_cam: regulator-cam {
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_csi0_pwn>;
+		compatible = "regulator-fixed";
+		regulator-name = "reg_cam";
+		gpio = <&gpio2 11 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+		regulator-boot-on;
+	};
+};
+
+&{/} {
+	rt_meta0: rt_meta@0 {
+		compatible = "hgs,rt-meta";
+		status = "okay";
+		label = "demo";
+		generate-syncpulse;
+		debug-gpio = <&gpio5 8 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_uart3_cts_gpio>;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				rt_meta_in: endpoint {
+					remote-endpoint = <&imx335_out>;
+					link-frequencies = /bits/ 64 <445500000>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+				rt_meta_out: endpoint {
+					remote-endpoint = <&mipi_csi_0_in>;
+					link-frequencies = /bits/ 64 <445500000>;
+				};
+			};
+		};
+	};
+};
+
+&i2c2 {
+	imx335: imx335@1a {
+		compatible = "sony,imx335";
+		reg = <0x1a>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_csi_mclk>;
+                clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+                assigned-clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+                assigned-clock-parents = <&clk IMX8MP_CLK_24M>;
+                assigned-clock-rates = <24000000>;
+		slave-mode;
+		rotation = <0>;
+		orientation = <2>;
+		avdd-supply = <&reg_cam>;
+		ovdd-supply = <&reg_cam>;
+		dvdd-supply = <&reg_cam>;
+
+		port {
+			imx335_out: endpoint {
+				remote-endpoint = <&rt_meta_in>;
+				clock-lanes = <0>;
+				data-lanes = <1 2 3 4>;
+				link-frequencies = /bits/ 64 <445500000>;
+			};
+		};
+	};
+};
+	
+
+&isi_0 {
+	ports {
+		port@0 {
+			/delete-node/ endpoint;
+		};
+	};
+};
+
+
+&isp_0 {
+	status = "okay";
+
+	ports {
+		port@1 {
+			isp0_in: endpoint {
+				bus-type = <MEDIA_BUS_TYPE_PARALLEL>;
+				remote-endpoint = <&mipi_csi_0_out>;
+			};
+		};
+	};
+};
+
+					
+&mipi_csi_0 {
+        status = "okay";
+
+        ports { 
+                port@0 {
+                        mipi_csi_0_in: endpoint {
+                                remote-endpoint = <&rt_meta_out>;
+                                clock-lanes = <0>;
+                                data-lanes = <1 2 3 4>;
+                        };
+                };
+        };
+};
+
+&mipi_csi_0_out {
+	remote-endpoint = <&isp0_in>;
+};
+
+

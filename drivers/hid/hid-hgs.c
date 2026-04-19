@@ -194,7 +194,7 @@ static int hgs_backlight_update_status(struct backlight_device *bl_dev)
 
 
 	if (ctx->backlight.suspended) {
-		return -EAGAIN;
+		return 0;
 	}
 
 	struct hid_field *field = ctx->backlight.field;

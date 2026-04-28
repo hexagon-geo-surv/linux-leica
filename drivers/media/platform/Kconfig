@@ -61,6 +61,26 @@ config VIDEO_MUX
 	help
 	  This driver provides support for N:1 video bus multiplexers.
 
+config HGS_RT_META
+	tristate "HGS Real-Time Metadata Bridge"
+	depends on VIDEO_DEV
+	depends on MEDIA_SUPPORT
+	depends on RPMSG
+	depends on OF
+	depends on GPIOLIB
+	select MEDIA_CONTROLLER
+	select V4L2_FWNODE
+	help
+	  Driver for the HGS real-time metadata bridge subdevice.
+
+	  This driver implements a V4L2 subdevice that bridges an RPMsg
+	  channel carrying real-time frame synchronisation metadata
+	  (timestamps and frame counters) into the V4L2 event queue.
+	  It supports optional sync-pulse generation via the remote
+	  processor and an optional debug GPIO.
+
+	  The device is matched via the "hgs,rt-meta" compatible string.
+
 # Platform drivers - Please keep it alphabetically sorted
 source "drivers/media/platform/allegro-dvt/Kconfig"
 source "drivers/media/platform/amlogic/Kconfig"

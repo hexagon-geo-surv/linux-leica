@@ -104,12 +104,85 @@ static const int sx9370_samp_freq_table[] = {
 static const int sx9370_scale_factor[] = { 1, 2, 4, 8, 16, 32, 64 };
 static const u32 sx9370_debounce_table[] = { 0, 2, 4, 8 };
 
+static const struct regmap_range sx9370_writable_reg_ranges[] = {
+	regmap_reg_range(SX9370_IRQ_MASK_A, SX9370_IRQ_SETUP),
+	regmap_reg_range(SX9370_IRQ_MASK_B, SX9370_IRQ_MASK_B),
+	regmap_reg_range(SX9370_PIN_SETUP_A, SX9370_PIN_SETUP_B),
+	regmap_reg_range(SX9370_STATUS_OUTPUT_0, SX9370_STATUS_OUTPUT_3),
+	regmap_reg_range(SX9370_SCAN_PERIOD_SETUP, SX9370_GENERAL_SETUP),
+	regmap_reg_range(SX9370_AFE_PARAMETERS_PH0, SX9370_AFE_PARAMETERS_PH7),
+	regmap_reg_range(SX9370_AFE_CS_USAGE_PH0, SX9370_AFE_CS_USAGE_PH7),
+	regmap_reg_range(SX9370_OFFSET_PH0, SX9370_OFFSET_PH7),
+	regmap_reg_range(SX9370_FILTER_SETUP_A_PH0, SX9370_FILTER_SETUP_A_PH7),
+	regmap_reg_range(SX9370_FILTER_SETUP_B_PH0, SX9370_FILTER_SETUP_B_PH7),
+	regmap_reg_range(SX9370_USE_FLT_SETUP_PH0, SX9370_USE_FLT_SETUP_PH7),
+	regmap_reg_range(SX9370_ADC_QUICK_FILTER_0, SX9370_ADC_QUICK_FILTER_3),
+	regmap_reg_range(SX9370_STEADY_AND_SATURATION_PH0,
+			 SX9370_STEADY_AND_SATURATION_PH7),
+	regmap_reg_range(SX9370_FAILURE_THRESHOLD_PH0, SX9370_FAILURE_THRESHOLD_PH7),
+	regmap_reg_range(SX9370_PROX_THRESH_PH0, SX9370_PROX_THRESH_PH7),
+	regmap_reg_range(SX9370_STARTUP_PH0, SX9370_STARTUP_PH7),
+	regmap_reg_range(SX9370_REFERENCE_CORRECTION_PH0,
+			 SX9370_REFERENCE_CORRECTION_PH7),
+	regmap_reg_range(SX9370_REF_ENGINE_1_CONFIG, SX9370_REF_ENGINE_4_CONFIG),
+	regmap_reg_range(SX9370_ENGINE_1_CONFIG, SX9370_ENGINE_2_Y3),
+	regmap_reg_range(SX9370_DEBUG_SETUP, SX9370_DEBUG_READBACK_8),
+	regmap_reg_range(SX9370_DEVICE_RESET, SX9370_DEVICE_RESET),
+	regmap_reg_range(SX9370_COMMAND, SX9370_COMMAND),
+};
+
+static const struct regmap_access_table sx9370_writeable_regs = {
+	.yes_ranges = sx9370_writable_reg_ranges,
+	.n_yes_ranges = ARRAY_SIZE(sx9370_writable_reg_ranges),
+};
+
+static const struct regmap_range sx9370_readable_reg_ranges[] = {
+	regmap_reg_range(SX9370_IRQ_SOURCE, SX9370_IRQ_SOURCE),
+	regmap_reg_range(SX9370_IRQ_MASK_A, SX9370_IRQ_SETUP),
+	regmap_reg_range(SX9370_IRQ_MASK_B, SX9370_IRQ_MASK_B),
+	regmap_reg_range(SX9370_PIN_SETUP_A, SX9370_PIN_SETUP_B),
+	regmap_reg_range(SX9370_CMMAND_BUSY, SX9370_CMMAND_BUSY),
+	regmap_reg_range(SX9370_DEVICE_INFO, SX9370_DEVICE_INFO),
+	regmap_reg_range(SX9370_DEVICE_STATUS_A, SX9370_DEVICE_STATUS_C),
+	regmap_reg_range(SX9370_STATUS_OUTPUT_0, SX9370_STATUS_OUTPUT_3),
+	regmap_reg_range(SX9370_SCAN_PERIOD_SETUP, SX9370_GENERAL_SETUP),
+	regmap_reg_range(SX9370_AFE_PARAMETERS_PH0, SX9370_AFE_PARAMETERS_PH7),
+	regmap_reg_range(SX9370_AFE_CS_USAGE_PH0, SX9370_AFE_CS_USAGE_PH7),
+	regmap_reg_range(SX9370_OFFSET_PH0, SX9370_OFFSET_PH7),
+	regmap_reg_range(SX9370_FILTER_SETUP_A_PH0, SX9370_FILTER_SETUP_A_PH7),
+	regmap_reg_range(SX9370_FILTER_SETUP_B_PH0, SX9370_FILTER_SETUP_B_PH7),
+	regmap_reg_range(SX9370_USE_FLT_SETUP_PH0, SX9370_USE_FLT_SETUP_PH7),
+	regmap_reg_range(SX9370_ADC_QUICK_FILTER_0, SX9370_ADC_QUICK_FILTER_3),
+	regmap_reg_range(SX9370_STEADY_AND_SATURATION_PH0,
+			 SX9370_STEADY_AND_SATURATION_PH7),
+	regmap_reg_range(SX9370_FAILURE_THRESHOLD_PH0, SX9370_FAILURE_THRESHOLD_PH7),
+	regmap_reg_range(SX9370_PROX_THRESH_PH0, SX9370_PROX_THRESH_PH7),
+	regmap_reg_range(SX9370_STARTUP_PH0, SX9370_STARTUP_PH7),
+	regmap_reg_range(SX9370_REFERENCE_CORRECTION_PH0,
+			 SX9370_REFERENCE_CORRECTION_PH7),
+	regmap_reg_range(SX9370_REF_ENGINE_1_CONFIG, SX9370_REF_ENGINE_4_CONFIG),
+	regmap_reg_range(SX9370_ENGINE_1_CONFIG, SX9370_ENGINE_2_Y3),
+	regmap_reg_range(SX9370_USEFUL_PH0, SX9370_USEFUL_PH7),
+	regmap_reg_range(SX9370_USEFILTER_PH0, SX9370_USEFILTER_PH7),
+	regmap_reg_range(SX9370_AVERAGE_PH0, SX9370_AVERAGE_PH7),
+	regmap_reg_range(SX9370_DIFF_PH0, SX9370_DIFF_PH7),
+	regmap_reg_range(SX9370_DEBUG_SETUP, SX9370_DEBUG_READBACK_8),
+	regmap_reg_range(SX9370_COMMAND, SX9370_COMMAND),
+};
+
+static const struct regmap_access_table sx9370_readable_regs = {
+	.yes_ranges = sx9370_readable_reg_ranges,
+	.n_yes_ranges = ARRAY_SIZE(sx9370_readable_reg_ranges),
+};
+
 static const struct regmap_config sx9370_regmap_config = {
 	.reg_bits = 16,
 	.val_bits = 32,
 	.max_register = 0x8298,
 	.reg_format_endian = REGMAP_ENDIAN_BIG,
 	.val_format_endian = REGMAP_ENDIAN_BIG,
+	.wr_table = &sx9370_writeable_regs,
+	.rd_table = &sx9370_readable_regs,
 };
 
 static int sx9370_send_cfg(const struct firmware *fw, struct sx9370_data *data)
@@ -816,6 +889,25 @@ static int sx9370_validate_trigger(struct iio_dev *indio_dev,
 	return 0;
 }
 
+static int sx9370_debugfs_reg_access(struct iio_dev *indio_dev,
+				     unsigned int reg, unsigned int writeval,
+				     unsigned int *readval)
+{
+	struct sx9370_data *data = iio_priv(indio_dev);
+	int ret;
+
+	mutex_lock(&data->mutex);
+
+	if (readval)
+		ret = regmap_read(data->regmap, reg, readval);
+	else
+		ret = regmap_write(data->regmap, reg, writeval);
+
+	mutex_unlock(&data->mutex);
+
+	return ret;
+}
+
 static const struct iio_info sx9370_info = {
 	.read_avail = &sx9370_read_avail,
 	.read_event_value = &sx9370_read_event_value,
@@ -824,6 +916,7 @@ static const struct iio_info sx9370_info = {
 	.write_raw = &sx9370_write_raw,
 	.update_scan_mode = &sx9370_update_scan_mode,
 	.validate_trigger = &sx9370_validate_trigger,
+	.debugfs_reg_access = &sx9370_debugfs_reg_access,
 };
 
 static int sx9370_set_trigger_state(struct iio_trigger *trig, bool state)

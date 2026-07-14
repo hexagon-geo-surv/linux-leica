@@ -294,6 +294,11 @@ static int tps6131x_set_mode(struct tps6131x *tps6131x, enum tps6131x_mode mode,
 				       NULL, false, force);
 }
 
+static void tps6131x_sync_torch_brightness_off(struct tps6131x *tps6131x)
+{
+	tps6131x->fled_cdev.led_cdev.brightness = LED_OFF;
+}
+
 static void tps6131x_torch_refresh_handler(struct work_struct *work)
 {
 	struct tps6131x *tps6131x = container_of(work, struct tps6131x, torch_refresh_work.work);
@@ -397,6 +402,8 @@ static int tps6131x_strobe_set(struct led_classdev_flash *fled_cdev, bool state)
 				      false, true);
 	if (ret)
 		return ret;
+
+	tps6131x_sync_torch_brightness_off(tps6131x);
 
 	return 0;
 }
@@ -697,12 +704,19 @@ static int tps6131x_flash_external_strobe_set(struct v4l2_flash *v4l2_flash, boo
 {
 	struct led_classdev_flash *fled_cdev = v4l2_flash->fled_cdev;
 	struct tps6131x *tps6131x = fled_cdev_to_tps6131x(fled_cdev);
+	int ret;
 
 	cancel_delayed_work_sync(&tps6131x->torch_refresh_work);
 	guard(mutex)(&tps6131x->lock);
 
-	return tps6131x_set_mode(tps6131x, enable ? TPS6131X_MODE_FLASH : TPS6131X_MODE_SHUTDOWN,
-				 false);
+	ret = tps6131x_set_mode(tps6131x, enable ? TPS6131X_MODE_FLASH : TPS6131X_MODE_SHUTDOWN,
+			       false);
+	if (ret)
+		return ret;
+
+	tps6131x_sync_torch_brightness_off(tps6131x);
+
+	return 0;
 }
 
 static const struct v4l2_flash_ops tps6131x_v4l2_flash_ops = {

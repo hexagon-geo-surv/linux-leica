@@ -6578,7 +6578,14 @@ void usb_hub_register_port_feature_hooks(struct usb_device *hdev,
 {
 	struct usb_hub *hub = usb_hub_to_struct_hub(hdev);
 
-	if (WARN_ON_ONCE(is_root_hub(hdev) || !hub))
+	/*
+	 * This may happen in async probe cases. In this case the
+	 * USB_HUB_CONFIGURED event should retrigger the registration.
+	 */
+	if (!hub)
+		return;
+
+	if (WARN_ON_ONCE(is_root_hub(hdev)))
 		return;
 
 	if (set_port_feature)

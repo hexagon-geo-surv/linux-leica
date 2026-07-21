@@ -593,3 +593,5 @@ static struct hid_driver hgs_hid_driver = {
 
 module_hid_driver(hgs_hid_driver);
 
+MODULE_DESCRIPTION("Leica KDU/KU HID driver");
+MODULE_LICENSE("GPL");

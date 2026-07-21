@@ -66,3 +66,8 @@ void usb_notify_remove_bus(struct usb_bus *ubus)
 {
 	blocking_notifier_call_chain(&usb_notifier_list, USB_BUS_REMOVE, ubus);
 }
+
+void usb_notify_configured_hub(struct usb_device *hdev)
+{
+	blocking_notifier_call_chain(&usb_notifier_list, USB_HUB_CONFIGURED, hdev);
+}

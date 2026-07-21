@@ -2024,6 +2024,7 @@ static int hub_probe(struct usb_interface *intf, const struct usb_device_id *id)
 
 	if (hub_configure(hub, &desc->endpoint[0].desc) >= 0) {
 		onboard_dev_create_pdevs(hdev, &hub->onboard_devs);
+		usb_notify_configured_hub(hdev);
 
 		return 0;
 	}

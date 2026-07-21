@@ -6,6 +6,7 @@
  */
 
 #include <linux/clk.h>
+#include <linux/container_of.h>
 #include <linux/device.h>
 #include <linux/export.h>
 #include <linux/err.h>
@@ -72,7 +73,13 @@ struct onboard_dev {
 	struct mutex lock;
 	struct clk *clk;
 	struct list_head ext_vbus_supplies;
+	struct notifier_block nb;
 };
+
+static struct onboard_dev *to_onboard_dev(struct notifier_block *nb)
+{
+	return container_of(nb, struct onboard_dev, nb);
+}
 
 static int onboard_dev_get_regulators(struct onboard_dev *onboard_dev)
 {
@@ -306,6 +313,8 @@ static void onboard_dev_remove_usbdev(struct onboard_dev *onboard_dev,
 
 	get_udev_link_name(udev, link_name, sizeof(link_name));
 	sysfs_remove_link(&onboard_dev->dev->kobj, link_name);
+	if (onboard_dev->pdata->is_hub)
+		usb_unregister_notify(&onboard_dev->nb);
 
 	mutex_lock(&onboard_dev->lock);
 
@@ -680,9 +689,43 @@ onboard_dev_clear_port_feature(struct usb_device *udev, int feature, int port1)
 	return onboard_dev_port_feature(udev, false, feature, port1);
 }
 
-static void
-onboard_dev_register_hub_hooks(struct usb_device *udev)
+static int onboard_dev_hub_notify(struct notifier_block *nb,
+				  unsigned long action, void *data)
 {
+	struct onboard_dev *onboard_dev = to_onboard_dev(nb);
+	struct usb_device *udev = data;
+	struct usbdev_node *node;
+	bool found = false;
+
+	if (action != USB_HUB_CONFIGURED)
+		return NOTIFY_DONE;
+
+	list_for_each_entry(node, &onboard_dev->udev_list, list) {
+		if (node->udev == udev) {
+			found = true;
+			break;
+		}
+	}
+
+	/* This hub doesn't belong to us */
+	if (!found)
+		return NOTIFY_DONE;
+
+	usb_hub_register_port_feature_hooks(udev, onboard_dev_set_port_feature,
+					    onboard_dev_clear_port_feature);
+
+	return NOTIFY_DONE;
+}
+
+static void onboard_dev_register_hub_hooks(struct onboard_dev *onboard_dev,
+					   struct usb_device *udev)
+{
+	/*
+	 * Notifiers are required for async_probe() support. The direct
+	 * registration is used for the sync probe().
+	 */
+	onboard_dev->nb.notifier_call = onboard_dev_hub_notify;
+	usb_register_notify(&onboard_dev->nb);
 	usb_hub_register_port_feature_hooks(udev, onboard_dev_set_port_feature,
 					    onboard_dev_clear_port_feature);
 }
@@ -746,12 +789,12 @@ static int onboard_dev_usbdev_probe(struct usb_device *udev)
 
 	dev_set_drvdata(dev, onboard_dev);
 
-	if (onboard_dev->pdata->is_hub)
-		onboard_dev_register_hub_hooks(udev);
-
 	err = onboard_dev_add_usbdev(onboard_dev, udev);
 	if (err)
 		return err;
+
+	if (onboard_dev->pdata->is_hub)
+		onboard_dev_register_hub_hooks(onboard_dev, udev);
 
 	return 0;
 }

@@ -6,6 +6,7 @@
  * Standard functionality for the common clock API.  See Documentation/driver-api/clk.rst
  */
 
+#include <linux/async.h>
 #include <linux/clk.h>
 #include <linux/clk-provider.h>
 #include <linux/clk/clk-conf.h>
@@ -40,6 +41,8 @@ static LIST_HEAD(clk_notifier_list);
 /* List of registered clks that use runtime PM */
 static HLIST_HEAD(clk_rpm_list);
 static DEFINE_MUTEX(clk_rpm_list_lock);
+
+static ASYNC_DOMAIN_EXCLUSIVE(clk_domain);
 
 static const struct hlist_head *all_lists[] = {
 	&clk_root_list,
@@ -3784,6 +3787,18 @@ static void clk_debug_unregister(struct clk_core *core)
 	mutex_unlock(&clk_debug_lock);
 }
 
+static void do_populate_clk_debug_entries(void *unused, async_cookie_t cookie)
+{
+	struct clk_core *core;
+
+	mutex_lock(&clk_debug_lock);
+	hlist_for_each_entry(core, &clk_debug_list, debug_node)
+		clk_debug_create_one(core, rootdir);
+
+	inited = 1;
+	mutex_unlock(&clk_debug_lock);
+}
+
 /**
  * clk_debug_init - lazily populate the debugfs clk directory
  *
@@ -3793,10 +3808,8 @@ static void clk_debug_unregister(struct clk_core *core)
  * debugfs is setup. It should only be called once at boot-time, all other clks
  * added dynamically will be done so with clk_debug_register.
  */
-static int __init clk_debug_init(void)
+static int clk_debug_init(void)
 {
-	struct clk_core *core;
-
 #ifdef CLOCK_ALLOW_WRITE_DEBUGFS
 	pr_warn("\n");
 	pr_warn("********************************************************************\n");
@@ -3826,12 +3839,7 @@ static int __init clk_debug_init(void)
 	debugfs_create_file("clk_orphan_dump", 0444, rootdir, &orphan_list,
 			    &clk_dump_fops);
 
-	mutex_lock(&clk_debug_lock);
-	hlist_for_each_entry(core, &clk_debug_list, debug_node)
-		clk_debug_create_one(core, rootdir);
-
-	inited = 1;
-	mutex_unlock(&clk_debug_lock);
+	async_schedule_domain(do_populate_clk_debug_entries, NULL, &clk_domain);
 
 	return 0;
 }

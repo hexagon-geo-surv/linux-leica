@@ -293,14 +293,20 @@ static bool ts_cc_valid __ro_after_init = false;
 static __init void timestamp_clock_init(void)
 {
 	u64 frq = arch_timer_get_cntfrq();
+	u64 cur_ticks = arch_timer_read_cntpct_el0();
+	u64 cur_ms;
 
 	if (!frq)
 		return;
 
 	clocks_calc_mult_shift(&ts_cc.mult, &ts_cc.shift,
 			       frq, NSEC_PER_SEC, 3600);
-	/* timestamp starts at 0 (local_clock is a good enough approximation) */
-	timecounter_init(&ts_tc, &ts_cc, local_clock());
+	cur_ms = cur_ticks / (frq / 1000 / 1000);
+	/*
+	 * The bootloader enables the counter very early. Take the time spend in
+	 * the bootloader into account too get a complete overview
+	 */
+	timecounter_init(&ts_tc, &ts_cc, cur_ms * 1000);
 	ts_cc_valid = true;
 	pr_info("Using timestamp clock @%lluMHz\n", frq / 1000 / 1000);
 }

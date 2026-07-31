@@ -1860,8 +1860,8 @@ static const struct display_timing dataimage_lcx0500x54ggu02_timing = {
 	.hback_porch = { 2, 4, 40 },
 	.hsync_len = { 2, 4, 8 },
 	.vactive = { 480, 480, 480 },
-	.vfront_porch = { 6, 8, 12 },
-	.vback_porch = { 4, 4, 4 },
+	.vfront_porch = { 3, 8, 12 },
+	.vback_porch = { 3, 4, 4 },
 	.vsync_len = { 2, 4, 8 },
 };
 
@@ -1874,10 +1874,10 @@ static const struct panel_desc dataimage_lcx0500x54ggu02 = {
 		.height = 65,
 	},
 	.delay = {
-		.prepare = 15,
-		.enable = 255,
-		.disable = 10,
-		.unprepare = 110,
+		.prepare = 10,
+		.enable = 250,
+		.disable = 5,
+		.unprepare = 100,
 	},
 	.bus_format = MEDIA_BUS_FMT_RGB888_1X7X4_SPWG,
 	.bus_flags = DRM_BUS_FLAG_DE_HIGH,

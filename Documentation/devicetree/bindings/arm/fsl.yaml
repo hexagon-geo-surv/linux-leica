@@ -994,6 +994,13 @@ properties:
           - const: hgs,gs05           # i.MX8MM Hexagon Geosystems GS05
           - const: fsl,imx8mm
 
+      - description: Hexagon Geosystems GS06
+        items:
+          - enum:
+              - hgs,gs06-rev-a        # i.MX8MM Hexagon Geosystems GS06 Rev.A
+          - const: hgs,gs05           # i.MX8MM Hexagon Geosystems GS05
+          - const: fsl,imx8mm
+
       - description: Kontron BL i.MX8MM (N801X S) Board
         items:
           - const: kontron,imx8mm-bl

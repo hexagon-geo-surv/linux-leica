@@ -898,10 +898,17 @@ static const struct acpi_device_id dps310_acpi_match[] = {
 };
 MODULE_DEVICE_TABLE(acpi, dps310_acpi_match);
 
+static const struct of_device_id dps310_of_match[] = {
+	{ .compatible = "infineon,dps310" },
+	{ }
+};
+MODULE_DEVICE_TABLE(of, dps310_of_match);
+
 static struct i2c_driver dps310_driver = {
 	.driver = {
 		.name = DPS310_DEV_NAME,
 		.acpi_match_table = dps310_acpi_match,
+		.of_match_table = dps310_of_match,
 	},
 	.probe = dps310_probe,
 	.id_table = dps310_id,

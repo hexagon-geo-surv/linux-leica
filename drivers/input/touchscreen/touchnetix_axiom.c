@@ -3028,9 +3028,10 @@ static int axiom_i2c_probe(struct i2c_client *client)
 
 	pm_runtime_set_autosuspend_delay(dev, 10 * MSEC_PER_SEC);
 	pm_runtime_use_autosuspend(dev);
-	pm_runtime_set_active(dev);
-	pm_runtime_get_noresume(dev);
-	error = devm_pm_runtime_enable(dev);
+	error = devm_pm_runtime_set_active_enabled(dev);
+	if (error)
+		return dev_err_probe(dev, error, "Failed to enable pm-runtime\n");
+	error = devm_pm_runtime_get_noresume(dev);
 	if (error)
 		return dev_err_probe(dev, error, "Failed to enable pm-runtime\n");
 

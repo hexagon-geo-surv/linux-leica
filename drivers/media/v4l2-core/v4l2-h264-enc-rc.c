@@ -5,6 +5,7 @@
  * Copyright (C) 2025-2026 Paul Kocialkowski <paulk@sys-base.io>
  */
 
+#include <linux/math64.h>
 #include <linux/module.h>
 #include <media/v4l2-h264-enc.h>
 
@@ -37,9 +38,9 @@ int v4l2_h264_enc_rc_stats_collect(struct v4l2_h264_enc_rc *rc,
 	struct v4l2_h264_enc_rc_stats_type *type;
 	unsigned long bitrate;
 	long size_error;
-	long size_drift;
+	long size_drift = 0;
 	long bitrate_error;
-	long bitrate_drift;
+	long bitrate_drift = 0;
 	unsigned int index;
 
 	/* Collect individual and total frame sizes. */
@@ -58,14 +59,16 @@ int v4l2_h264_enc_rc_stats_collect(struct v4l2_h264_enc_rc *rc,
 
 	stats->index = (index + 1) % V4L2_H264_ENC_RC_STATS_SIZE_COUNT;
 
-	bitrate = 8 * stats->size_total * timeperframe->denominator /
-		  stats->count / timeperframe->numerator;
+	bitrate = div64_u64(8 * stats->size_total * timeperframe->denominator,
+			    (u64)stats->count * timeperframe->numerator);
 
 	size_error = (long)bytesused - (long)rc->size;
-	size_drift = 100 * size_error / (long)rc->size;
+	if (rc->size)
+		size_drift = 100 * size_error / (long)rc->size;
 
 	bitrate_error = (long)bitrate - (long)state->bitrate;
-	bitrate_drift = 100 * bitrate_error / (long)state->bitrate;
+	if (state->bitrate)
+		bitrate_drift = 100 * bitrate_error / (long)state->bitrate;
 
 	pr_debug("+ v4l2-h264-rc: stats");
 	pr_debug("  size: %lu B, target: %lu B, error: %ld B, drift: %ld pc",
@@ -158,6 +161,9 @@ static const struct v4l2_h264_enc_rc_mode cq_mode = {
 	.estimate	= cq_estimate,
 };
 
+/* Lowest allowed target size, as a divider of the nominal target size. */
+#define CBR_TARGET_MIN_DIV	8
+
 static int cbr_measure(struct v4l2_h264_enc_rc *rc, unsigned long *size)
 {
 	struct v4l2_h264_enc_state *state = rc->state;
@@ -165,30 +171,41 @@ static int cbr_measure(struct v4l2_h264_enc_rc *rc, unsigned long *size)
 	struct v4l2_fract *timeperframe = &state->timeperframe;
 	struct v4l2_h264_enc_rc_stats *stats = &rc->stats;
 	unsigned long long budget;
+	unsigned long long rate;
 	unsigned long target;
 	unsigned long target_nominal;
+	unsigned long target_min;
 
 	pr_debug("+ v4l2-h264-enc-rc: cbr measure");
 
+	/* Bits per frame period, scaled by the time per frame denominator. */
+	rate = (u64)state->bitrate * timeperframe->numerator;
+
 	/* Nominal average size target for exact bitrate. */
-	target_nominal = state->bitrate * timeperframe->numerator /
-			 timeperframe->denominator / 8;
+	target_nominal = div64_u64(rate, 8ULL * timeperframe->denominator);
 
 	/* Total size budget for twice the size window. */
-	budget = 2 * V4L2_H264_ENC_RC_STATS_SIZE_COUNT * state->bitrate *
-		 timeperframe->numerator / timeperframe->denominator / 8;
+	budget = div64_u64(2 * V4L2_H264_ENC_RC_STATS_SIZE_COUNT * rate,
+			   8ULL * timeperframe->denominator);
 
-	if (budget < stats->size_total) {
-		target = target_nominal;
-		goto complete;
-	}
+	/*
+	 * Never go below a fraction of the nominal target, even when the size
+	 * window overshoots by more than twice the nominal size. Falling back
+	 * to the nominal target in that case would loosen the control exactly
+	 * when it should be the strictest and a zero target is meaningless.
+	 */
+	target_min = max(target_nominal / CBR_TARGET_MIN_DIV, 1UL);
 
-	/* Remaining size budget after deducing total size in window. */
-	budget -= stats->size_total;
-	/* Average size target from remaining size budget. */
-	target = budget / (2 * V4L2_H264_ENC_RC_STATS_SIZE_COUNT - stats->count);
+	if (budget > stats->size_total)
+		/* Average size target from remaining size budget. */
+		target = div64_u64(budget - stats->size_total,
+				   2 * V4L2_H264_ENC_RC_STATS_SIZE_COUNT -
+				   stats->count);
+	else
+		target = 0;
 
-complete:
+	target = max(target, target_min);
+
 	pr_debug("  nominal target: %lu bytes", target_nominal);
 	pr_debug("  uniform target: %lu bytes", target);
 
@@ -202,10 +219,13 @@ complete:
 		target = target * 80 / 100;
 
 	/* Reduce target size on bitrate overshoot to calm things down. */
-	if (9 * stats->size_total > 10 * stats->count * target_nominal) {
+	if (9 * stats->size_total > 10ULL * stats->count * target_nominal) {
 		pr_debug("  overshoot, reducing target size");
 		target = 80 * target / 100;
 	}
+
+	/* Size statistics are relative to the target, which must not be 0. */
+	target = max(target, 1UL);
 
 	pr_debug("  final target: %lu bytes", target);
 
@@ -414,7 +434,8 @@ static int cbr_estimate(struct v4l2_h264_enc_rc *rc, unsigned int *qp)
 			 weight[i]);
 	}
 
-	*qp = total / weight_total;
+	/* Round to nearest instead of always favoring the lower QP. */
+	*qp = (total + weight_total / 2) / weight_total;
 
 	return 0;
 }

@@ -162,7 +162,44 @@ static const struct v4l2_h264_enc_rc_mode cq_mode = {
 };
 
 /* Lowest allowed target size, as a divider of the nominal target size. */
-#define CBR_TARGET_MIN_DIV	8
+#define CBR_TARGET_MIN_DIV		8
+/* GOP size to assume when userspace does not provide one. */
+#define CBR_GOP_SIZE_DEFAULT		25
+/* Intra to inter frame size ratio (in base 100) bounds and default. */
+#define CBR_INTRA_RATIO_DEFAULT		600
+#define CBR_INTRA_RATIO_MIN		200
+#define CBR_INTRA_RATIO_MAX		3000
+/* Maximum QP decrease of intra frames compared to inter frames. */
+#define CBR_INTRA_QP_DELTA_MAX		2
+
+static unsigned int cbr_stats_type_last(struct v4l2_h264_enc_rc_stats_type *type)
+{
+	return (type->index + V4L2_H264_ENC_RC_STATS_TYPE_COUNT - 1) %
+	       V4L2_H264_ENC_RC_STATS_TYPE_COUNT;
+}
+
+static unsigned int cbr_intra_ratio(struct v4l2_h264_enc_rc *rc)
+{
+	struct v4l2_h264_enc_rc_stats *stats = &rc->stats;
+	struct v4l2_h264_enc_rc_stats_type *intra = &stats->intra;
+	struct v4l2_h264_enc_rc_stats_type *pred = &stats->pred;
+	unsigned long long pred_total = 0;
+	unsigned long intra_size;
+	unsigned int ratio;
+	unsigned int i;
+
+	if (!intra->count || !pred->count)
+		return CBR_INTRA_RATIO_DEFAULT;
+
+	intra_size = intra->size[cbr_stats_type_last(intra)];
+
+	for (i = 0; i < pred->count; i++)
+		pred_total += pred->size[i];
+
+	ratio = div64_u64(100ULL * intra_size * pred->count, pred_total);
+
+	return clamp(ratio, CBR_INTRA_RATIO_MIN, CBR_INTRA_RATIO_MAX);
+}
 
 static int cbr_measure(struct v4l2_h264_enc_rc *rc, unsigned long *size)
 {
@@ -175,6 +212,9 @@ static int cbr_measure(struct v4l2_h264_enc_rc *rc, unsigned long *size)
 	unsigned long target;
 	unsigned long target_nominal;
 	unsigned long target_min;
+	unsigned int gop_size;
+	unsigned int ratio;
+	unsigned int weight_total;
 
 	pr_debug("+ v4l2-h264-enc-rc: cbr measure");
 
@@ -209,14 +249,29 @@ static int cbr_measure(struct v4l2_h264_enc_rc *rc, unsigned long *size)
 	pr_debug("  nominal target: %lu bytes", target_nominal);
 	pr_debug("  uniform target: %lu bytes", target);
 
-	/* Bump size for intra frames and reduce for pred frames.
-	 * We are better off with good quality initial references.
-	 * Maintain average assuming 1 intra frame for 24 inter frames.
+	/*
+	 * Split the budget of a GOP (1 intra frame followed by gop_size - 1
+	 * inter frames) between intra and inter frames using the observed
+	 * intra to inter frame size ratio, so that the GOP average matches the
+	 * uniform target. A fixed ratio does not hold at low bitrates, where
+	 * inter frames shrink much faster than intra frames with increasing QP.
 	 */
-	if (encode->slice_type == V4L2_H264_SLICE_TYPE_I)
-		target = target * 6;
-	else
-		target = target * 80 / 100;
+	gop_size = state->gop_size ? state->gop_size : CBR_GOP_SIZE_DEFAULT;
+
+	if (gop_size > 1) {
+		ratio = cbr_intra_ratio(rc);
+		weight_total = ratio + 100 * (gop_size - 1);
+
+		if (encode->slice_type == V4L2_H264_SLICE_TYPE_I)
+			target = div64_u64((u64)target * ratio * gop_size,
+					   weight_total);
+		else
+			target = div64_u64((u64)target * 100 * gop_size,
+					   weight_total);
+
+		pr_debug("  gop size: %u, intra ratio: %u pc", gop_size,
+			 ratio);
+	}
 
 	/* Reduce target size on bitrate overshoot to calm things down. */
 	if (9 * stats->size_total > 10ULL * stats->count * target_nominal) {
@@ -319,7 +374,7 @@ static int cbr_ratio_qp_diff(unsigned long ratio, unsigned char slice_type)
 	return count / 2;
 }
 
-static int cbr_estimate(struct v4l2_h264_enc_rc *rc, unsigned int *qp)
+static int cbr_estimate_stats(struct v4l2_h264_enc_rc *rc, unsigned int *qp)
 {
 	struct v4l2_h264_enc_state *state = rc->state;
 	struct v4l2_ctrl_h264_encode_params *encode = &state->encode;
@@ -436,6 +491,40 @@ static int cbr_estimate(struct v4l2_h264_enc_rc *rc, unsigned int *qp)
 
 	/* Round to nearest instead of always favoring the lower QP. */
 	*qp = (total + weight_total / 2) / weight_total;
+
+	return 0;
+}
+
+static int cbr_estimate(struct v4l2_h264_enc_rc *rc, unsigned int *qp)
+{
+	struct v4l2_h264_enc_state *state = rc->state;
+	struct v4l2_ctrl_h264_encode_params *encode = &state->encode;
+	struct v4l2_h264_enc_rc_stats_type *pred = &rc->stats.pred;
+	unsigned int qp_pred;
+	int ret;
+
+	ret = cbr_estimate_stats(rc, qp);
+	if (ret)
+		return ret;
+
+	if (encode->slice_type != V4L2_H264_SLICE_TYPE_I || !pred->count)
+		return 0;
+
+	/*
+	 * Keep intra frames in line with the quality of the previous inter
+	 * frames. Intra frames are rare so their own statistics are both
+	 * scarce and outdated, and an intra frame coded at a higher QP than
+	 * the inter frames before it shows up as a periodic quality drop that
+	 * also propagates to the following inter frames referencing it.
+	 * Allow intra frames to be slightly better but never worse, the size
+	 * budget of the following inter frames absorbs the difference.
+	 */
+	qp_pred = pred->qp[cbr_stats_type_last(pred)];
+
+	pr_debug("  intra qp: %u, previous inter qp: %u", *qp, qp_pred);
+
+	*qp = clamp(*qp, qp_pred > CBR_INTRA_QP_DELTA_MAX ?
+		    qp_pred - CBR_INTRA_QP_DELTA_MAX : 0, qp_pred);
 
 	return 0;
 }

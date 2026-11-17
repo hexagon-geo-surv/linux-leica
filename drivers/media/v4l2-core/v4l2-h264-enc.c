@@ -595,6 +595,13 @@ static int state_prepare_rc(struct v4l2_h264_enc *enc)
 		state->bitrate = ctrl->cur.val;
 	}
 
+	/* The GOP size is optional and only used as a rate control hint. */
+	ctrl = v4l2_ctrl_find(handler, V4L2_CID_MPEG_VIDEO_GOP_SIZE);
+	if (ctrl)
+		state->gop_size = ctrl->cur.val;
+	else
+		state->gop_size = 0;
+
 	if (state->bitrate_mode == V4L2_MPEG_VIDEO_BITRATE_MODE_VBR) {
 		ctrl = v4l2_ctrl_find(handler,
 				      V4L2_CID_MPEG_VIDEO_BITRATE_PEAK);

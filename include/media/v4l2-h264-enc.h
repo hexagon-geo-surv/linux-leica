@@ -90,6 +90,7 @@ struct v4l2_h264_enc_state {
 	unsigned int quality_max;
 	unsigned int bitrate;
 	unsigned int bitrate_peak;
+	unsigned int gop_size;
 };
 
 struct v4l2_h264_enc_ops {

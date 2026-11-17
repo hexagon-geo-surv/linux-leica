@@ -832,6 +832,10 @@ static int vidioc_s_parm(struct file *file, void *priv,
 		timeperframe_propagate = NULL;
 	}
 
+	/* Keep the current time per frame instead of an invalid one. */
+	if (!timeperframe->numerator || !timeperframe->denominator)
+		*timeperframe = *timeperframe_ctx;
+
 	*timeperframe_ctx = *timeperframe;
 
 	/* Propagate from source to destination. */

@@ -565,6 +565,15 @@ static const struct hantro_ctrl controls[] = {
 			.max = 96000000,
 			.def = 2000000,
 		},
+	}, {
+		.codec = HANTRO_H264_ENCODER,
+		.cfg = {
+			.id = V4L2_CID_MPEG_VIDEO_GOP_SIZE,
+			.step = 1,
+			.min = 0,
+			.max = 65535,
+			.def = 0,
+		},
 	},
 
 	/* MPEG-2 Decoder */

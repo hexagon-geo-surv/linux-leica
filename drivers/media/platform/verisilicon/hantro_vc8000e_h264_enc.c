@@ -283,120 +283,179 @@ static int ref_setup(struct hantro_ctx *ctx)
 	return 0;
 }
 
-static int lambda_setup(struct hantro_ctx *ctx)
+/*
+ * Lambda factors (Q14) for the SSE and SAD/SATD costs, following:
+ * lambda_sse = 0.49 * 2^((qp - 12) / 3) and lambda_sad = sqrt(lambda_sse).
+ */
+#define VC8000E_LAMBDA_SSE_FACTOR	0x1f5c
+#define VC8000E_LAMBDA_SAD_FACTOR	0x2ccd
+
+/* Fixed-point precision of the lambda table registers. */
+#define VC8000E_LAMBDA_SSE_SHIFT	6
+#define VC8000E_LAMBDA_SAD_SHIFT	5
+
+/* 2^(n / 6) in Q16 for n in [0, 5]. */
+static const u32 lambda_pow2_sixth[] = {
+	65536, 73562, 82570, 92682, 104032, 116772
+};
+
+/* Calculate factor * 2^(sixths / 6) / 2^shift, rounded to nearest. */
+static u32 lambda_scale(u32 factor, int sixths, unsigned int shift)
+{
+	int exp = sixths >= 0 ? sixths / 6 : (sixths - 5) / 6;
+	unsigned int rshift = 16 + shift - exp;
+	u64 value = (u64)factor * lambda_pow2_sixth[sixths - 6 * exp];
+
+	return (value + (1ULL << (rshift - 1))) >> rshift;
+}
+
+static int lambda_setup(struct hantro_ctx *ctx, unsigned int qp)
 {
 	struct hantro_h264_enc_hw_ctx *h264_ctx = &ctx->h264_enc;
 	struct hantro_vc8000e_regs *regs = &h264_ctx->vc8000e_regs;
+	u32 intra[32], satd[32], sse[32];
+	unsigned int i;
+
+	/*
+	 * Each table entry is for a QP delta relative to the picture QP:
+	 * entries 0 to 15 for deltas 0 to -15 and entries 16 to 31 for deltas
+	 * +16 to +1. The lambdas must follow the picture QP, otherwise mode
+	 * decision is tuned for the wrong rate-distortion trade-off and the
+	 * frame size can hardly be reduced with increasing QP.
+	 */
+	for (i = 0; i < ARRAY_SIZE(sse); i++) {
+		int delta = i < 16 ? -(int)i : 32 - (int)i;
+		int qp_entry = clamp((int)qp + delta, 0, 51);
+
+		sse[i] = lambda_scale(VC8000E_LAMBDA_SSE_FACTOR,
+				      2 * (qp_entry - 12),
+				      14 - VC8000E_LAMBDA_SSE_SHIFT);
+		satd[i] = lambda_scale(VC8000E_LAMBDA_SAD_FACTOR, qp_entry - 12,
+				       14 - VC8000E_LAMBDA_SAD_SHIFT);
+		/* Intra SATD lambda is twice the inter SATD lambda. */
+		intra[i] = lambda_scale(VC8000E_LAMBDA_SAD_FACTOR,
+					qp_entry - 12,
+					14 - VC8000E_LAMBDA_SAD_SHIFT - 1);
+	}
 
 	/* Intra SATD */
 
-	regs->swreg125.intra_satd_lambda_0 = 0x47;
-	regs->swreg125.intra_satd_lambda_1 = 0x3f;
-	regs->swreg126.intra_satd_lambda_2 = 0x38;
-	regs->swreg126.intra_satd_lambda_3 = 0x32;
-	regs->swreg127.intra_satd_lambda_4 = 0;
-	regs->swreg127.intra_satd_lambda_5 = 0;
-	regs->swreg128.intra_satd_lambda_6 = 0;
-	regs->swreg128.intra_satd_lambda_7 = 0;
-	regs->swreg129.intra_satd_lambda_8 = 0;
-	regs->swreg129.intra_satd_lambda_9 = 0;
-	regs->swreg130.intra_satd_lambda_10 = 0;
-	regs->swreg130.intra_satd_lambda_11 = 0;
-	regs->swreg131.intra_satd_lambda_12 = 0;
-	regs->swreg131.intra_satd_lambda_13 = 0;
-	regs->swreg132.intra_satd_lambda_14 = 0;
-	regs->swreg132.intra_satd_lambda_15 = 0;
-	regs->swreg174.intra_satd_lambda_16 = 0x1c4;
-	regs->swreg174.intra_satd_lambda_17 = 0x192;
-	regs->swreg175.intra_satd_lambda_18 = 0x166;
-	regs->swreg175.intra_satd_lambda_19 = 0x13f;
-	regs->swreg176.intra_satd_lambda_20 = 0x11c;
-	regs->swreg176.intra_satd_lambda_21 = 0xfd;
-	regs->swreg177.intra_satd_lambda_22 = 0xe2;
-	regs->swreg177.intra_satd_lambda_23 = 0xc9;
-	regs->swreg178.intra_satd_lambda_24 = 0xb3;
-	regs->swreg178.intra_satd_lambda_25 = 0xa0;
-	regs->swreg179.intra_satd_lambda_26 = 0x8e;
-	regs->swreg179.intra_satd_lambda_27 = 0x7f;
-	regs->swreg180.intra_satd_lambda_28 = 0x71;
-	regs->swreg180.intra_satd_lambda_29 = 0x65;
-	regs->swreg181.intra_satd_lambda_30 = 0x5a;
-	regs->swreg181.intra_satd_lambda_31 = 0x50;
+	regs->swreg125.intra_satd_lambda_0 = intra[0];
+	regs->swreg125.intra_satd_lambda_1 = intra[1];
+	regs->swreg126.intra_satd_lambda_2 = intra[2];
+	regs->swreg126.intra_satd_lambda_3 = intra[3];
+	regs->swreg127.intra_satd_lambda_4 = intra[4];
+	regs->swreg127.intra_satd_lambda_5 = intra[5];
+	regs->swreg128.intra_satd_lambda_6 = intra[6];
+	regs->swreg128.intra_satd_lambda_7 = intra[7];
+	regs->swreg129.intra_satd_lambda_8 = intra[8];
+	regs->swreg129.intra_satd_lambda_9 = intra[9];
+	regs->swreg130.intra_satd_lambda_10 = intra[10];
+	regs->swreg130.intra_satd_lambda_11 = intra[11];
+	regs->swreg131.intra_satd_lambda_12 = intra[12];
+	regs->swreg131.intra_satd_lambda_13 = intra[13];
+	regs->swreg132.intra_satd_lambda_14 = intra[14];
+	regs->swreg132.intra_satd_lambda_15 = intra[15];
+	regs->swreg174.intra_satd_lambda_16 = intra[16];
+	regs->swreg174.intra_satd_lambda_17 = intra[17];
+	regs->swreg175.intra_satd_lambda_18 = intra[18];
+	regs->swreg175.intra_satd_lambda_19 = intra[19];
+	regs->swreg176.intra_satd_lambda_20 = intra[20];
+	regs->swreg176.intra_satd_lambda_21 = intra[21];
+	regs->swreg177.intra_satd_lambda_22 = intra[22];
+	regs->swreg177.intra_satd_lambda_23 = intra[23];
+	regs->swreg178.intra_satd_lambda_24 = intra[24];
+	regs->swreg178.intra_satd_lambda_25 = intra[25];
+	regs->swreg179.intra_satd_lambda_26 = intra[26];
+	regs->swreg179.intra_satd_lambda_27 = intra[27];
+	regs->swreg180.intra_satd_lambda_28 = intra[28];
+	regs->swreg180.intra_satd_lambda_29 = intra[29];
+	regs->swreg181.intra_satd_lambda_30 = intra[30];
+	regs->swreg181.intra_satd_lambda_31 = intra[31];
 
 	/* Inter SATD */
 
-	regs->swreg28.lambda_satd_me_0 = 0x24;
-	regs->swreg28.lambda_satd_me_1 = 0x20;
-	regs->swreg29.lambda_satd_me_2 = 0x1c;
-	regs->swreg29.lambda_satd_me_3 = 0x19;
-	regs->swreg30.lambda_satd_me_4 = 0x16;
-	regs->swreg30.lambda_satd_me_5 = 0x14;
-	regs->swreg31.lambda_satd_me_6 = 0x12;
-	regs->swreg31.lambda_satd_me_7 = 0x10;
-	regs->swreg32.lambda_satd_me_8 = 0xe;
-	regs->swreg32.lambda_satd_me_9 = 0xd;
-	regs->swreg33.lambda_satd_me_10 = 0xb;
-	regs->swreg33.lambda_satd_me_11 = 0xa;
-	regs->swreg34.lambda_satd_me_12 = 0x9;
-	regs->swreg34.lambda_satd_me_13 = 0x8;
-	regs->swreg78.lambda_satd_me_14 = 0x7;
-	regs->swreg78.lambda_satd_me_15 = 0x6;
-	regs->swreg150.lambda_satd_me_16 = 0;
-	regs->swreg150.lambda_satd_me_17 = 0;
-	regs->swreg151.lambda_satd_me_18 = 0;
-	regs->swreg151.lambda_satd_me_19 = 0;
-	regs->swreg152.lambda_satd_me_20 = 0x88;
-	regs->swreg152.lambda_satd_me_21 = 0;
-	regs->swreg153.lambda_satd_me_22 = 0;
-	regs->swreg153.lambda_satd_me_23 = 0;
-	regs->swreg154.lambda_satd_me_24 = 0;
-	regs->swreg154.lambda_satd_me_25 = 0;
-	regs->swreg155.lambda_satd_me_26 = 0;
-	regs->swreg155.lambda_satd_me_27 = 0;
-	regs->swreg156.lambda_satd_me_28 = 0;
-	regs->swreg156.lambda_satd_me_29 = 0;
-	regs->swreg157.lambda_satd_me_30 = 0;
-	regs->swreg157.lambda_satd_me_31 = 0;
+	regs->swreg28.lambda_satd_me_0 = satd[0];
+	regs->swreg28.lambda_satd_me_1 = satd[1];
+	regs->swreg29.lambda_satd_me_2 = satd[2];
+	regs->swreg29.lambda_satd_me_3 = satd[3];
+	regs->swreg30.lambda_satd_me_4 = satd[4];
+	regs->swreg30.lambda_satd_me_5 = satd[5];
+	regs->swreg31.lambda_satd_me_6 = satd[6];
+	regs->swreg31.lambda_satd_me_7 = satd[7];
+	regs->swreg32.lambda_satd_me_8 = satd[8];
+	regs->swreg32.lambda_satd_me_9 = satd[9];
+	regs->swreg33.lambda_satd_me_10 = satd[10];
+	regs->swreg33.lambda_satd_me_11 = satd[11];
+	regs->swreg34.lambda_satd_me_12 = satd[12];
+	regs->swreg34.lambda_satd_me_13 = satd[13];
+	regs->swreg78.lambda_satd_me_14 = satd[14];
+	regs->swreg78.lambda_satd_me_15 = satd[15];
+	regs->swreg150.lambda_satd_me_16 = satd[16];
+	regs->swreg150.lambda_satd_me_17 = satd[17];
+	regs->swreg151.lambda_satd_me_18 = satd[18];
+	regs->swreg151.lambda_satd_me_19 = satd[19];
+	regs->swreg152.lambda_satd_me_20 = satd[20];
+	regs->swreg152.lambda_satd_me_21 = satd[21];
+	regs->swreg153.lambda_satd_me_22 = satd[22];
+	regs->swreg153.lambda_satd_me_23 = satd[23];
+	regs->swreg154.lambda_satd_me_24 = satd[24];
+	regs->swreg154.lambda_satd_me_25 = satd[25];
+	regs->swreg155.lambda_satd_me_26 = satd[26];
+	regs->swreg155.lambda_satd_me_27 = satd[27];
+	regs->swreg156.lambda_satd_me_28 = satd[28];
+	regs->swreg156.lambda_satd_me_29 = satd[29];
+	regs->swreg157.lambda_satd_me_30 = satd[30];
+	regs->swreg157.lambda_satd_me_31 = satd[31];
 
 	/* Inter SSE */
 
-	regs->swreg79.lambda_sse_me_0 = 0x4f;
-	regs->swreg122.lambda_sse_me_1 = 0x3f;
-	regs->swreg123.lambda_sse_me_2 = 0x32;
-	regs->swreg124.lambda_sse_me_3 = 0x28;
-	regs->swreg138.lambda_sse_me_4 = 0;
-	regs->swreg139.lambda_sse_me_5 = 0;
-	regs->swreg140.lambda_sse_me_6 = 0;
-	regs->swreg141.lambda_sse_me_7 = 0;
-	regs->swreg142.lambda_sse_me_8 = 0;
-	regs->swreg143.lambda_sse_me_9 = 0;
-	regs->swreg144.lambda_sse_me_10 = 0;
-	regs->swreg145.lambda_sse_me_11 = 0;
-	regs->swreg146.lambda_sse_me_12 = 0;
-	regs->swreg147.lambda_sse_me_13 = 0;
-	regs->swreg148.lambda_sse_me_14 = 0;
-	regs->swreg149.lambda_sse_me_15 = 0;
-	regs->swreg158.lambda_sse_me_16 = 0;
-	regs->swreg159.lambda_sse_me_17 = 0x800;
-	regs->swreg160.lambda_sse_me_18 = 0;
-	regs->swreg161.lambda_sse_me_19 = 0;
-	regs->swreg162.lambda_sse_me_20 = 0;
-	regs->swreg163.lambda_sse_me_21 = 0;
-	regs->swreg164.lambda_sse_me_22 = 0;
-	regs->swreg165.lambda_sse_me_23 = 0;
-	regs->swreg166.lambda_sse_me_24 = 0;
-	regs->swreg167.lambda_sse_me_25 = 0;
-	regs->swreg168.lambda_sse_me_26 = 0x13c;
-	regs->swreg169.lambda_sse_me_27 = 0xfb;
-	regs->swreg172.lambda_sse_me_30 = 0x7d;
-	regs->swreg173.lambda_sse_me_31 = 0x64;
+	regs->swreg79.lambda_sse_me_0 = sse[0];
+	regs->swreg122.lambda_sse_me_1 = sse[1];
+	regs->swreg123.lambda_sse_me_2 = sse[2];
+	regs->swreg124.lambda_sse_me_3 = sse[3];
+	regs->swreg138.lambda_sse_me_4 = sse[4];
+	regs->swreg139.lambda_sse_me_5 = sse[5];
+	regs->swreg140.lambda_sse_me_6 = sse[6];
+	regs->swreg141.lambda_sse_me_7 = sse[7];
+	regs->swreg142.lambda_sse_me_8 = sse[8];
+	regs->swreg143.lambda_sse_me_9 = sse[9];
+	regs->swreg144.lambda_sse_me_10 = sse[10];
+	regs->swreg145.lambda_sse_me_11 = sse[11];
+	regs->swreg146.lambda_sse_me_12 = sse[12];
+	regs->swreg147.lambda_sse_me_13 = sse[13];
+	regs->swreg148.lambda_sse_me_14 = sse[14];
+	regs->swreg149.lambda_sse_me_15 = sse[15];
+	regs->swreg158.lambda_sse_me_16 = sse[16];
+	regs->swreg159.lambda_sse_me_17 = sse[17];
+	regs->swreg160.lambda_sse_me_18 = sse[18];
+	regs->swreg161.lambda_sse_me_19 = sse[19];
+	regs->swreg162.lambda_sse_me_20 = sse[20];
+	regs->swreg163.lambda_sse_me_21 = sse[21];
+	regs->swreg164.lambda_sse_me_22 = sse[22];
+	regs->swreg165.lambda_sse_me_23 = sse[23];
+	regs->swreg166.lambda_sse_me_24 = sse[24];
+	regs->swreg167.lambda_sse_me_25 = sse[25];
+	regs->swreg168.lambda_sse_me_26 = sse[26];
+	regs->swreg169.lambda_sse_me_27 = sse[27];
+
+	/* Entries 28 and 29 are not available with absolute QP support. */
+	if (!regs->swreg214.hwabsqpsupport) {
+		regs->swreg170_qp_delta.lambda_sse_me_28 = sse[28];
+		regs->swreg171_qp_delta.lambda_sse_me_29 = sse[29];
+	}
+
+	regs->swreg172.lambda_sse_me_30 = sse[30];
+	regs->swreg173.lambda_sse_me_31 = sse[31];
 
 	regs->swreg35.lambda_motion_sse = 0;
 
 	if (regs->swreg214.hwabsqpsupport) {
 		/* Used for lambda calculation, different intra/inter value. */
-		regs->swreg170_qp_absolute.sse_qp_factor = 0x1f5c;
-		regs->swreg171_qp_absolute.sad_qp_factor = 0x2ccd;
+		regs->swreg170_qp_absolute.sse_qp_factor =
+			VC8000E_LAMBDA_SSE_FACTOR;
+		regs->swreg171_qp_absolute.sad_qp_factor =
+			VC8000E_LAMBDA_SAD_FACTOR;
 	}
 
 	return 0;
@@ -795,7 +854,7 @@ int hantro_vc8000e_h264_enc_run(struct hantro_ctx *ctx)
 
 	/* Lambda */
 
-	ret = lambda_setup(ctx);
+	ret = lambda_setup(ctx, enc->rc.qp);
 	if (ret)
 		return ret;
 

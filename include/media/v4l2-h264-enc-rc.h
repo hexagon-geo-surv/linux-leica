@@ -13,6 +13,7 @@
 
 #define V4L2_H264_ENC_RC_STATS_TYPE_COUNT	10
 #define V4L2_H264_ENC_RC_STATS_SIZE_COUNT	25
+#define V4L2_H264_ENC_RC_DELAY_MAX		4
 
 #define v4l2_h264_enc_rc_op(r, o, a...) \
 	({ \
@@ -38,6 +39,13 @@ struct v4l2_h264_enc_rc;
 struct v4l2_h264_enc_state;
 struct vb2_v4l2_buffer;
 
+struct v4l2_h264_enc_rc_frame {
+	unsigned char slice_type;
+	unsigned long target;
+	unsigned long size;
+	unsigned int qp;
+};
+
 enum v4l2_h264_enc_rc_type {
 	V4L2_H264_ENC_RC_TYPE_DIRECT,
 	V4L2_H264_ENC_RC_TYPE_CQ,
@@ -52,14 +60,16 @@ struct v4l2_h264_enc_rc_mode {
 	int (*exit)(struct v4l2_h264_enc_rc *rc);
 	int (*measure)(struct v4l2_h264_enc_rc *rc, unsigned long *size);
 	int (*estimate)(struct v4l2_h264_enc_rc *rc, unsigned int *qp);
-	int (*complete)(struct v4l2_h264_enc_rc *rc, unsigned long bytesused);
+	int (*complete)(struct v4l2_h264_enc_rc *rc,
+			const struct v4l2_h264_enc_rc_frame *frame);
 };
 
 struct v4l2_h264_enc_rc_ops {
 	int (*init)(struct v4l2_h264_enc_rc *rc);
 	int (*exit)(struct v4l2_h264_enc_rc *rc);
 	int (*estimate)(struct v4l2_h264_enc_rc *rc, unsigned int *qp);
-	int (*complete)(struct v4l2_h264_enc_rc *rc, unsigned long bytesused);
+	int (*complete)(struct v4l2_h264_enc_rc *rc,
+			const struct v4l2_h264_enc_rc_frame *frame);
 };
 
 struct v4l2_h264_enc_rc_stats_type {
@@ -93,12 +103,16 @@ struct v4l2_h264_enc_rc {
 	struct v4l2_h264_enc_rc_stats stats;
 	unsigned long size;
 	unsigned int qp;
+
+	struct v4l2_h264_enc_rc_frame pending[V4L2_H264_ENC_RC_DELAY_MAX];
+	unsigned int pending_count;
+	unsigned int delay;
 };
 
 int v4l2_h264_enc_rc_init(struct v4l2_h264_enc_rc *rc);
 void v4l2_h264_enc_rc_exit(struct v4l2_h264_enc_rc *rc);
 int v4l2_h264_enc_rc_stats_collect(struct v4l2_h264_enc_rc *rc,
-				   unsigned long bytesused);
+				   const struct v4l2_h264_enc_rc_frame *frame);
 int v4l2_h264_enc_rc_mode_update(struct v4l2_h264_enc_rc *rc);
 int v4l2_h264_enc_rc_step(struct v4l2_h264_enc_rc *rc,
 			  struct v4l2_h264_enc_state *state);

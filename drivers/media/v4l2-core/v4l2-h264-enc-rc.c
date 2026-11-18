@@ -9,10 +9,26 @@
 #include <linux/module.h>
 #include <media/v4l2-h264-enc.h>
 
+/*
+ * Number of frames by which the encoding results are held back from the rate
+ * control, emulating a rate control that runs while the next frames are
+ * already queued to the hardware. With a delay of 1, the QP of frame N is
+ * estimated without the size of frame N - 1. Only used for testing and taken
+ * into account when the rate control mode is (re)initialized, which happens
+ * at least when streaming starts.
+ */
+static unsigned int feedback_delay;
+module_param(feedback_delay, uint, 0644);
+MODULE_PARM_DESC(feedback_delay,
+		 "Frames by which encode results are delayed for rate control (0-"
+		 __stringify(V4L2_H264_ENC_RC_DELAY_MAX) ", default 0)");
+
 int v4l2_h264_enc_rc_init(struct v4l2_h264_enc_rc *rc)
 {
 	rc->qp = 0;
 	rc->mode = NULL;
+	rc->pending_count = 0;
+	rc->delay = 0;
 
 	return 0;
 }
@@ -29,10 +45,9 @@ void v4l2_h264_enc_rc_exit(struct v4l2_h264_enc_rc *rc)
 EXPORT_SYMBOL_GPL(v4l2_h264_enc_rc_exit);
 
 int v4l2_h264_enc_rc_stats_collect(struct v4l2_h264_enc_rc *rc,
-				   unsigned long bytesused)
+				   const struct v4l2_h264_enc_rc_frame *frame)
 {
 	struct v4l2_h264_enc_state *state = rc->state;
-	struct v4l2_ctrl_h264_encode_params *encode = &state->encode;
 	struct v4l2_fract *timeperframe = &state->timeperframe;
 	struct v4l2_h264_enc_rc_stats *stats = &rc->stats;
 	struct v4l2_h264_enc_rc_stats_type *type;
@@ -50,9 +65,9 @@ int v4l2_h264_enc_rc_stats_collect(struct v4l2_h264_enc_rc *rc,
 	if (stats->count == V4L2_H264_ENC_RC_STATS_SIZE_COUNT)
 		stats->size_total -= stats->size[index];
 
-	stats->slice_type[index] = encode->slice_type;
-	stats->size[index] = bytesused;
-	stats->size_total += bytesused;
+	stats->slice_type[index] = frame->slice_type;
+	stats->size[index] = frame->size;
+	stats->size_total += frame->size;
 
 	if (stats->count < V4L2_H264_ENC_RC_STATS_SIZE_COUNT)
 		stats->count++;
@@ -62,9 +77,9 @@ int v4l2_h264_enc_rc_stats_collect(struct v4l2_h264_enc_rc *rc,
 	bitrate = div64_u64(8 * stats->size_total * timeperframe->denominator,
 			    (u64)stats->count * timeperframe->numerator);
 
-	size_error = (long)bytesused - (long)rc->size;
-	if (rc->size)
-		size_drift = 100 * size_error / (long)rc->size;
+	size_error = (long)frame->size - (long)frame->target;
+	if (frame->target)
+		size_drift = 100 * size_error / (long)frame->target;
 
 	bitrate_error = (long)bitrate - (long)state->bitrate;
 	if (state->bitrate)
@@ -72,26 +87,26 @@ int v4l2_h264_enc_rc_stats_collect(struct v4l2_h264_enc_rc *rc,
 
 	pr_debug("+ v4l2-h264-rc: stats");
 	pr_debug("  size: %lu B, target: %lu B, error: %ld B, drift: %ld pc",
-		 bytesused, rc->size, size_error, size_drift);
+		 frame->size, frame->target, size_error, size_drift);
 	pr_debug("  bitrate: %lu b/s, target: %u b/s, error: %ld b/s, drift: %ld pc",
 		 bitrate, state->bitrate, bitrate_error, bitrate_drift);
 
 	/* Collect per-type size and qp information. */
 
-	if (encode->slice_type == V4L2_H264_SLICE_TYPE_I)
+	if (frame->slice_type == V4L2_H264_SLICE_TYPE_I)
 		type = &stats->intra;
-	else if (encode->slice_type == V4L2_H264_SLICE_TYPE_P)
+	else if (frame->slice_type == V4L2_H264_SLICE_TYPE_P)
 		type = &stats->pred;
-	else if (encode->slice_type == V4L2_H264_SLICE_TYPE_B)
+	else if (frame->slice_type == V4L2_H264_SLICE_TYPE_B)
 		type = &stats->bipred;
 	else
 		return -EINVAL;
 
 	index = type->index;
 
-	type->target[index] = rc->size;
-	type->size[index] = bytesused;
-	type->qp[index] = rc->qp;
+	type->target[index] = frame->target;
+	type->size[index] = frame->size;
+	type->qp[index] = frame->qp;
 
 	if (type->count < V4L2_H264_ENC_RC_STATS_TYPE_COUNT)
 		type->count++;
@@ -529,9 +544,10 @@ static int cbr_estimate(struct v4l2_h264_enc_rc *rc, unsigned int *qp)
 	return 0;
 }
 
-static int cbr_complete(struct v4l2_h264_enc_rc *rc, unsigned long bytesused)
+static int cbr_complete(struct v4l2_h264_enc_rc *rc,
+			const struct v4l2_h264_enc_rc_frame *frame)
 {
-	return v4l2_h264_enc_rc_stats_collect(rc, bytesused);
+	return v4l2_h264_enc_rc_stats_collect(rc, frame);
 }
 
 static const struct v4l2_h264_enc_rc_mode cbr_mode = {
@@ -578,6 +594,13 @@ static int mode_prepare(struct v4l2_h264_enc_rc *rc)
 		return -EINVAL;
 
 	memset(&rc->stats, 0, sizeof(rc->stats));
+
+	rc->pending_count = 0;
+	rc->delay = min(feedback_delay, V4L2_H264_ENC_RC_DELAY_MAX);
+
+	if (rc->delay)
+		pr_debug("v4l2-h264-enc-rc: feedback delay: %u frames",
+			 rc->delay);
 
 	rc->mode = mode;
 
@@ -646,16 +669,40 @@ EXPORT_SYMBOL_GPL(v4l2_h264_enc_rc_step);
 int v4l2_h264_enc_rc_complete(struct v4l2_h264_enc_rc *rc,
 			      unsigned long bytesused)
 {
+	struct v4l2_h264_enc_rc_frame frame;
+	struct v4l2_h264_enc_rc_frame pending;
 	int ret;
 
 	if (!rc->mode)
 		return -EINVAL;
 
-	ret = v4l2_h264_enc_rc_op(rc, complete, bytesused);
+	frame.slice_type = rc->state->encode.slice_type;
+	frame.target = rc->size;
+	frame.size = bytesused;
+	frame.qp = rc->qp;
+
+	/*
+	 * Hold the frame back until delay more frames were completed and
+	 * report the oldest held back frame instead, if any.
+	 */
+	if (rc->delay) {
+		if (rc->pending_count < rc->delay) {
+			rc->pending[rc->pending_count++] = frame;
+			return 0;
+		}
+
+		pending = rc->pending[0];
+		memmove(&rc->pending[0], &rc->pending[1],
+			(rc->delay - 1) * sizeof(rc->pending[0]));
+		rc->pending[rc->delay - 1] = frame;
+		frame = pending;
+	}
+
+	ret = v4l2_h264_enc_rc_op(rc, complete, &frame);
 	if (ret && ret != -EOPNOTSUPP)
 		return ret;
 
-	ret = v4l2_h264_enc_rc_mode_op(rc, complete, bytesused);
+	ret = v4l2_h264_enc_rc_mode_op(rc, complete, &frame);
 	if (ret && ret != -EOPNOTSUPP)
 		return ret;
 
